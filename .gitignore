@@ -1,16 +1,16 @@
 # Ignore only in frontend
-/frontend/node_modules/
-/frontend/package-lock.json
+/service/frontend/node_modules/
+/service/frontend/package-lock.json
 
 # Ignore output files
-/frontend/.next/
-/frontend/out/
+/service/frontend/.next/
+/service/frontend/out/
 
 # Environment configurations for the frontend
-/frontend/.env
-/frontend/.env.local
-/frontend/.env.development
-/frontend/.env.production
+/service/frontend/.env
+/service/frontend/.env.local
+/service/frontend/.env.development
+/service/frontend/.env.production
 
 # Log-Files
 npm-debug.log*
@@ -24,4 +24,3 @@ yarn-error.log*
 
 # Docker-Files
 docker-compose.override.yml
-
