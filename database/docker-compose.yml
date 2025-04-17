@@ -5,11 +5,19 @@ services:
     restart: always
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
       - DB_HOST=db
       - DB_USER=user
       - DB_PASSWORD=password
       - DB_NAME=mydatabase
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GHE_CLIENT_ID=${GHE_CLIENT_ID}
+      - GHE_CLIENT_SECRET=${GHE_CLIENT_SECRET}
+      - GITLAB_CLIENT_ID=${GITLAB_CLIENT_ID}
+      - GITLAB_CLIENT_SECRET=${GITLAB_CLIENT_SECRET}
     ports:
       - "8080:8080"
 
