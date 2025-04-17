@@ -1,9 +1,8 @@
-version: '3.8'
 services:
   backend:
-    build: ../backend
-    ports:
-      - "8080:8080"
+    build: ../service
+    container_name: backend
+    restart: always
     depends_on:
       - db
     environment:
@@ -11,16 +10,12 @@ services:
       - DB_USER=user
       - DB_PASSWORD=password
       - DB_NAME=mydatabase
-
-  frontend:
-    build: ../frontend
     ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+      - "8080:8080"
 
   db:
-    image: postgres
+    image: postgres:latest
+    container_name: postgres
     restart: always
     environment:
       POSTGRES_USER: user
@@ -33,6 +28,8 @@ services:
 
   prometheus:
     image: prom/prometheus
+    container_name: prometheus
+    restart: always
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -40,22 +37,30 @@ services:
 
   grafana:
     image: grafana/grafana
-    ports:
-      - "3001:3000"
+    container_name: grafana
+    restart: always
     depends_on:
       - prometheus
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    restart: always
     ports:
       - "8081:8080"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /sys:/sys
-      - /var/lib/docker/:/var/lib/docker
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
 volumes:
   pgdata:
+  grafana_data:
