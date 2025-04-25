@@ -23,6 +23,6 @@ func InitDB() {
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		fmt.Println("Fehler beim Verbinden mit der Datenbank:", err)
+		fmt.Println("Failed to connect to database:", err)
 	}
 }
