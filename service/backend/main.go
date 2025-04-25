@@ -106,7 +106,12 @@ func main() {
 		c.File("./static/index.html")
 	})
 	r.NoRoute(func(c *gin.Context) {
-		c.File("./static/index.html") // Next.js takes care of finding illegal pages
+		path := "./static" + c.Request.URL.Path
+		if _, err := http.Dir("./static").Open(c.Request.URL.Path); err == nil {
+			c.File(path) // deliver static file
+		} else {
+			c.File("./static/index.html") // Next.js takes care of finding illegal pages
+		}
 	})
 
 	r.Run("0.0.0.0:8080")
