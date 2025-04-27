@@ -44,7 +44,7 @@ var gitlabOAuth = &oauth2.Config{
 
 func main() {
 	db.InitDB()
-	models.AutoMigrate(db.DB)
+	db.AutoMigrate()
 
 	r := gin.Default()
 
