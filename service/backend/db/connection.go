@@ -11,7 +11,22 @@ import (
 
 var DB *gorm.DB
 
-func InitDB() {
+var defaultPermissions = []models.Permission{
+	{Model: gorm.Model{ID: 1}, Name: "CreateUser"},
+	{Model: gorm.Model{ID: 2}, Name: "DeleteUser"},
+	{Model: gorm.Model{ID: 3}, Name: "EditUser"},
+}
+
+var enumDefinitions = []struct {
+	TypeName  string
+	CreateSQL string
+}{
+	{"user_type", `CREATE TYPE user_type AS ENUM ('admin', 'user')`},
+	{"connection_type", `CREATE TYPE connection_type AS ENUM ('github', 'gitlab', 'ghes')`},
+	{"permission_type", `CREATE TYPE permission_type AS ENUM ('CreateUser', 'DeleteUser', 'EditUser')`},
+}
+
+func InitDB() error {
 	host := os.Getenv("DB_HOST")
 	if host == "" {
 		host = "localhost"
@@ -24,21 +39,26 @@ func InitDB() {
 
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		fmt.Println("Failed to connect to database:", err)
-	}
+	return err
 }
 
-func AutoMigrate() error {
-	enumDefinitions := []struct {
-		TypeName  string
-		CreateSQL string
-	}{
-		{"user_type", `CREATE TYPE user_type AS ENUM ('admin', 'user')`},
-		{"connection_type", `CREATE TYPE connection_type AS ENUM ('github', 'gitlab', 'ghes')`},
-		{"permission_type", `CREATE TYPE permission_type AS ENUM ('CreateUser', 'DeleteUser', 'EditUser')`},
-	}
+func removePermissions() error {
+	// Remove all existing permissions
+	err := DB.Exec("DELETE FROM permissions").Error
+	return err
+}
 
+func initializePermissions() error {
+	// Create new permissions
+	for _, permission := range defaultPermissions {
+		if err := DB.Create(&permission).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func initializeEnums() error {
 	for _, enum := range enumDefinitions {
 		// Delete the type if it already exists
 		dropSQL := `DROP TYPE IF EXISTS ` + enum.TypeName + ` CASCADE`
@@ -51,19 +71,31 @@ func AutoMigrate() error {
 			return err
 		}
 	}
+	return nil
+}
+
+func AutoMigrate() error {
+	if err := initializeEnums(); err != nil {
+		return err
+	}
+	if err := removePermissions(); err != nil {
+		return err
+	}
 
 	models := []interface{}{
 		&models.User{},
 		&models.Permission{},
 		&models.Connection{},
 		&models.UserConnection{},
+		&models.UserPermission{},
 		// Add further models here
 	}
-
 	for _, m := range models {
 		if err := DB.AutoMigrate(m); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	err := initializePermissions()
+	return err
 }
