@@ -6,6 +6,17 @@ import (
 	"gorm.io/gorm"
 )
 
+type UserInput struct {
+	Username       string       `json:"username" binding:"required"`
+	Email          string       `json:"email" binding:"required,email"`
+	PasswordExpiry time.Time    `json:"passwordExpiry"`
+	Description    string       `json:"description"`
+	Deactivated    bool         `json:"deactivated"`
+	PasswordSet    bool         `json:"passwordSet"`
+	UserType       string       `json:"type" binding:"required"`
+	Permissions    []Permission `json:"permissions"`
+}
+
 type User struct {
 	gorm.Model
 	Username       string    `gorm:"not null"`
@@ -15,16 +26,22 @@ type User struct {
 	AccountUpdated time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 	PasswordExpiry time.Time `gorm:"not null"`
 	Description    string
-	PasswordSet    bool         `gorm:"not null"`                // Boolean value to force to set a new password
-	UserType       string       `gorm:"type:user_type;not null"` // Enum for a user type
-	Permissions    []Permission // One-to-Many relation to permissions
+	Deactivated    bool
+	PasswordSet    bool         `gorm:"not null"`                   // Boolean value to force to set a new password
+	UserType       string       `gorm:"type:user_type;not null"`    // Enum for a user type
+	Permissions    []Permission `gorm:"many2many:user_permissions"` // Many-to-many relation to permissions
 	Connections    []Connection `gorm:"many2many:user_connections"` // Many-to-many relation to connections
 }
 
 type Permission struct {
 	gorm.Model
-	Name   string `gorm:"type:permission_type;not null"` // Enum for permissions
-	UserID uint   `gorm:"not null"`                      // foreign key to user table
+	Name string `gorm:"type:permission_type;not null"` // Enum for permissions
+}
+
+type UserPermission struct {
+	UserID       uint      `gorm:"primaryKey"`
+	PermissionID uint      `gorm:"primaryKey"`
+	CreatedAt    time.Time `gorm:"autoCreateTime"`
 }
 
 type Connection struct {
