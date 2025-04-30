@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"githubclone-backend/models"
+	"log"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -42,16 +43,11 @@ func InitDB() error {
 	return err
 }
 
-func removePermissions() error {
-	// Remove all existing permissions
-	err := DB.Exec("DELETE FROM permissions").Error
-	return err
-}
-
 func initializePermissions() error {
 	// Create new permissions
 	for _, permission := range defaultPermissions {
-		if err := DB.Create(&permission).Error; err != nil {
+		// Prüfe, ob die Permission bereits existiert, bevor du sie einfügst
+		if err := DB.FirstOrCreate(&models.Permission{}, models.Permission{Name: permission.Name}).Error; err != nil {
 			return err
 		}
 	}
@@ -59,16 +55,26 @@ func initializePermissions() error {
 }
 
 func initializeEnums() error {
-	for _, enum := range enumDefinitions {
-		// Delete the type if it already exists
-		dropSQL := `DROP TYPE IF EXISTS ` + enum.TypeName + ` CASCADE`
-		if err := DB.Exec(dropSQL).Error; err != nil {
+	for _, enumDef := range enumDefinitions {
+		var exists bool
+		err := DB.Raw(`
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_type
+                WHERE typname = ?
+            )
+        `, enumDef.TypeName).Scan(&exists).Error
+		if err != nil {
 			return err
 		}
 
-		// Create the type
-		if err := DB.Exec(enum.CreateSQL).Error; err != nil {
-			return err
+		if !exists {
+			if err := DB.Exec(enumDef.CreateSQL).Error; err != nil {
+				return err
+			}
+			log.Printf("Created enum type: %s\n", enumDef.TypeName)
+		} else {
+			log.Printf("Enum type %s already exists\n", enumDef.TypeName)
 		}
 	}
 	return nil
@@ -76,9 +82,6 @@ func initializeEnums() error {
 
 func AutoMigrate() error {
 	if err := initializeEnums(); err != nil {
-		return err
-	}
-	if err := removePermissions(); err != nil {
 		return err
 	}
 
@@ -95,7 +98,6 @@ func AutoMigrate() error {
 			return err
 		}
 	}
-
 	err := initializePermissions()
 	return err
 }
