@@ -19,8 +19,8 @@ type UserInput struct {
 
 type User struct {
 	gorm.Model
-	Username       string    `gorm:"not null"`
-	Email          string    `gorm:"unique;not null"`
+	Username       string    `gorm:"unique;not null"`
+	Email          string    `gorm:"not null"`
 	PasswordHash   string    `gorm:"not null"`
 	AccountCreated time.Time `gorm:"default:CURRENT_TIMESTAMP"`
 	AccountUpdated time.Time `gorm:"default:CURRENT_TIMESTAMP"`
