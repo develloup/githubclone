@@ -27,10 +27,14 @@ func SetConfiguration(key, value string) error {
 	return db.DB.Create(&models.Configuration{Key: key, Value: value}).Error
 }
 
-func GetConfiguration(key string) string {
+func GetConfiguration(key string) (string, error) {
+	if _, exists := AllowedKeys[key]; !exists {
+		return "", fmt.Errorf("invalid configuration key: %s", key)
+	}
+
 	var config models.Configuration
 	if err := db.DB.First(&config, "key = ?", key).Error; err == nil {
-		return config.Value
+		return config.Value, nil
 	}
-	return AllowedKeys[key]
+	return AllowedKeys[key], nil
 }
