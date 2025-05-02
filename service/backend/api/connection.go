@@ -1,57 +1,149 @@
 package api
 
 import (
+	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
+type updateconnectionType struct {
+	ID           uint    `json:"userid"`
+	Type         *string `json:"type"`
+	URL          *string `json:"url"`
+	ClientID     *string `json:"clientid"`
+	ClientSecret *string `json:"clientsecret"`
+	Description  *string `json:"description"`
+}
+
+type connectionType struct {
+	ID             uint   `json:"connectionid"`
+	Connectionname string `json:"name"`
+	Type           string `json:"type"`
+	ClientID       string `json:"clientid"`
+	ClientSecret   string `json:"clientsecret"`
+	Description    string `json:"description"`
+}
+
 type ConnectionInput struct {
-	ConnectionName string  `json:"username" binding:"required"`
+	ConnectionName string  `json:"name" binding:"required"`
 	Type           string  `json:"type" binding:"required"`
 	URL            *string `json:"url"`
 	ClientID       string  `json:"clientid" binding:"required"`
 	ClientSecret   string  `json:"clientsecret" binding:"required"`
+	Deactivated    bool    `json:"deactivated"`
+	Description    string  `json:"description"`
+}
+
+func convertToConnection(input ConnectionInput) models.Connection {
+	tnow := time.Now()
+	connection := models.Connection{
+		ConnectionName: input.ConnectionName,
+		Type:           input.Type,
+		CreatedAt:      tnow,
+		UpdatedAt:      tnow,
+		Description:    input.Description,
+		ClientID:       input.ClientID,
+		ClientSecret:   input.ClientSecret,
+		Deactivated:    input.Deactivated,
+	}
+	return connection
 }
 
 func CreateConnection(c *gin.Context) {
-	var connection models.Connection
-	if err := c.ShouldBindJSON(&connection); err != nil {
+	var connectionInput ConnectionInput
+	if err := c.ShouldBindJSON(&connectionInput); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := db.DB.Create(&connection).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	connection := convertToConnection(connectionInput)
+
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var existing models.Connection
+		if err := tx.Unscoped().Where("connection_name = ?", connectionInput.ConnectionName).First(&existing).Error; err == nil {
+			if existing.DeletedAt.Valid {
+				if err := tx.Unscoped().Delete(&existing).Error; err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("connection with the same name already exists")
+			}
+		}
+		if err := tx.Create(&connection).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		if err.Error() == "connection with the same name already exists" {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
-
-	c.JSON(http.StatusCreated, connection)
+	c.JSON(http.StatusCreated, gin.H{
+		"message":    "connection created successfully.",
+		"connection": connection,
+	})
 }
 
 func UpdateConnection(c *gin.Context) {
-	var connection models.Connection
+	var connectionInput updateconnectionType
+	var connectionInputNew updateconnectionType
 	id := c.Param("id")
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
+		var connection models.Connection
+		if err := db.DB.First(&connection, id).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("connection not found")
+			}
+			return fmt.Errorf("failed to retrieve connection: %v", err)
+		}
 
-	if err := db.DB.First(&connection, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+		if err := c.ShouldBindJSON(&connectionInput); err != nil {
+			return fmt.Errorf("invalid input: %v", err)
+		}
+		if connectionInput.URL != nil {
+			connection.URL = connectionInput.URL
+		}
+		if connectionInput.ClientID != nil {
+			connection.ClientID = *connectionInput.ClientID
+		}
+		if connectionInput.ClientSecret != nil {
+			connection.ClientSecret = *connectionInput.ClientSecret
+		}
+		if connectionInput.Description != nil {
+			connection.Description = *connectionInput.Description
+		}
+
+		if err := tx.Save(&connection).Error; err != nil {
+			return fmt.Errorf("failed to update connection: %v", err)
+		}
+		connectionInputNew.ID = connection.ID
+		connectionInputNew.Type = &connection.Type
+		connectionInputNew.URL = connection.URL
+		connectionInputNew.ClientID = &connection.ClientID
+		connectionInputNew.ClientSecret = &connection.ClientSecret
+		connectionInputNew.Description = &connection.Description
+		return nil
+	})
+	if err != nil {
+		if err.Error() == "connection not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
-
-	if err := c.ShouldBindJSON(&connection); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := db.DB.Save(&connection).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, connection)
+	c.JSON(http.StatusOK, gin.H{"message": "connection updated successfully", "request": connectionInput, "connection": connectionInputNew})
 }
 
 func DeleteConnection(c *gin.Context) {
@@ -59,6 +151,14 @@ func DeleteConnection(c *gin.Context) {
 	id := c.Param("id")
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("connection_id = ?", id).Delete(&models.UserConnection{}).Error; err != nil {
+			return err
+		}
+		if err := tx.First(&connection, id).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
+				return err
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve connection"})
 			return err
 		}
 		if err := db.DB.Delete(&connection, id).Error; err != nil {
@@ -70,20 +170,22 @@ func DeleteConnection(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Connection deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "connection deleted"})
 }
 
 func GetConnection(c *gin.Context) {
-	var connection ConnectionInput
+	var connection connectionType
 	id := c.Param("id")
 
 	if err := db.DB.Model(&models.Connection{}).
-		Select("id, connectionname, type, url, clientid, clientsecret").
-		Where("id = ?", id).First(&connection).Error; err != nil {
+		Clauses(clause.Locking{Strength: "SHARE"}).
+		Select("id, connection_name, type, url, client_id, client_secret, description").
+		Where("id = ? AND deactivated = ?", id, false).
+		First(&connection).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Connection not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve connection"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve connection"})
 		}
 		return
 	}
@@ -91,13 +193,20 @@ func GetConnection(c *gin.Context) {
 }
 
 func GetAllConnections(c *gin.Context) {
-	var connections []models.Connection
+	var connections []connectionType
 
-	if err := db.DB.Find(&connections).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := db.DB.Model(&models.Connection{}).
+		Clauses(clause.Locking{Strength: "SHARE"}).
+		Select("id, connection_name, type, url, client_id, client_secret, description").
+		Where("deactivated = ?", false).
+		Find(&connections).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve connections"})
 		return
 	}
-
+	if len(connections) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no connections found"})
+		return
+	}
 	c.JSON(http.StatusOK, connections)
 }
 
