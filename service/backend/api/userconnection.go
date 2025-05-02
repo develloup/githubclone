@@ -94,7 +94,7 @@ func GetUserConnections(c *gin.Context) {
 
 	var connections []models.Connection
 	if err := db.DB.Model(&models.User{}).
-		Clauses(clause.Locking{Strength: "FOR SHARE"}).
+		Clauses(clause.Locking{Strength: "SHARE"}).
 		Where("id = ?", userID).
 		Association("Connections").Find(&connections); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch connections"})
@@ -109,7 +109,7 @@ func GetAllUserConnections(c *gin.Context) {
 
 	var userConnections []UserConnectionInput
 	if err := db.DB.Model(&models.UserConnection{}).
-		Clauses(clause.Locking{Strength: "FOR SHARE"}).
+		Clauses(clause.Locking{Strength: "SHARE"}).
 		Select("user_id, connection_id").
 		Where("user_id = ?", userID).
 		Find(&userConnections).Error; err != nil {
