@@ -18,17 +18,17 @@ type updateuserType struct {
 	Description *string `json:"description"`
 }
 
-type userType []struct {
+type userType struct {
 	ID          uint   `json:"userid"`
-	Username    string `json:"username"`
+	Username    string `json:"name"`
 	Email       string `json:"email"`
 	Description string `json:"description"`
 }
 
 type UserInput struct {
-	Username       string              `json:"username" binding:"required"`
+	Username       string              `json:"name" binding:"required"`
 	Email          string              `json:"email" binding:"required,email"`
-	PasswordExpiry time.Time           `json:"passwordExpiry"`
+	PasswordExpiry time.Time           `json:"passwordexpiry"`
 	Description    string              `json:"description"`
 	Deactivated    bool                `json:"deactivated"`
 	PasswordSet    bool                `json:"passwordSet"`
@@ -71,7 +71,7 @@ func CreateUser(c *gin.Context) {
 					return err
 				}
 			} else {
-				return fmt.Errorf("user with the same username already exists")
+				return fmt.Errorf("user with the same name already exists")
 			}
 		}
 
@@ -99,7 +99,7 @@ func CreateUser(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		if err.Error() == "User with the same username already exists" {
+		if err.Error() == "user with the same name already exists" {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -116,6 +116,7 @@ func CreateUser(c *gin.Context) {
 
 func UpdateUser(c *gin.Context) {
 	var userInput updateuserType
+	var userInputNew updateuserType
 
 	id := c.Param("id")
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
@@ -139,6 +140,9 @@ func UpdateUser(c *gin.Context) {
 		if err := tx.Save(&user).Error; err != nil {
 			return fmt.Errorf("failed to update user: %v", err)
 		}
+		userInputNew.ID = user.ID
+		userInputNew.Email = &user.Email
+		userInputNew.Description = &user.Description
 		return nil
 	})
 
@@ -150,7 +154,7 @@ func UpdateUser(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": userInput})
+	c.JSON(http.StatusOK, gin.H{"message": "user updated successfully", "request": userInput, "user": userInputNew})
 }
 
 func DeleteUser(c *gin.Context) {
@@ -163,18 +167,18 @@ func DeleteUser(c *gin.Context) {
 		}
 		if err := tx.First(&user, id).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 				return err
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user"})
 			return err
 		}
 		if err := tx.Where("user_id = ?", id).Delete(&models.UserPermission{}).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user permissions"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete user permissions"})
 			return err
 		}
 		if err := tx.Delete(&user).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete user"})
 			return err
 		}
 		return nil
@@ -183,7 +187,7 @@ func DeleteUser(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "user deleted successfully"})
 }
 
 func SetNewPassword(c *gin.Context) {
@@ -199,14 +203,14 @@ func GetUser(c *gin.Context) {
 	id := c.Param("id")
 
 	if err := db.DB.Model(&models.User{}).
-		Clauses(clause.Locking{Strength: "FOR SHARE"}).
+		Clauses(clause.Locking{Strength: "SHARE"}).
 		Select("id, username, email, description").
 		Where("id = ? AND deactivated = ?", id, false).
 		First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user"})
 		}
 		return
 	}
@@ -214,13 +218,17 @@ func GetUser(c *gin.Context) {
 }
 
 func GetAllUsers(c *gin.Context) {
-	var users userType
+	var users []userType
 	if err := db.DB.Model(&models.User{}).
-		Clauses(clause.Locking{Strength: "FOR SHARE"}).
+		Clauses(clause.Locking{Strength: "SHARE"}).
 		Select("id, username, email, description").
-		// Where("deactivated = ?", false).
+		Where("deactivated = ?", false).
 		Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch users"})
+		return
+	}
+	if len(users) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no users found"})
 		return
 	}
 	c.JSON(http.StatusOK, users)
