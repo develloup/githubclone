@@ -38,6 +38,9 @@ func main() {
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	api.UserRoutes(r)
 	api.SessionRoutes(r)
+	api.ConnectionRoutes(r)
+	api.UserConnectionRoutes(r)
+	api.ConfigurationRoutes(r)
 	frontend.Routes(r)
 
 	r.Run("0.0.0.0:8080")
