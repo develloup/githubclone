@@ -91,6 +91,7 @@ func AutoMigrate() error {
 		&models.Connection{},
 		&models.UserConnection{},
 		&models.UserPermission{},
+		&models.Configuration{},
 		// Add further models here
 	}
 	for _, m := range models {
