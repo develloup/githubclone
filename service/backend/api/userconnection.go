@@ -17,6 +17,13 @@ type UserConnectionInput struct {
 	ConnectionID uint `json:"connectionid" binding:"required"`
 }
 
+type UserConnections struct {
+	UserID         uint   `json:"user_id"`
+	ConnectionID   uint   `json:"connection_id"`
+	UserName       string `json:"user_name"`
+	ConnectionName string `json:"connection_name"`
+}
+
 func convertToUserConnection(input UserConnectionInput) models.UserConnection {
 	tnow := time.Now()
 	userConnection := models.UserConnection{
@@ -31,7 +38,7 @@ func CreateUserConnection(c *gin.Context) {
 	var userConnectionInput UserConnectionInput
 
 	if err := c.ShouldBindJSON(&userConnectionInput); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
 		return
 	}
 
@@ -71,7 +78,7 @@ func CreateUserConnection(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
-		"message":        "User connection created successfully",
+		"message":        "user connection created successfully",
 		"userConnection": userConnection,
 	})
 }
@@ -82,40 +89,28 @@ func DeleteUserConnection(c *gin.Context) {
 
 	if err := db.DB.Where("user_id = ? AND connection_id = ?", userID, connectionID).
 		Delete(&models.UserConnection{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete UserConnection"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete userconnection"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "UserConnection deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "userconnection deleted successfully"})
 }
 
 func GetUserConnections(c *gin.Context) {
 	userID := c.Param("userId")
 
-	var connections []models.Connection
-	if err := db.DB.Model(&models.User{}).
+	var userConnections []UserConnections
+
+	if err := db.DB.Table("user_connections").
 		Clauses(clause.Locking{Strength: "SHARE"}).
-		Where("id = ?", userID).
-		Association("Connections").Find(&connections); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch connections"})
-		return
-	}
-
-	c.JSON(http.StatusOK, connections)
-}
-
-func GetAllUserConnections(c *gin.Context) {
-	userID := c.Param("userId")
-
-	var userConnections []UserConnectionInput
-	if err := db.DB.Model(&models.UserConnection{}).
-		Clauses(clause.Locking{Strength: "SHARE"}).
-		Select("user_id, connection_id").
-		Where("user_id = ?", userID).
+		Select("user_connections.user_id, user_connections.connection_id, users.username AS user_name, connections.connection_name AS connection_name").
+		Joins("JOIN users ON users.id = user_connections.user_id").
+		Joins("JOIN connections ON connections.id = user_connections.connection_id").
+		Where("user_connections.user_id = ?", userID).
 		Find(&userConnections).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch UserConnections"})
-		return
 	}
+
 	c.JSON(http.StatusOK, userConnections)
 }
 
@@ -123,5 +118,4 @@ func UserConnectionRoutes(r *gin.Engine) {
 	r.POST("/user-connections", CreateUserConnection)
 	r.GET("/user-connections/:userId", GetUserConnections)
 	r.DELETE("/user-connections/:userId/:connectionId", DeleteUserConnection)
-	r.GET("/user-connections/:userId/all", GetAllUserConnections)
 }
