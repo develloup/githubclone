@@ -4,11 +4,12 @@ services:
     container_name: backend
     restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
     environment:
-      - DB_HOST=db
+      - DB_HOST=postgres
       - DB_USER=user
       - DB_PASSWORD=password
       - DB_NAME=githubclone
@@ -30,6 +31,11 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: githubclone
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d githubclone"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
     ports:
       - "5432:5432"
     volumes:
@@ -48,7 +54,7 @@ services:
   grafana:
     image: grafana/grafana
     container_name: grafana
-    restart: always
+    restart: always 
     depends_on:
       - prometheus
     environment:
