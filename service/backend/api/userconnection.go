@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type UserConnectionInput struct {
@@ -96,26 +95,8 @@ func DeleteUserConnection(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "userconnection deleted successfully"})
 }
 
-func GetUserConnections(c *gin.Context) {
-	userID := c.Param("userId")
-
-	var userConnections []UserConnections
-
-	if err := db.DB.Table("user_connections").
-		Clauses(clause.Locking{Strength: "SHARE"}).
-		Select("user_connections.user_id, user_connections.connection_id, users.username AS user_name, connections.connection_name AS connection_name").
-		Joins("JOIN users ON users.id = user_connections.user_id").
-		Joins("JOIN connections ON connections.id = user_connections.connection_id").
-		Where("user_connections.user_id = ?", userID).
-		Find(&userConnections).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch UserConnections"})
-	}
-
-	c.JSON(http.StatusOK, userConnections)
-}
-
 func UserConnectionRoutes(r *gin.Engine) {
 	r.POST("/user-connections", CreateUserConnection)
-	r.GET("/user-connections/:userId", GetUserConnections)
+	r.GET("/user-connections/:id", GetConnectionsForUser)
 	r.DELETE("/user-connections/:userId/:connectionId", DeleteUserConnection)
 }
