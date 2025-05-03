@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
@@ -245,16 +246,22 @@ func GetConnectionsForUser(c *gin.Context) {
 
 	var userConnections []UserConnections
 
-	if err := db.DB.Table("user_connections").
+	query := db.DB.Table("user_connections").
 		Clauses(clause.Locking{Strength: "SHARE"}).
 		Select("user_connections.user_id, user_connections.connection_id, users.username AS user_name, connections.connection_name AS connection_name").
 		Joins("JOIN users ON users.id = user_connections.user_id").
 		Joins("JOIN connections ON connections.id = user_connections.connection_id").
-		Where("user_connections.user_id = ?", userID).
-		Find(&userConnections).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch UserConnections"})
-	}
+		Where("user_connections.user_id = ?", userID)
 
+	err := query.Find(&userConnections).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error while fetching user connections"})
+		return
+	}
+	if len(userConnections) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No connections found for this user"})
+		return
+	}
 	c.JSON(http.StatusOK, userConnections)
 }
 
