@@ -23,7 +23,7 @@ type updateconnectionType struct {
 
 type connectionType struct {
 	ID             uint   `json:"connectionid"`
-	Connectionname string `json:"name"`
+	ConnectionName string `json:"name"`
 	Type           string `json:"type"`
 	ClientID       string `json:"clientid"`
 	ClientSecret   string `json:"clientsecret"`
@@ -210,10 +210,36 @@ func GetAllConnections(c *gin.Context) {
 	c.JSON(http.StatusOK, connections)
 }
 
+func GetUsersForConnection(c *gin.Context) {
+	connectionID := c.Param("id")
+
+	var connection models.Connection
+	if err := db.DB.First(&connection, connectionID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "connection not found"})
+		return
+	}
+
+	var userConnections []UserConnections
+
+	if err := db.DB.Table("user_connections").
+		Clauses(clause.Locking{Strength: "SHARE"}).
+		Select("user_connections.user_id, user_connections.connection_id, users.username AS user_name, connections.connection_name AS connection_name").
+		Joins("JOIN users ON users.id = user_connections.user_id").
+		Joins("JOIN connections ON connections.id = user_connections.connection_id").
+		Where("user_connections.connection_id = ?", connectionID).
+		Find(&userConnections).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch userconnections"})
+	}
+
+	c.JSON(http.StatusOK, userConnections)
+
+}
+
 func ConnectionRoutes(r *gin.Engine) {
 	r.POST("/connections", CreateConnection)
 	r.PUT("/connections/:id", UpdateConnection)
 	r.DELETE("/connections/:id", DeleteConnection)
 	r.GET("/connections/:id", GetConnection)
 	r.GET("/connections", GetAllConnections)
+	r.GET("/connections/:id/users", GetUsersForConnection)
 }
