@@ -12,8 +12,8 @@ type User struct {
 	Email          string       `gorm:"default:''"`
 	PasswordHash   string       `gorm:"not null;default:''"`
 	CreatedAt      time.Time    `gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt      time.Time    `gorm:"default:CURRENT_TIMESTAMP"`
-	PasswordExpiry time.Time    `gorm:"not null"`
+	UpdatedAt      time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	PasswordExpiry time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP"`
 	Description    string       `gorm:"default:''"`
 	Deactivated    bool         `gorm:"not null;default:false"`
 	Deletable      bool         `gorm:"not null;default:true"`
@@ -42,13 +42,14 @@ type Connection struct {
 	ClientID       string    `gorm:"not null"`
 	ClientSecret   string    `gorm:"not null"`
 	CreatedAt      time.Time `gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt      time.Time `gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt      time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
 	Description    string    `gorm:"default:''"`
 	Deactivated    bool      `gorm:"not null"`
 }
 
 type UserConnection struct {
-	UserID       uint      `gorm:"primaryKey"`
-	ConnectionID uint      `gorm:"primaryKey"`
+	UserID       uint      `gorm:"primaryKey;constraint:OnDelete:CASCADE"`
+	ConnectionID uint      `gorm:"primaryKey;constraint:OnDelete:CASCADE"`
 	CreatedAt    time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt    time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
 }
