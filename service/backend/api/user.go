@@ -234,6 +234,30 @@ func GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+func GetConnectionsForUser(c *gin.Context) {
+	userID := c.Param("id")
+
+	var user models.User
+	if err := db.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	var userConnections []UserConnections
+
+	if err := db.DB.Table("user_connections").
+		Clauses(clause.Locking{Strength: "SHARE"}).
+		Select("user_connections.user_id, user_connections.connection_id, users.username AS user_name, connections.connection_name AS connection_name").
+		Joins("JOIN users ON users.id = user_connections.user_id").
+		Joins("JOIN connections ON connections.id = user_connections.connection_id").
+		Where("user_connections.user_id = ?", userID).
+		Find(&userConnections).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch UserConnections"})
+	}
+
+	c.JSON(http.StatusOK, userConnections)
+}
+
 func UserRoutes(r *gin.Engine) {
 	r.POST("/users", CreateUser)
 	r.PUT("/users/:id", UpdateUser)
@@ -242,4 +266,5 @@ func UserRoutes(r *gin.Engine) {
 	r.PUT("/user/:id/password", ChangePassword)
 	r.GET("/users/:id", GetUser)
 	r.GET("/users", GetAllUsers)
+	r.GET("/users/:id/connections", GetConnectionsForUser)
 }
