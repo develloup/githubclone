@@ -13,7 +13,7 @@ type User struct {
 	PasswordHash   string       `gorm:"not null;default:''"`
 	CreatedAt      time.Time    `gorm:"default:CURRENT_TIMESTAMP"`
 	UpdatedAt      time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP"`
-	PasswordExpiry time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	PasswordExpiry *time.Time   `gorm:"default:NULL"`
 	Description    string       `gorm:"default:''"`
 	Deactivated    bool         `gorm:"not null;default:false"`
 	Deletable      bool         `gorm:"not null;default:true"`
