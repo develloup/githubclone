@@ -242,10 +242,10 @@ func GetUsersForConnection(c *gin.Context) {
 }
 
 func ConnectionRoutes(r *gin.Engine) {
-	r.POST("/connections", CreateConnection)
-	r.PUT("/connections/:id", UpdateConnection)
-	r.DELETE("/connections/:id", DeleteConnection)
-	r.GET("/connections/:id", GetConnection)
-	r.GET("/connections", GetAllConnections)
-	r.GET("/connections/:id/users", GetUsersForConnection)
+	r.POST("/api/connections", CreateConnection)
+	r.PUT("/api/connections/:id", UpdateConnection)
+	r.DELETE("/api/connections/:id", DeleteConnection)
+	r.GET("/api/connections/:id", GetConnection)
+	r.GET("/api/connections", GetAllConnections)
+	r.GET("/api/connections/:id/users", GetUsersForConnection)
 }
