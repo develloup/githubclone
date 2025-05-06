@@ -1,21 +1,28 @@
 package api
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
 	"net/http"
-	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
+	"golang.org/x/oauth2/gitlab"
 )
+
+var oauthConfigMap = make(map[string]map[string]*oauth2.Config)
+var oauthTokenChannels = make(map[string]chan string)
+var oauthConfigMutex sync.Mutex
+var baseURL = os.Getenv("BASE_URL")
 
 func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -32,174 +39,152 @@ func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 	}
 	return tokenString, nil
 }
-func GetOAuth2Token(clientID, clientSecret, serviceType string) (string, error) {
-	var tokenURL string
+
+func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string) (*oauth2.Config, error) {
+	var config *oauth2.Config
 
 	switch serviceType {
 	case "github":
-		tokenURL = "https://github.com/login/oauth/access_token"
+		config = &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  fmt.Sprintf("%s/callback/github", baseURL),
+			Scopes:       []string{"repo", "user"},
+			Endpoint:     github.Endpoint,
+		}
+	case "github_enterprise":
+		config = &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  fmt.Sprintf("%s/callback/github_enterprise", baseURL),
+			Scopes:       []string{"repo", "user"},
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", ghesURL),
+				TokenURL: fmt.Sprintf("%s/login/oauth/access_token", ghesURL),
+			},
+		}
 	case "gitlab":
-		tokenURL = "https://gitlab.com/oauth/token"
+		config = &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  fmt.Sprintf("%s/callback/gitlab", baseURL),
+			Scopes:       []string{"read_user", "api"},
+			Endpoint:     gitlab.Endpoint,
+		}
 	default:
-		return "", fmt.Errorf("unsupported connection type: %s", serviceType)
+		return nil, fmt.Errorf("unsupported service type: %s", serviceType)
 	}
-
-	// API-Request an OAuth2 Provider senden
-	data := url.Values{}
-	data.Set("client_id", clientID)
-	data.Set("client_secret", clientSecret)
-	data.Set("grant_type", "client_credentials")
-
-	resp, err := http.PostForm(tokenURL, data)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		AccessToken string `json:"access_token"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
-	}
-
-	return result.AccessToken, nil
+	return config, nil
 }
+
 func Login(c *gin.Context) {
 	var request struct {
 		Identifier string `json:"identifier"` // Kann E-Mail ODER Username sein
 		Password   string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request format"})
 		return
 	}
 
-	// Benutzer suchen mit E-Mail oder Username
 	var user models.User
 	if err := db.DB.Where("email = ? OR username = ?", request.Identifier, request.Identifier).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username/email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username/email or password"})
 		return
 	}
-
-	// Passwort überprüfen
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(request.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username/email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username/email or password"})
 		return
 	}
 
-	// **OAuth2-Token für alle Connections abrufen**
 	var userConnections []models.Connection
 	if err := db.DB.Model(&user).Association("Connections").Find(&userConnections); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user connections"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user connections"})
 		return
 	}
 
-	tokens := make(map[string]string) // Map für gespeicherte Tokens
+	sessionID := uuid.New().String()
+	oauthConfigMutex.Lock()
+	oauthConfigMap[sessionID] = make(map[string]*oauth2.Config)
 	for _, connection := range userConnections {
-		// Token über OAuth2 abrufen
-		token, err := GetOAuth2Token(connection.ClientID, connection.ClientSecret, connection.Type)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to retrieve token for %s", connection.ConnectionName)})
-			return
-		}
-		tokens[connection.Type] = token // Token speichern
+		oauthConfigMap[sessionID][connection.Type], _ = getOAuth2Config(connection.ClientID, connection.ClientSecret, connection.Type, connection.URL)
+	}
+	oauthConfigMutex.Unlock()
+
+	// Generiere die OAuth2-Login-URLs
+	loginURLs := make(map[string]string)
+	for _, connection := range userConnections {
+		loginURLs[connection.Type] = fmt.Sprintf("%s/login/%s?state=%s", baseURL, connection.Type, sessionID)
 	}
 
-	// **Session-Token mit gespeicherten Zugriffstokens erzeugen**
-	tokenString, err := GenerateJWT(user.ID, tokens)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate session token"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful", "token": tokenString})
+	// Antwort an das Frontend mit den OAuth2-Login-Links
+	c.JSON(http.StatusOK, gin.H{
+		"message":          "Login successful, please authenticate via OAuth2",
+		"session_id":       sessionID,
+		"oauth_login_urls": loginURLs,
+	})
 }
 
 func Logout(c *gin.Context) {
-
-}
-
-var githubOAuth = &oauth2.Config{
-	ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
-	ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-	RedirectURL:  "http://localhost:8080/callback/github",
-	Scopes:       []string{"repo", "user"},
-	Endpoint:     github.Endpoint,
-}
-
-var githubEnterpriseOAuth = &oauth2.Config{
-	ClientID:     os.Getenv("GHE_CLIENT_ID"),
-	ClientSecret: os.Getenv("GHE_CLIENT_SECRET"),
-	RedirectURL:  "http://localhost:8080/callback/github_enterprise",
-	Scopes:       []string{"repo", "user"},
-	Endpoint: oauth2.Endpoint{
-		AuthURL:  "https://github.seeyou.com/login/oauth/authorize",
-		TokenURL: "https://github.seeyou.com/login/oauth/access_token",
-	},
-}
-
-var gitlabOAuth = &oauth2.Config{
-	ClientID:     os.Getenv("GITLAB_CLIENT_ID"),
-	ClientSecret: os.Getenv("GITLAB_CLIENT_SECRET"),
-	RedirectURL:  "http://localhost:8080/callback/gitlab",
-	Scopes:       []string{"read_user", "api"},
-	Endpoint: oauth2.Endpoint{
-		AuthURL:  "https://gitlab.com/oauth/authorize",
-		TokenURL: "https://gitlab.com/oauth/token",
-	},
 }
 
 func LoginProvider(c *gin.Context) {
 	provider := c.Param("provider")
+	sessionID := c.Query("state")
 
-	var config *oauth2.Config
-	switch provider {
-	case "github":
-		config = githubOAuth
-	case "github_enterprise":
-		config = githubEnterpriseOAuth
-	case "gitlab":
-		config = gitlabOAuth
-	default:
-		c.JSON(400, gin.H{"error": "Invalid provider"})
+	oauthConfigMutex.Lock()
+	config, exists := oauthConfigMap[sessionID][provider]
+	oauthConfigMutex.Unlock()
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No OAuth2 config found for this session"})
 		return
 	}
 
-	url := config.AuthCodeURL("state-token")
+	url := config.AuthCodeURL(sessionID)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func CallbackProvider(c *gin.Context) {
 	provider := c.Param("provider")
+	sessionID := c.Query("state") // Session-ID aus der URL holen
+	code := c.Query("code")
 
-	var config *oauth2.Config
-	switch provider {
-	case "github":
-		config = githubOAuth
-	case "github_enterprise":
-		config = githubEnterpriseOAuth
-	case "gitlab":
-		config = gitlabOAuth
-	default:
-		c.JSON(400, gin.H{"error": "Invalid provider"})
+	if code == "" || sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization code or session ID missing"})
 		return
 	}
 
-	code := c.Query("code")
-	token, err := config.Exchange(c, code)
+	oauthConfigMutex.Lock()
+	config, exists := oauthConfigMap[sessionID][provider]
+	oauthConfigMutex.Unlock()
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No OAuth2 config found for this session"})
+		return
+	}
+
+	// Tausche den Code gegen das Access-Token
+	token, err := config.Exchange(context.Background(), code)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token exchange failed"})
 		return
 	}
 
-	// Speichere das Token für spätere API-Anfragen
-	c.JSON(http.StatusOK, gin.H{"access_token": token.AccessToken})
+	// Token an den richtigen Channel senden
+	oauthConfigMutex.Lock()
+	if tokenChannel, exists := oauthTokenChannels[sessionID]; exists {
+		tokenChannel <- token.AccessToken
+		delete(oauthTokenChannels, sessionID) // Nach Nutzung entfernen
+	}
+	oauthConfigMutex.Unlock()
+
+	c.JSON(http.StatusOK, gin.H{"access_token": token})
 }
 
 func SessionRoutes(r *gin.Engine) {
-	r.POST("/login", Login)
-	r.POST("/logout", Logout)
+	r.POST("/api/login", Login)
+	r.POST("/api/logout", Logout)
 	r.GET("/callback/:provider", CallbackProvider)
 	r.GET("/login/:provider", LoginProvider)
 }
