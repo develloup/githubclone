@@ -16,14 +16,14 @@ func main() {
 
 	logFile, err := os.OpenFile("githubclone.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalf("Fehler beim Öffnen/Erstellen der Log-Datei: %v", err)
+		log.Fatalf("error during opening/creation of log file: %v", err)
 	}
 	defer logFile.Close()
 
 	// Multi-Writer für stdout, stderr und Datei
 	multiWriter := io.MultiWriter(os.Stdout, os.Stderr, logFile)
 
-	// Setze die Ausgabe des log-Pakets
+	// Set the output of the log
 	log.SetOutput(multiWriter)
 	db.InitDB()
 	db.AutoMigrate()
