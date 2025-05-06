@@ -96,7 +96,7 @@ func DeleteUserConnection(c *gin.Context) {
 }
 
 func UserConnectionRoutes(r *gin.Engine) {
-	r.POST("/user-connections", CreateUserConnection)
-	r.GET("/user-connections/:id", GetConnectionsForUser)
-	r.DELETE("/user-connections/:userId/:connectionId", DeleteUserConnection)
+	r.POST("/api/user-connections", CreateUserConnection)
+	r.GET("/api/user-connections/:id", GetConnectionsForUser)
+	r.DELETE("/api/user-connections/:userId/:connectionId", DeleteUserConnection)
 }

@@ -68,7 +68,7 @@ func SetConfig(c *gin.Context) {
 }
 
 func ConfigurationRoutes(r *gin.Engine) {
-	r.GET("/config/:key", GetConfig)
-	r.POST("/config", SetConfig)
-	r.POST("/config/multiple", GetMultipleConfigs)
+	r.GET("/api/config/:key", GetConfig)
+	r.POST("/api/config", SetConfig)
+	r.POST("/api/config/multiple", GetMultipleConfigs)
 }

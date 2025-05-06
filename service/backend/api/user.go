@@ -458,12 +458,12 @@ func GetConnectionsForUser(c *gin.Context) {
 }
 
 func UserRoutes(r *gin.Engine) {
-	r.POST("/users", CreateUser)
-	r.PUT("/users/:id", UpdateUser)
-	r.DELETE("/users/:id", DeleteUser)
-	r.POST("/users/:id/password", SetInitialPassword)
-	r.PUT("/users/:id/password", UpdatePassword)
-	r.GET("/users/:id", GetUser)
-	r.GET("/users", GetAllUsers)
-	r.GET("/users/:id/connections", GetConnectionsForUser)
+	r.POST("/api/users", CreateUser)
+	r.PUT("/api/users/:id", UpdateUser)
+	r.DELETE("/api/users/:id", DeleteUser)
+	r.POST("/api/users/:id/password", SetInitialPassword)
+	r.PUT("/api/users/:id/password", UpdatePassword)
+	r.GET("/api/users/:id", GetUser)
+	r.GET("/api/users", GetAllUsers)
+	r.GET("/api/users/:id/connections", GetConnectionsForUser)
 }
