@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export"
+  reactStrictMode: true,
+  swcMinify: true,
+  output: "export",
+  trailingSlash: false, // Verhindert Probleme mit URLs
 };
 
 export default nextConfig;
