@@ -251,7 +251,7 @@ func SetInitialPassword(c *gin.Context) {
 			return fmt.Errorf("user not found")
 		}
 
-		if !user.Deactivated {
+		if user.Deactivated {
 			return fmt.Errorf("initial password cannot be set to an inactivate user")
 		}
 
@@ -316,7 +316,6 @@ func UpdatePassword(c *gin.Context) {
 	userID := c.Param("id")
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
-		// Benutzer abrufen
 		var user models.User
 		if err := tx.First(&user, userID).Error; err != nil {
 			return fmt.Errorf("user not found")
@@ -352,7 +351,6 @@ func UpdatePassword(c *gin.Context) {
 		}
 		user.PasswordHash = string(hashedPassword)
 
-		// Passwortablaufdatum aus Konfiguration holen
 		passwordExpiryDaysStr, err := config.GetConfiguration("password_expiry_days")
 		if err != nil {
 			return fmt.Errorf("failed to retrieve password expiry configuration")
@@ -363,7 +361,6 @@ func UpdatePassword(c *gin.Context) {
 			return fmt.Errorf("failed to retrieve password expiration setting")
 		}
 
-		// Konfigurationswerte umwandeln
 		passwordExpiryDays, err := strconv.Atoi(passwordExpiryDaysStr)
 		if err != nil {
 			return fmt.Errorf("invalid password expiry configuration")
@@ -371,7 +368,6 @@ func UpdatePassword(c *gin.Context) {
 
 		noPasswordExpiration := strings.ToLower(noPasswordExpirationStr) == "true"
 
-		// Passwortablaufdatum setzen (Immer um 0 Uhr)
 		if noPasswordExpiration {
 			user.PasswordExpiry = nil
 		} else {
