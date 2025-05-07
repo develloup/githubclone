@@ -10,7 +10,15 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends("next/core-web-vitals", "next/typescript", "plugin:@typescript-eslint/recommended"),
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": "warn", // ✅ Keine harten Fehler bei ungenutzten Variablen
+      "react-hooks/exhaustive-deps": "warn", // ✅ `useEffect`-Warnungen reduzieren
+      "no-console": "off", // ✅ Erlaubt Debugging mit `console.log`
+      "react/react-in-jsx-scope": "off", // ✅ Next.js benötigt kein `import React`
+    },
+  },
 ];
 
 export default eslintConfig;
