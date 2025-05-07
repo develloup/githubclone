@@ -1,14 +1,15 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Login: React.FC = () => {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [oauthUrls, setOauthUrls] = useState<{ [key: string]: string } | null>(null);
 
   const handleLogin = async () => {
-    const response = await fetch("http://localhost:8080/login", {
+    const response = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, password }),
@@ -16,7 +17,8 @@ const Login: React.FC = () => {
 
     const data = await response.json();
     if (data.oauth_login_urls) {
-      setOauthUrls(data.oauth_login_urls);
+      localStorage.setItem("oauthUrls", JSON.stringify(data.oauth_login_urls)); // ✅ Speichern für OAuth
+      router.push("/oauth-status"); // Weiterleitung zur OAuth-Status-Seite
     } else {
       alert("Login failed!");
     }
@@ -46,21 +48,6 @@ const Login: React.FC = () => {
         >
           Login
         </button>
-
-        {oauthUrls && (
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">OAuth2 Anmeldung:</h3>
-            {Object.keys(oauthUrls).map((provider) => (
-              <a
-                key={provider}
-                href={oauthUrls[provider]}
-                className="block px-4 py-2 mt-2 text-white bg-gray-800 rounded-md hover:bg-gray-900"
-              >
-                {`Mit ${provider} anmelden`}
-              </a>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
