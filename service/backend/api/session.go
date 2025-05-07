@@ -19,9 +19,13 @@ import (
 	"golang.org/x/oauth2/gitlab"
 )
 
+var sessionUsers = make(map[string]map[string]string)
+var oauthSessionStatus = make(map[string]map[string]bool)
+var sessionTokens = make(map[string]map[string]string)
+
 var oauthConfigMap = make(map[string]map[string]*oauth2.Config)
-var oauthTokenChannels = make(map[string]chan string)
 var oauthConfigMutex sync.Mutex
+
 var baseURL = os.Getenv("BASE_URL")
 
 func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
@@ -59,8 +63,8 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 			RedirectURL:  fmt.Sprintf("%s/callback/github_enterprise", baseURL),
 			Scopes:       []string{"repo", "user"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", ghesURL),
-				TokenURL: fmt.Sprintf("%s/login/oauth/access_token", ghesURL),
+				AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", *ghesURL),
+				TokenURL: fmt.Sprintf("%s/login/oauth/access_token", *ghesURL),
 			},
 		}
 	case "gitlab":
@@ -104,6 +108,11 @@ func Login(c *gin.Context) {
 	}
 
 	sessionID := uuid.New().String()
+	sessionUsers[sessionID] = map[string]string{
+		"id":       fmt.Sprintf("%d", user.ID),
+		"username": user.Username,
+		"email":    user.Email,
+	}
 	oauthConfigMutex.Lock()
 	oauthConfigMap[sessionID] = make(map[string]*oauth2.Config)
 	for _, connection := range userConnections {
@@ -111,21 +120,32 @@ func Login(c *gin.Context) {
 	}
 	oauthConfigMutex.Unlock()
 
-	// Generiere die OAuth2-Login-URLs
 	loginURLs := make(map[string]string)
 	for _, connection := range userConnections {
 		loginURLs[connection.Type] = fmt.Sprintf("%s/login/%s?state=%s", baseURL, connection.Type, sessionID)
 	}
+	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
 
-	// Antwort an das Frontend mit den OAuth2-Login-Links
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "Login successful, please authenticate via OAuth2",
-		"session_id":       sessionID,
 		"oauth_login_urls": loginURLs,
 	})
 }
 
 func Logout(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
+		return
+	}
+
+	delete(sessionUsers, sessionID)
+	delete(sessionTokens, sessionID)
+	delete(oauthSessionStatus, sessionID)
+
+	c.SetCookie("session_id", "", -1, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
 func LoginProvider(c *gin.Context) {
@@ -147,11 +167,11 @@ func LoginProvider(c *gin.Context) {
 
 func CallbackProvider(c *gin.Context) {
 	provider := c.Param("provider")
-	sessionID := c.Query("state") // Session-ID aus der URL holen
+	sessionID := c.Query("state")
 	code := c.Query("code")
 
 	if code == "" || sessionID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Authorization code or session ID missing"})
+		c.Redirect(http.StatusFound, "/login?error=OAuth failed")
 		return
 	}
 
@@ -160,26 +180,95 @@ func CallbackProvider(c *gin.Context) {
 	oauthConfigMutex.Unlock()
 
 	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No OAuth2 config found for this session"})
+		c.Redirect(http.StatusFound, "/login?error=Invalid provider")
 		return
 	}
 
-	// Tausche den Code gegen das Access-Token
 	token, err := config.Exchange(context.Background(), code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token exchange failed"})
+		c.Redirect(http.StatusFound, "/login?error=Token exchange failed")
 		return
 	}
 
-	// Token an den richtigen Channel senden
 	oauthConfigMutex.Lock()
-	if tokenChannel, exists := oauthTokenChannels[sessionID]; exists {
-		tokenChannel <- token.AccessToken
-		delete(oauthTokenChannels, sessionID) // Nach Nutzung entfernen
+	if _, ok := sessionTokens[sessionID]; !ok {
+		sessionTokens[sessionID] = make(map[string]string)
 	}
+	sessionTokens[sessionID][provider] = token.AccessToken
 	oauthConfigMutex.Unlock()
 
-	c.JSON(http.StatusOK, gin.H{"access_token": token})
+	// OAuth-Status speichern
+	oauthConfigMutex.Lock()
+	if _, ok := oauthSessionStatus[sessionID]; !ok {
+		oauthSessionStatus[sessionID] = make(map[string]bool)
+	}
+	oauthSessionStatus[sessionID][provider] = true
+	oauthConfigMutex.Unlock()
+
+	// Prüfe, ob ALLE OAuth2-Logins abgeschlossen sind
+	allComplete := true
+	for _, status := range oauthSessionStatus[sessionID] {
+		if !status {
+			allComplete = false
+			break
+		}
+	}
+
+	if allComplete {
+		c.Redirect(http.StatusFound, "/dashboard") // ✅ Falls alle Provider erfolgreich eingeloggt sind
+	} else {
+		c.Redirect(http.StatusFound, "/oauth-status") // 🔄 Falls noch weitere offen sind
+	}
+}
+
+func GetOAuthStatus(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
+		return
+	}
+
+	status, exists := oauthSessionStatus[sessionID]
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, status)
+}
+
+func GetLoggedInUser(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
+		return
+	}
+
+	user, exists := sessionUsers[sessionID]
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func UseToken(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
+		return
+	}
+
+	provider := c.Param("provider")
+	token, exists := sessionTokens[sessionID][provider]
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No access token found"})
+		return
+	}
+
+	// Beispiel: API-Request mit dem Token machen
+	c.JSON(http.StatusOK, gin.H{"message": "Using token", "provider": provider, "token": token})
 }
 
 func SessionRoutes(r *gin.Engine) {
@@ -187,4 +276,6 @@ func SessionRoutes(r *gin.Engine) {
 	r.POST("/api/logout", Logout)
 	r.GET("/callback/:provider", CallbackProvider)
 	r.GET("/login/:provider", LoginProvider)
+	r.GET("/api/loggedinuser", GetLoggedInUser)
+	r.GET("/api/token/:provider", UseToken)
 }
