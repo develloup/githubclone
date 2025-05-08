@@ -45,6 +45,11 @@ func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 }
 
 func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string) (*oauth2.Config, error) {
+	// Basis-URL prüfen
+	if baseURL == "" {
+		return nil, fmt.Errorf("baseURL is not set")
+	}
+
 	var config *oauth2.Config
 
 	switch serviceType {
@@ -52,15 +57,19 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/callback/github", baseURL),
+			RedirectURL:  fmt.Sprintf("%s/api/callback/github", baseURL), // ✅ Korrekte API-Routing
 			Scopes:       []string{"repo", "user"},
 			Endpoint:     github.Endpoint,
 		}
 	case "github_enterprise":
+		// Prüfe, ob `ghesURL` gesetzt ist
+		if ghesURL == nil || *ghesURL == "" {
+			return nil, fmt.Errorf("GitHub Enterprise URL is required but not provided")
+		}
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/callback/github_enterprise", baseURL),
+			RedirectURL:  fmt.Sprintf("%s/api/callback/github_enterprise", baseURL),
 			Scopes:       []string{"repo", "user"},
 			Endpoint: oauth2.Endpoint{
 				AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", *ghesURL),
@@ -71,39 +80,40 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/callback/gitlab", baseURL),
+			RedirectURL:  fmt.Sprintf("%s/api/callback/gitlab", baseURL), // ✅ API-Routing angepasst
 			Scopes:       []string{"read_user", "api"},
 			Endpoint:     gitlab.Endpoint,
 		}
 	default:
-		return nil, fmt.Errorf("unsupported service type: %s", serviceType)
+		return nil, fmt.Errorf("unsupported service type: %s", serviceType) // ✅ Fehlerhandling für ungültige Provider
 	}
+
 	return config, nil
 }
 
 func Login(c *gin.Context) {
 	var request struct {
-		Identifier string `json:"identifier"` // Kann E-Mail ODER Username sein
+		Identifier string `json:"identifier"`
 		Password   string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
 	var user models.User
 	if err := db.DB.Where("email = ? OR username = ?", request.Identifier, request.Identifier).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username/email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username/email or password"})
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(request.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username/email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username/email or password"})
 		return
 	}
 
 	var userConnections []models.Connection
 	if err := db.DB.Model(&user).Association("Connections").Find(&userConnections); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve user connections"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user connections"})
 		return
 	}
 
@@ -113,17 +123,26 @@ func Login(c *gin.Context) {
 		"username": user.Username,
 		"email":    user.Email,
 	}
+	sessionTokens[sessionID] = make(map[string]string) // ✅ Speichere Token-Sessions
+
 	oauthConfigMutex.Lock()
 	oauthConfigMap[sessionID] = make(map[string]*oauth2.Config)
 	for _, connection := range userConnections {
-		oauthConfigMap[sessionID][connection.Type], _ = getOAuth2Config(connection.ClientID, connection.ClientSecret, connection.Type, connection.URL)
+		config, err := getOAuth2Config(connection.ClientID, connection.ClientSecret, connection.Type, connection.URL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "OAuth2 configuration failed"})
+			oauthConfigMutex.Unlock()
+			return
+		}
+		oauthConfigMap[sessionID][connection.Type] = config
 	}
 	oauthConfigMutex.Unlock()
 
 	loginURLs := make(map[string]string)
 	for _, connection := range userConnections {
-		loginURLs[connection.Type] = fmt.Sprintf("%s/login/%s?state=%s", baseURL, connection.Type, sessionID)
+		loginURLs[connection.Type] = fmt.Sprintf("%s/api/login/%s?state=%s", baseURL, connection.Type, sessionID)
 	}
+
 	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -205,20 +224,7 @@ func CallbackProvider(c *gin.Context) {
 	oauthSessionStatus[sessionID][provider] = true
 	oauthConfigMutex.Unlock()
 
-	// Prüfe, ob ALLE OAuth2-Logins abgeschlossen sind
-	allComplete := true
-	for _, status := range oauthSessionStatus[sessionID] {
-		if !status {
-			allComplete = false
-			break
-		}
-	}
-
-	if allComplete {
-		c.Redirect(http.StatusFound, "/dashboard") // ✅ Falls alle Provider erfolgreich eingeloggt sind
-	} else {
-		c.Redirect(http.StatusFound, "/oauth-status") // 🔄 Falls noch weitere offen sind
-	}
+	c.Redirect(http.StatusFound, "/")
 }
 
 func GetOAuthStatus(c *gin.Context) {
@@ -274,8 +280,9 @@ func UseToken(c *gin.Context) {
 func SessionRoutes(r *gin.Engine) {
 	r.POST("/api/login", Login)
 	r.POST("/api/logout", Logout)
-	r.GET("/callback/:provider", CallbackProvider)
-	r.GET("/login/:provider", LoginProvider)
+	r.GET("/api/oauth-status", GetOAuthStatus)
+	r.GET("/api/callback/:provider", CallbackProvider)
+	r.GET("/api/login/:provider", LoginProvider)
 	r.GET("/api/loggedinuser", GetLoggedInUser)
 	r.GET("/api/token/:provider", UseToken)
 }
