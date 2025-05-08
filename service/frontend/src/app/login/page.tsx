@@ -18,7 +18,7 @@ const Login: React.FC = () => {
     const data = await response.json();
     if (data.oauth_login_urls) {
       localStorage.setItem("oauthUrls", JSON.stringify(data.oauth_login_urls)); // ✅ Speichern für OAuth
-      router.push("/oauth-status"); // Weiterleitung zur OAuth-Status-Seite
+      router.push("/dashboard"); // Weiterleitung zur OAuth-Status-Seite
     } else {
       alert("Login failed!");
     }
