@@ -9,7 +9,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const response = await fetch("/api/user");
+      const response = await fetch("/api/users", { credentials: "include" }); // ✅ Damit Session-Cookies gesendet werden
       if (!response.ok) {
         router.push("/login"); // Falls kein Nutzer gefunden wird, zurück zur Login-Seite
         return;
