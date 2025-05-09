@@ -72,7 +72,7 @@ const Navbar: React.FC = () => {
 
       {/* 🔹 Logo & Nutzername */}
       <div className="flex items-center gap-4">
-        <Image src="wolf-logo.png" alt="Wolf Logo" width={32} height={32} />
+        <Image src="/wolf-logo.png" alt="Wolf Logo" width={32} height={32} unoptimized />
         <span className="text-lg font-bold">WolfApp</span>
         {user && <span className="text-white">{user.username}</span>}
       </div>
