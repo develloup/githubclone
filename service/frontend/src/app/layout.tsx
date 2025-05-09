@@ -27,7 +27,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Navbar /> {/* ✅ Fügt die Navigation oben ein */}
-        {children} {/* 🔹 Rendert die restlichen Inhalte */}
+        <main> {/* 🔹 Wrapper für `children`, damit nur ein einziges Element existiert */}
+          {children}
+        </main>
       </body>
     </html>
   );
