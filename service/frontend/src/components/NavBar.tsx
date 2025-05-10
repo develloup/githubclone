@@ -8,11 +8,23 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import Image from "next/image";
 
 const MenuIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 7L4 7"></path>
-    <path d="M20 12L4 12"></path>
-    <path d="M20 17L4 17"></path>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 7H4" />
+    <path d="M20 12H4" />
+    <path d="M20 17H4" />
   </svg>
+);
+
+const NewIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 12H18M12 6V18"/>
+  </svg>
+);
+
+const DropDownIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M11.808 14.77L8.0936 10.3126C7.65938 9.79159 8.02988 9.0005 8.70815 9.0005H15.2921C15.9703 9.0005 16.3409 9.79159 15.9067 10.3126L12.1923 14.77C12.0923 14.89 11.9081 14.89 11.808 14.77Z" fill="currentColor"/>
+    </svg>
 );
 
 const IssuesIcon = () => (
@@ -20,6 +32,8 @@ const IssuesIcon = () => (
     <path fillRule="evenodd" d="M2.5 12a9.5 9.5 0 1119 0 9.5 9.5 0 01-19 0zM12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 13a2 2 0 100-4 2 2 0 000 4z"></path>
   </svg>
 );
+
+
 
 const PullRequestIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -112,9 +126,10 @@ const Navbar: React.FC = () => {
       {/* 🔹 Rechte Seite: Suchfeld & Navigation-Menü */}
       <div className="flex items-center gap-4 ml-auto">
         <div className="relative flex items-center">
-          <Input placeholder="Type / to search" className="bg-gray-800 text-white" />
+          <Input placeholder="Type / to search" className="bg-gray-800 text-white border border-gray-500 rounded-lg" />
         </div>
         {/* 🔹 Weitere Buttons für Issues, Pulls & Notifications */}
+        <Button variant="ghost" onClick={() => router.push("/new")} className="rounded-lg border border-gray-500 p-2"><NewIcon/><div className="w-px h-full bg-gray-500"></div> {/* 🔹 Trennlinie */}<DropDownIcon/></Button>
         <Button variant="ghost" onClick={() => router.push("/issues")} className="rounded-lg border border-gray-500 p-2"><IssuesIcon/></Button>
         <Button variant="ghost" onClick={() => router.push("/pulls")} className="rounded-lg border border-gray-500 p-2"><PullRequestIcon/></Button>
         <Button variant="ghost" onClick={() => router.push("/notifications")} className="rounded-lg border border-gray-500 p-2"><NotificationIcon/></Button>
