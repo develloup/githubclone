@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DropDownIcon, IssuesIcon, MagnifierIcon, MenuIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon, UserIcon } from "./Icons";
+import { DropDownIcon, IssuesIcon, MenuIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon, UserIcon } from "./Icons";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 import Image from "next/image";
 import { SearchField } from "./SearchField";
