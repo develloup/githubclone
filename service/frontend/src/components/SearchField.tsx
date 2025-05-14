@@ -13,7 +13,7 @@ const SearchField = () => (
   </svg>
   <span>to search</span>
   {/* Eingabefeld ohne Standard-Placeholder */}
-  <input type="text" className="absolute inset-0 w-full bg-transparent outline-none caret-white px-2"/>
+  <input type="text" id="search" name="search" className="absolute inset-0 w-full bg-transparent outline-none caret-white px-2"/>
 </div>
 );
 
