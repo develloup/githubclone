@@ -10,7 +10,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault(); // ✅ Verhindert das Standard-Submit-Verhalten
+    event.preventDefault();
     setLoading(true);
 
     try {
@@ -21,7 +21,7 @@ const Login: React.FC = () => {
       });
 
       if (!response.ok) {
-        alert("Login failed! Bitte überprüfe deine Zugangsdaten.");
+        alert("Login fehlgeschlagen! Bitte überprüfe deine Zugangsdaten.");
         setLoading(false);
         return;
       }
@@ -30,9 +30,9 @@ const Login: React.FC = () => {
 
       if (data.oauth_login_urls) {
         if (typeof window !== "undefined") {
-          localStorage.setItem("oauthUrls", JSON.stringify(data.oauth_login_urls)); // ✅ Speichert OAuth-URLs sicher
+          localStorage.setItem("oauthUrls", JSON.stringify(data.oauth_login_urls));
         }
-        router.push("/dashboard"); // Weiterleitung zur Dashboard-Seite
+        router.push("/dashboard");
       } else {
         alert("Login fehlgeschlagen! Bitte erneut versuchen.");
       }
@@ -50,22 +50,30 @@ const Login: React.FC = () => {
         <h2 className="text-2xl font-bold mb-4 text-gray-800">Login</h2>
 
         <form onSubmit={handleLogin} className="w-full">
+          <label htmlFor="identifier" className="block text-gray-700">Email oder Username:</label>
           <input
             type="text"
+            id="identifier"
+            name="identifier"
             placeholder="Email oder Username"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             className="w-full px-4 py-2 mb-3 border rounded-md focus:outline-none"
             required
           />
+
+          <label htmlFor="password" className="block text-gray-700">Passwort:</label>
           <input
             type="password"
+            id="password"
+            name="password"
             placeholder="Passwort"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-2 mb-3 border rounded-md focus:outline-none"
             required
           />
+
           <button
             type="submit"
             className={`w-full px-4 py-2 rounded-md ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
