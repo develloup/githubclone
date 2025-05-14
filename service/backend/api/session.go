@@ -21,9 +21,8 @@ import (
 )
 
 var sessionUsers = make(map[string]map[string]string)
-var oauthSessionStatus = make(map[string]map[string]bool)
 var sessionTokens = make(map[string]map[string]string)
-
+var sessionURLs = make(map[string]map[string]string)
 var oauthConfigMap = make(map[string]map[string]*oauth2.Config)
 var oauthConfigMutex sync.Mutex
 
@@ -118,15 +117,15 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	oauthConfigMutex.Lock()
 	sessionID := uuid.New().String()
+
 	sessionUsers[sessionID] = map[string]string{
 		"id":       fmt.Sprintf("%d", user.ID),
 		"username": user.Username,
 		"email":    user.Email,
 	}
 	sessionTokens[sessionID] = make(map[string]string)
-
-	oauthConfigMutex.Lock()
 	oauthConfigMap[sessionID] = make(map[string]*oauth2.Config)
 	for _, connection := range userConnections {
 		config, err := getOAuth2Config(connection.ClientID, connection.ClientSecret, connection.Type, connection.URL)
@@ -137,13 +136,15 @@ func Login(c *gin.Context) {
 		}
 		oauthConfigMap[sessionID][connection.Type] = config
 	}
-	oauthConfigMutex.Unlock()
 
 	loginURLs := make(map[string]string)
 	for _, connection := range userConnections {
 		loginURLs[connection.Type] = fmt.Sprintf("%s/api/login/%s?state=%s", baseURL, connection.Type, sessionID)
 	}
+	sessionURLs[sessionID] = loginURLs
+	oauthConfigMutex.Unlock()
 
+	log.Printf("================== Login")
 	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
 
 	log.Printf("SessionID: %s", sessionID)
@@ -166,7 +167,7 @@ func Logout(c *gin.Context) {
 
 	delete(sessionUsers, sessionID)
 	delete(sessionTokens, sessionID)
-	delete(oauthSessionStatus, sessionID)
+	delete(sessionURLs, sessionID)
 
 	c.SetCookie("session_id", "", -1, "/", "", false, true)
 
@@ -177,6 +178,7 @@ func LoginProvider(c *gin.Context) {
 	provider := c.Param("provider")
 	sessionID := c.Query("state")
 
+	log.Printf("================== LoginProvider")
 	log.Printf("Provider:  %s", provider)
 	log.Printf("SessionID: %s", sessionID)
 
@@ -205,6 +207,7 @@ func CallbackProvider(c *gin.Context) {
 		return
 	}
 
+	log.Printf("================== CallbackProvider")
 	log.Printf("Provider:  %s", provider)
 	log.Printf("SessionID: %s", sessionID)
 
@@ -232,31 +235,57 @@ func CallbackProvider(c *gin.Context) {
 	sessionTokens[sessionID][provider] = token.AccessToken
 	oauthConfigMutex.Unlock()
 
-	// OAuth-Status speichern
-	oauthConfigMutex.Lock()
-	if _, ok := oauthSessionStatus[sessionID]; !ok {
-		oauthSessionStatus[sessionID] = make(map[string]bool)
-	}
-	oauthSessionStatus[sessionID][provider] = true
-	oauthConfigMutex.Unlock()
+	log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
 
-	c.Redirect(http.StatusFound, "/")
+	c.Redirect(http.StatusSeeOther, "/")
 }
 
 func GetOAuthStatus(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
+	log.Printf("================== GetOAuthStatus")
+	log.Printf("SessionID: %s", sessionID)
+
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
 		return
 	}
 
-	status, exists := oauthSessionStatus[sessionID]
+	oauthConfigMutex.Lock()
+	token, exists := sessionTokens[sessionID]
+	oauthConfigMutex.Unlock()
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		return
+	}
+	status := make(map[string]bool)
+	log.Printf("sessionTokens: %v", sessionTokens)
+	for key, value := range token {
+		status[key] = value != ""
+	}
+
+	log.Printf("Status: %v", status)
+	c.JSON(http.StatusOK, status)
+}
+
+func GetOAuthURLs(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	log.Printf("================== GetOAuthURLs")
+	log.Printf("SessionID: %s", sessionID)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
+		return
+	}
+
+	urls, exists := sessionURLs[sessionID]
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
 		return
 	}
 
-	c.JSON(http.StatusOK, status)
+	log.Printf("sessionURLs: %v", sessionURLs)
+	log.Printf("URLs: %v", urls)
+	c.JSON(http.StatusOK, urls)
 }
 
 func GetLoggedInUser(c *gin.Context) {
@@ -272,6 +301,7 @@ func GetLoggedInUser(c *gin.Context) {
 		return
 	}
 
+	log.Printf("SessionID: %s", sessionID)
 	log.Printf("User: %s", user)
 
 	c.JSON(http.StatusOK, user)
@@ -299,6 +329,7 @@ func SessionRoutes(r *gin.Engine) {
 	r.POST("/api/login", Login)
 	r.POST("/api/logout", Logout)
 	r.GET("/api/oauth-status", GetOAuthStatus)
+	r.GET("/api/oauth-urls", GetOAuthURLs)
 	r.GET("/api/callback/:provider", CallbackProvider)
 	r.GET("/api/login/:provider", LoginProvider)
 	r.GET("/api/loggedinuser", GetLoggedInUser)
