@@ -37,9 +37,12 @@ func InitDB() error {
 	name := os.Getenv("DB_NAME")
 	port := os.Getenv("DB_PORT")
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", host, user, password, name, port)
-
+	log.Printf("Connection to database: %s", dsn)
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Printf("The connection to the database could not be established: %v", err)
+	}
 	return err
 }
 
