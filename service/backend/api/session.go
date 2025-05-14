@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -26,7 +27,7 @@ var sessionTokens = make(map[string]map[string]string)
 var oauthConfigMap = make(map[string]map[string]*oauth2.Config)
 var oauthConfigMutex sync.Mutex
 
-var baseURL = os.Getenv("BASE_URL")
+var baseURL = os.Getenv("BACKEND_URL")
 
 func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -123,7 +124,7 @@ func Login(c *gin.Context) {
 		"username": user.Username,
 		"email":    user.Email,
 	}
-	sessionTokens[sessionID] = make(map[string]string) // ✅ Speichere Token-Sessions
+	sessionTokens[sessionID] = make(map[string]string)
 
 	oauthConfigMutex.Lock()
 	oauthConfigMap[sessionID] = make(map[string]*oauth2.Config)
@@ -144,6 +145,11 @@ func Login(c *gin.Context) {
 	}
 
 	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
+
+	log.Printf("SessionID: %s", sessionID)
+	log.Printf("LoginURLs: %s", loginURLs)
+	log.Printf("sessionsUsers: %v", sessionUsers)
+	log.Printf("oauthConfigMap: %v", oauthConfigMap)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "Login successful, please authenticate via OAuth2",
@@ -171,9 +177,14 @@ func LoginProvider(c *gin.Context) {
 	provider := c.Param("provider")
 	sessionID := c.Query("state")
 
+	log.Printf("Provider:  %s", provider)
+	log.Printf("SessionID: %s", sessionID)
+
 	oauthConfigMutex.Lock()
 	config, exists := oauthConfigMap[sessionID][provider]
 	oauthConfigMutex.Unlock()
+
+	log.Printf("oauthConfigMap: %v", oauthConfigMap)
 
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No OAuth2 config found for this session"})
@@ -194,9 +205,14 @@ func CallbackProvider(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Provider:  %s", provider)
+	log.Printf("SessionID: %s", sessionID)
+
 	oauthConfigMutex.Lock()
 	config, exists := oauthConfigMap[sessionID][provider]
 	oauthConfigMutex.Unlock()
+
+	log.Printf("oauthConfigMap: %v", oauthConfigMap)
 
 	if !exists {
 		c.Redirect(http.StatusFound, "/login?error=Invalid provider")
@@ -255,6 +271,8 @@ func GetLoggedInUser(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
 		return
 	}
+
+	log.Printf("User: %s", user)
 
 	c.JSON(http.StatusOK, user)
 }
