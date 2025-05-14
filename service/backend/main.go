@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"githubclone-backend/api"
 	"githubclone-backend/db"
 	"githubclone-backend/frontend"
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -14,17 +17,25 @@ import (
 
 func main() {
 
-	logFile, err := os.OpenFile("githubclone.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile("/var/log/githubclone/githubclone.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("error during opening/creation of log file: %v", err)
 	}
-	defer logFile.Close()
 
-	// Multi-Writer für stdout, stderr und Datei
-	multiWriter := io.MultiWriter(os.Stdout, os.Stderr, logFile)
+	port := os.Getenv("BACKEND_PORT")
+	baseURL := os.Getenv("BACKEND_URL")
+
+	// Multi-Writer for stdout, stderr and file
+	multiWriter := io.MultiWriter(os.Stderr, logFile)
 
 	// Set the output of the log
 	log.SetOutput(multiWriter)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
+	fileLogger := log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
+	fileLogger.Printf("============================== New Session starts ==============================")
+
+	// Initialize the database connection
 	db.InitDB()
 	db.AutoMigrate()
 
@@ -43,5 +54,17 @@ func main() {
 	api.ConfigurationRoutes(r)
 	frontend.Routes(r)
 
-	r.Run("0.0.0.0:8080")
+	// React on shutting down via ^C
+	sigs := make(chan os.Signal, 1) // Catches CTRL+C
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+		log.Printf("Backend is shutting down: %v\n", sig)
+		os.Exit(0)
+	}()
+
+	defer logFile.Close()
+	log.Printf("The backend is setup with port: %s. The frontend tries to reach the backend with this URL: %s", port, baseURL)
+	r.Run(fmt.Sprintf("0.0.0.0:%s", port))
 }
