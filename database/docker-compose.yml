@@ -14,15 +14,12 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=githubclone
       - DB_PORT=5432
-      - BASE_URL=http://localhost:8080
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - GHE_CLIENT_ID=${GHE_CLIENT_ID}
-      - GHE_CLIENT_SECRET=${GHE_CLIENT_SECRET}
-      - GITLAB_CLIENT_ID=${GITLAB_CLIENT_ID}
-      - GITLAB_CLIENT_SECRET=${GITLAB_CLIENT_SECRET}
+      - BACKEND_URL=${BACKEND_URL}    # Get value from .env
+      - BACKEND_PORT=${BACKEND_PORT}  # Get the value from .env
     ports:
       - "8080:8080"
+    volumes:
+      - backend_logs:/var/log/githubclone  # Persistent logging
 
   db:
     image: postgres:latest
@@ -82,3 +79,4 @@ volumes:
   pgdata:
   grafana_data:
   prometheus_data:
+  backend_logs:

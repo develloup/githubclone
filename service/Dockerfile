@@ -21,6 +21,9 @@ RUN npm install && npm run build
 FROM golang:1.24
 WORKDIR /app
 
+# Create the directory for logging data from the backend server
+RUN mkdir -p /var/log/githubclone && chmod 777 /var/log/githubclone
+
 # Copy the compiler go-server in the end image
 COPY --from=builder /app/server /app/server
 
