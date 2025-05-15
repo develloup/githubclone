@@ -28,6 +28,18 @@ var oauthConfigMutex sync.Mutex
 
 var baseURL = os.Getenv("BACKEND_URL")
 
+func IsValidSession(sessionID string) bool {
+	log.Printf("IsValidSession: \"%s\"", sessionID)
+	if sessionID == "" {
+		return false
+	}
+	oauthConfigMutex.Lock()
+	_, exists := sessionUsers[sessionID]
+	oauthConfigMutex.Unlock()
+	log.Printf("exists=%t, sessionUsers: %v", exists, sessionUsers)
+	return exists
+}
+
 func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := jwt.MapClaims{
@@ -45,7 +57,7 @@ func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 }
 
 func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string) (*oauth2.Config, error) {
-	// Basis-URL prüfen
+	// Check the base URL
 	if baseURL == "" {
 		return nil, fmt.Errorf("baseURL is not set")
 	}
@@ -57,12 +69,12 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/api/callback/github", baseURL), // ✅ Korrekte API-Routing
+			RedirectURL:  fmt.Sprintf("%s/api/callback/github", baseURL),
 			Scopes:       []string{"repo", "user"},
 			Endpoint:     github.Endpoint,
 		}
 	case "github_enterprise":
-		// Prüfe, ob `ghesURL` gesetzt ist
+		// Check if the url is set, other it's not possible to work with a github enterprise server
 		if ghesURL == nil || *ghesURL == "" {
 			return nil, fmt.Errorf("GitHub Enterprise URL is required but not provided")
 		}
@@ -80,12 +92,12 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/api/callback/gitlab", baseURL), // ✅ API-Routing angepasst
+			RedirectURL:  fmt.Sprintf("%s/api/callback/gitlab", baseURL),
 			Scopes:       []string{"read_user", "api"},
 			Endpoint:     gitlab.Endpoint,
 		}
 	default:
-		return nil, fmt.Errorf("unsupported service type: %s", serviceType) // ✅ Fehlerhandling für ungültige Provider
+		return nil, fmt.Errorf("unsupported service type: %s", serviceType)
 	}
 
 	return config, nil
@@ -144,13 +156,13 @@ func Login(c *gin.Context) {
 	sessionURLs[sessionID] = loginURLs
 	oauthConfigMutex.Unlock()
 
-	log.Printf("================== Login")
+	// log.Printf("================== Login")
 	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
 
-	log.Printf("SessionID: %s", sessionID)
-	log.Printf("LoginURLs: %s", loginURLs)
-	log.Printf("sessionsUsers: %v", sessionUsers)
-	log.Printf("oauthConfigMap: %v", oauthConfigMap)
+	// log.Printf("SessionID: %s", sessionID)
+	// log.Printf("LoginURLs: %s", loginURLs)
+	// log.Printf("sessionsUsers: %v", sessionUsers)
+	// log.Printf("oauthConfigMap: %v", oauthConfigMap)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "Login successful, please authenticate via OAuth2",
@@ -178,15 +190,15 @@ func LoginProvider(c *gin.Context) {
 	provider := c.Param("provider")
 	sessionID := c.Query("state")
 
-	log.Printf("================== LoginProvider")
-	log.Printf("Provider:  %s", provider)
-	log.Printf("SessionID: %s", sessionID)
+	// log.Printf("================== LoginProvider")
+	// log.Printf("Provider:  %s", provider)
+	// log.Printf("SessionID: %s", sessionID)
 
 	oauthConfigMutex.Lock()
 	config, exists := oauthConfigMap[sessionID][provider]
 	oauthConfigMutex.Unlock()
 
-	log.Printf("oauthConfigMap: %v", oauthConfigMap)
+	// log.Printf("oauthConfigMap: %v", oauthConfigMap)
 
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No OAuth2 config found for this session"})
@@ -207,15 +219,15 @@ func CallbackProvider(c *gin.Context) {
 		return
 	}
 
-	log.Printf("================== CallbackProvider")
-	log.Printf("Provider:  %s", provider)
-	log.Printf("SessionID: %s", sessionID)
+	// log.Printf("================== CallbackProvider")
+	// log.Printf("Provider:  %s", provider)
+	// log.Printf("SessionID: %s", sessionID)
 
 	oauthConfigMutex.Lock()
 	config, exists := oauthConfigMap[sessionID][provider]
 	oauthConfigMutex.Unlock()
 
-	log.Printf("oauthConfigMap: %v", oauthConfigMap)
+	// log.Printf("oauthConfigMap: %v", oauthConfigMap)
 
 	if !exists {
 		c.Redirect(http.StatusFound, "/login?error=Invalid provider")
@@ -235,15 +247,15 @@ func CallbackProvider(c *gin.Context) {
 	sessionTokens[sessionID][provider] = token.AccessToken
 	oauthConfigMutex.Unlock()
 
-	log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
+	// log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
 
 	c.Redirect(http.StatusSeeOther, "/")
 }
 
 func GetOAuthStatus(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
-	log.Printf("================== GetOAuthStatus")
-	log.Printf("SessionID: %s", sessionID)
+	// log.Printf("================== GetOAuthStatus")
+	// log.Printf("SessionID: %s", sessionID)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
@@ -258,19 +270,19 @@ func GetOAuthStatus(c *gin.Context) {
 		return
 	}
 	status := make(map[string]bool)
-	log.Printf("sessionTokens: %v", sessionTokens)
+	// log.Printf("sessionTokens: %v", sessionTokens)
 	for key, value := range token {
 		status[key] = value != ""
 	}
 
-	log.Printf("Status: %v", status)
+	// log.Printf("Status: %v", status)
 	c.JSON(http.StatusOK, status)
 }
 
 func GetOAuthURLs(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
-	log.Printf("================== GetOAuthURLs")
-	log.Printf("SessionID: %s", sessionID)
+	// log.Printf("================== GetOAuthURLs")
+	// log.Printf("SessionID: %s", sessionID)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
@@ -283,8 +295,8 @@ func GetOAuthURLs(c *gin.Context) {
 		return
 	}
 
-	log.Printf("sessionURLs: %v", sessionURLs)
-	log.Printf("URLs: %v", urls)
+	// log.Printf("sessionURLs: %v", sessionURLs)
+	// log.Printf("URLs: %v", urls)
 	c.JSON(http.StatusOK, urls)
 }
 
@@ -301,8 +313,8 @@ func GetLoggedInUser(c *gin.Context) {
 		return
 	}
 
-	log.Printf("SessionID: %s", sessionID)
-	log.Printf("User: %s", user)
+	// log.Printf("SessionID: %s", sessionID)
+	// log.Printf("User: %s", user)
 
 	c.JSON(http.StatusOK, user)
 }
@@ -313,15 +325,12 @@ func UseToken(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
 		return
 	}
-
 	provider := c.Param("provider")
 	token, exists := sessionTokens[sessionID][provider]
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No access token found"})
 		return
 	}
-
-	// Beispiel: API-Request mit dem Token machen
 	c.JSON(http.StatusOK, gin.H{"message": "Using token", "provider": provider, "token": token})
 }
 
