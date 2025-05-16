@@ -20,20 +20,20 @@ jobs:
           - "5432:5432"
 
     steps:
-    - name: Repository auschecken
+    - name: checkout repository
       uses: actions/checkout@v3
 
-    - name: Go installieren
+    - name: Install Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
 
-    - name: Abhängigkeiten installieren
+    - name: Install dependencies
       run: |
         cd service/backend
         go mod tidy
 
-    - name: Tests ausführen
+    - name: Execute tests
       run: |
         cd service/backend
         go test ./tests/...
