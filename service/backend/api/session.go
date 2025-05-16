@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
-	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -29,14 +28,14 @@ var oauthConfigMutex sync.Mutex
 var baseURL = os.Getenv("BACKEND_URL")
 
 func IsValidSession(sessionID string) bool {
-	log.Printf("IsValidSession: \"%s\"", sessionID)
+	// log.Printf("IsValidSession: \"%s\"", sessionID)
 	if sessionID == "" {
 		return false
 	}
 	oauthConfigMutex.Lock()
 	_, exists := sessionUsers[sessionID]
 	oauthConfigMutex.Unlock()
-	log.Printf("exists=%t, sessionUsers: %v", exists, sessionUsers)
+	// log.Printf("exists=%t, sessionUsers: %v", exists, sessionUsers)
 	return exists
 }
 
