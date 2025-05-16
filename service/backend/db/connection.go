@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"githubclone-backend/models"
+	"log"
 	"os"
 
 	"gorm.io/driver/postgres"
@@ -11,7 +12,22 @@ import (
 
 var DB *gorm.DB
 
-func InitDB() {
+var defaultPermissions = []models.Permission{
+	{Model: gorm.Model{ID: 1}, Name: "CreateUser"},
+	{Model: gorm.Model{ID: 2}, Name: "DeleteUser"},
+	{Model: gorm.Model{ID: 3}, Name: "EditUser"},
+}
+
+var enumDefinitions = []struct {
+	TypeName  string
+	CreateSQL string
+}{
+	{"user_type", `CREATE TYPE user_type AS ENUM ('admin', 'user')`},
+	{"connection_type", `CREATE TYPE connection_type AS ENUM ('github', 'gitlab', 'ghes')`},
+	{"permission_type", `CREATE TYPE permission_type AS ENUM ('CreateUser', 'DeleteUser', 'EditUser')`},
+}
+
+func InitDB() error {
 	host := os.Getenv("DB_HOST")
 	if host == "" {
 		host = "localhost"
@@ -21,35 +37,55 @@ func InitDB() {
 	name := os.Getenv("DB_NAME")
 	port := os.Getenv("DB_PORT")
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", host, user, password, name, port)
-
+	log.Printf("Connection to database: %s", dsn)
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		fmt.Println("Failed to connect to database:", err)
+		log.Printf("The connection to the database could not be established: %v", err)
 	}
+	return err
+}
+
+func initializePermissions() error {
+	// Create new permissions
+	for _, permission := range defaultPermissions {
+		// Prüfe, ob die Permission bereits existiert, bevor du sie einfügst
+		if err := DB.FirstOrCreate(&models.Permission{}, models.Permission{Name: permission.Name}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func initializeEnums() error {
+	for _, enumDef := range enumDefinitions {
+		var exists bool
+		err := DB.Raw(`
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_type
+                WHERE typname = ?
+            )
+        `, enumDef.TypeName).Scan(&exists).Error
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			if err := DB.Exec(enumDef.CreateSQL).Error; err != nil {
+				return err
+			}
+			log.Printf("Created enum type: %s\n", enumDef.TypeName)
+		} else {
+			log.Printf("Enum type %s already exists\n", enumDef.TypeName)
+		}
+	}
+	return nil
 }
 
 func AutoMigrate() error {
-	enumDefinitions := []struct {
-		TypeName  string
-		CreateSQL string
-	}{
-		{"user_type", `CREATE TYPE user_type AS ENUM ('admin', 'user')`},
-		{"connection_type", `CREATE TYPE connection_type AS ENUM ('github', 'gitlab', 'ghes')`},
-		{"permission_type", `CREATE TYPE permission_type AS ENUM ('CreateUser', 'DeleteUser', 'EditUser')`},
-	}
-
-	for _, enum := range enumDefinitions {
-		// Delete the type if it already exists
-		dropSQL := `DROP TYPE IF EXISTS ` + enum.TypeName + ` CASCADE`
-		if err := DB.Exec(dropSQL).Error; err != nil {
-			return err
-		}
-
-		// Create the type
-		if err := DB.Exec(enum.CreateSQL).Error; err != nil {
-			return err
-		}
+	if err := initializeEnums(); err != nil {
+		return err
 	}
 
 	models := []interface{}{
@@ -57,13 +93,15 @@ func AutoMigrate() error {
 		&models.Permission{},
 		&models.Connection{},
 		&models.UserConnection{},
+		&models.UserPermission{},
+		&models.Configuration{},
 		// Add further models here
 	}
-
 	for _, m := range models {
 		if err := DB.AutoMigrate(m); err != nil {
 			return err
 		}
 	}
-	return nil
+	err := initializePermissions()
+	return err
 }
