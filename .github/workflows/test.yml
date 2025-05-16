@@ -29,7 +29,11 @@ jobs:
         go-version: '1.24'
 
     - name: Abhängigkeiten installieren
-      run: go mod tidy
+      run: |
+        cd service/backend
+        go mod tidy
 
     - name: Tests ausführen
-      run: go test ./tests/...
+      run: |
+        cd service/backend
+        go test ./tests/...
