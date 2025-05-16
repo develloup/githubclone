@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DropDownIcon, IssuesIcon, MenuIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon, UserIcon } from "./Icons";
-import { Sheet, SheetTitle, SheetTrigger, SheetContent, SheetDescription } from "@/components/ui/sheet";
+import { DiscussionIcon, DropDownIcon, HomeIcon, IssuesIcon, MagnifierIcon, MenuIcon, NewIcon, NotificationIcon, ProjectIcon, PullRequestIcon, SignInIcon, UserIcon } from "./Icons";
+import { Sheet, SheetTitle, SheetTrigger, SheetContent, SheetDescription, SheetHeader } from "@/components/ui/sheet";
 import Image from "next/image";
 import { SearchField } from "./SearchField";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import Link from "next/link";
+import { Input } from "./ui/input";
 
 const Navbar: React.FC = () => {
   const router = useRouter();
@@ -15,6 +17,9 @@ const Navbar: React.FC = () => {
   const [user, setUser] = useState<{ username: string; email: string } | null>(null);
   const [oauthStatus, setOauthStatus] = useState<{ [key: string]: boolean }>({});
   const [oauthUrls, setOauthUrls] = useState<{ [key: string]: string } | null>(null);
+  const [showFilter, setShowFilter] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(false);
+
 
   // ✅ Funktion für OAuth-Status- und URLs-Laden
   const fetchOAuthStatus = async () => {
@@ -64,6 +69,7 @@ const Navbar: React.FC = () => {
     };
 
     fetchUser();
+    setLeftOpen(false); /* close the left sheet on every page change */
   }, [pathname]);
 
   useEffect(() => {
@@ -108,8 +114,8 @@ const Navbar: React.FC = () => {
   return (
     <div className="bg-gray-900 text-white">
       <nav className="flex items-center justify-between p-4 py-2 text-sm">
-        {/* 🔹 Linke Seite: Hamburger Menü als Sheet */}
-        <Sheet>
+        {/* Left side: hamburger menu as a sheet */}
+        <Sheet open={leftOpen} onOpenChange={(isOpen) => setLeftOpen(isOpen)}>
           <SheetTrigger asChild>
             <Button variant="ghost" className="rounded-lg border border-gray-500 p-2">
               <MenuIcon />
@@ -120,9 +126,47 @@ const Navbar: React.FC = () => {
               <SheetTitle><h2>Main Menu</h2></SheetTitle>
               <SheetDescription>The main menu to reach normal functionality.</SheetDescription>
             </VisuallyHidden>
-            <p className="font-bold">📌 Seiten</p>
-            <Button variant="ghost" onClick={() => router.push("/dashboard")}>Dashboard</Button>
-            <Button variant="ghost" onClick={() => router.push("/profile")}>Profil</Button>
+            <div className="flex flex-col space-y-1 mt-1">
+              {/* 🔹 Wolf-Logo, linksbündig mit einer Leerzeile danach */}
+              <div className="flex justify-start mb-3" pl-6> {/* `mb-3` für Abstand zum ersten Item */}
+                <Image src="/wolf-logo.png" alt="Wolf Logo" width={40} height={40} unoptimized />
+              </div>
+              <Link href="/dashboard" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><HomeIcon/>Home</Button>
+              </Link>
+              <Link href="/issues" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><IssuesIcon/>Issues</Button>
+              </Link>
+              <Link href="/pulls" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><PullRequestIcon/>Pull requests</Button>
+              </Link>
+              <Link href="/projects" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><ProjectIcon/>Projects</Button>
+              </Link>
+              <Link href="/discussions" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><DiscussionIcon/>Discussions</Button>
+              </Link>
+            </div>
+            <div className="h-px bg-gray-400 mt-0 my-1 mx-2" />
+            <SheetHeader>
+              {/* 🔹 Titel + Filter-Icon */}
+              <div className="flex justify-between items-center">
+                <SheetTitle className="text-sm font-semibold">Repositories</SheetTitle>
+                <Button variant="ghost" onClick={() => setShowFilter(!showFilter)}>
+                  <MagnifierIcon className="w-4 h-4 text-gray-500" />
+                </Button>
+              </div>
+            </SheetHeader>
+            {/* Dynamic filter line */}
+            {showFilter && (
+              <div className="flex items-center gap-2 mt-2 border p-2 rounded-md">
+                <MagnifierIcon className="text-gray-500 w-5 h-5" />
+                <Input placeholder="Filter repositories" className="flex-grow" />
+                <Button variant="ghost" onClick={() => setShowFilter(false)}>
+                  <MagnifierIcon className="text-gray-500 w-5 h-5" />
+                </Button>
+              </div>
+            )}
           </SheetContent>
         </Sheet>
 
