@@ -6,12 +6,12 @@ import (
 )
 
 func TestGetConfig(t *testing.T) {
-	resp, err := GetRequest("/config/password_expiry_days")
+	resp, err := GetRequest("/api/config/password_expiry_days")
 
 	if err != nil {
-		t.Fatalf("Fehler beim API-Call: %s", err)
+		t.Fatalf("Error during api call: %s", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Erwarteter Status 200, aber bekommen %d", resp.StatusCode)
+		t.Errorf("Expected status is 200, but got %d", resp.StatusCode)
 	}
 }
