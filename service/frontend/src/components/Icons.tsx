@@ -15,6 +15,23 @@ const ArrowUpIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const ArrowUpThinIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    fill="none"
+    viewBox="0 0 24 24"
+    className={className}
+  >
+    <path
+      d="m18.293 15.289c0.3905-0.3905 0.3905-1.0237 0-1.4142l-4.8922-4.8874c-0.7812-0.7804-2.047-0.78009-2.8278 6.9e-4l-4.8903 4.8904c-0.39052 0.3905-0.39052 1.0237 0 1.4142 0.39053 0.3906 1.0237 0.3906 1.4142 0l4.1856-4.1856c0.3906-0.3905 1.0237-0.3905 1.4142 0l4.1821 4.182c0.3905 0.3905 1.0237 0.3905 1.4142 0z"
+      fill="#0F0F0F"
+    />
+  </svg>
+);
+
+
 const DiscussionIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -37,7 +54,7 @@ const DropDownIcon = ({ className = "", width = 24, height = 24 }) => (
     </svg>
 );
 
-const HomeIcon = ({ className = "", width = 24, height = 24 }) => (
+const HomeIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={width}
@@ -45,6 +62,7 @@ const HomeIcon = ({ className = "", width = 24, height = 24 }) => (
     fill="none"
     viewBox="0 0 24 24"
     className={className}
+    strokeWidth={strokeWidth}
   >
     <path
       d="m12.391 4.2618c-0.4051-0.41242-1.0744-0.39651-1.4594 0.03469l-6.1776 6.919c-0.16362 0.1832-0.25406 0.4203-0.25406 0.666v7.6185c0 0.5523 0.44772 1 1 1h3c0.55228 0 1-0.4477 1-1v-3.5c0-0.5523 0.44772-1 1-1h3c0.5523 0 1 0.4477 1 1v3.5c0 0.5523 0.4477 1 1 1h3c0.5523 0 1-0.4477 1-1v-7.591c0-0.2621-0.1029-0.5137-0.2866-0.7007l-6.8223-6.9464z"
@@ -53,8 +71,8 @@ const HomeIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
-const IssuesIcon = ({ className = "", width = 24, height = 24 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+const IssuesIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path fillRule="evenodd" d="M2.5 12a9.5 9.5 0 1119 0 9.5 9.5 0 01-19 0zM12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 13a2 2 0 100-4 2 2 0 000 4z"></path>
   </svg>
 );
@@ -86,12 +104,26 @@ const NotificationIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
-const PullRequestIcon = ({ className = "", width = 24, height = 24 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+const PullRequestIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.4 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path fillRule="evenodd" d="M4.75 3a1.75 1.75 0 100 3.5 1.75 1.75 0 000-3.5zM1.5 4.75a3.25 3.25 0 116.5 0 3.25 3.25 0 01-6.5 0zM4.75 17.5a1.75 1.75 0 100 3.5 1.75 1.75 0 000-3.5zM1.5 19.25a3.25 3.25 0 116.5 0 3.25 3.25 0 01-6.5 0zm17.75-1.75a1.75 1.75 0 100 3.5 1.75 1.75 0 000-3.5zM16 19.25a3.25 3.25 0 116.5 0 3.25 3.25 0 01-6.5 0z"></path>
     <path fillRule="evenodd" d="M4.75 7.25A.75.75 0 015.5 8v8A.75.75 0 014 16V8a.75.75 0 01.75-.75zm8.655-5.53a.75.75 0 010 1.06L12.185 4h4.065A3.75 3.75 0 0120 7.75v8.75a.75.75 0 01-1.5 0V7.75a2.25 2.25 0 00-2.25-2.25h-4.064l1.22 1.22a.75.75 0 01-1.061 1.06l-2.5-2.5a.75.75 0 010-1.06l2.5-2.5a.75.75 0 011.06 0z"></path>
   </svg>
 );
+
+// const PullRequestIcon = ({ className = "", width = 24, height = 24, fill = "#000000", strokeWidth = 2.0 }) => (
+//   <svg
+//     xmlns="http://www.w3.org/2000/svg"
+//     width={width}
+//     height={height}
+//     fill={fill}
+//     strokeWidth={strokeWidth}
+//     viewBox="0 0 256 256"
+//     className={className}
+//   >
+//     <path d="M100,68A32,32,0,1,0,64,99.74109v56.51782a32,32,0,1,0,8,0V99.74109A32.041,32.041,0,0,0,100,68ZM44,68A24,24,0,1,1,68,92,24.02718,24.02718,0,0,1,44,68ZM92,188a24,24,0,1,1-24-24A24.02718,24.02718,0,0,1,92,188Zm100.00293-31.74109-.00195-36.378a51.6638,51.6638,0,0,0-15.23047-36.76758L145.65674,52H176a4,4,0,0,0,0-8H136c-.01172,0-.02246.00336-.03418.00348a4.02032,4.02032,0,0,0-.74951.07556c-.11621.02313-.22412.06671-.33643.09979a3.9657,3.9657,0,0,0-.41064.12738,3.92189,3.92189,0,0,0-.36719.19324c-.10742.05823-.21875.10571-.32129.1745a4.0236,4.0236,0,0,0-.60351.493l-.00538.0044v.00012a4.0021,4.0021,0,0,0-.49853.61011c-.06592.09869-.11133.20556-.16748.30847a2.348,2.348,0,0,0-.32666.788c-.0332.11316-.07666.22138-.1001.33844A3.99145,3.99145,0,0,0,132,48V88a4,4,0,0,0,8,0V57.65656L171.11426,88.77A43.71608,43.71608,0,0,1,184.001,119.88135l.00195,36.37762a31.99976,31.99976,0,1,0,8-.00006Zm-4,55.74109a24,24,0,1,1,24-24A24.02718,24.02718,0,0,1,188.00293,212Z"/>
+//   </svg>
+// );
 
 const ProjectIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -122,4 +154,4 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ArrowUpIcon, DiscussionIcon, DropDownIcon, HomeIcon, IssuesIcon, MagnifierIcon, MenuIcon, NewIcon, NotificationIcon, PullRequestIcon, ProjectIcon, SignInIcon, UserIcon };
+export { ArrowUpIcon, ArrowUpThinIcon, DiscussionIcon, DropDownIcon, HomeIcon, IssuesIcon, MagnifierIcon, MenuIcon, NewIcon, NotificationIcon, PullRequestIcon, ProjectIcon, SignInIcon, UserIcon };
