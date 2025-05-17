@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ../service
+    container_name: backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=githubclone
+      - DB_PORT=5432
+      - BACKEND_URL=${BACKEND_URL}
+      - BACKEND_PORT=${BACKEND_PORT}
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_logs:/var/log/githubclone  # Persistent logging
+
+  db:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: githubclone
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d githubclone"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+  backend_logs:
