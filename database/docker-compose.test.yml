@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build: ../service
@@ -16,8 +14,8 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=githubclone
       - DB_PORT=5432
-      - BACKEND_URL=${BACKEND_URL}
-      - BACKEND_PORT=${BACKEND_PORT}
+      - BACKEND_URL=http://localhost:8080
+      - BACKEND_PORT=8080
     ports:
       - "8080:8080"
     volumes:
