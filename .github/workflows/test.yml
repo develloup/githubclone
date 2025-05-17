@@ -19,8 +19,7 @@ jobs:
         sudo apt-get update && sudo apt-get install -y docker-compose
     - name: Start Backend & DB
       run: |
-        docker compose -f database/docker-compose.test.yml up --build
-    - name: Wait for Services
+        docker compose -f database/docker-compose.test.yml up --build -d
       run: sleep 10  # Wait until database and backend are up and running...
     - name: Execute API Tests
       run: |
