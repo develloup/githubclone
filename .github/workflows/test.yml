@@ -20,6 +20,7 @@ jobs:
     - name: Start Backend & DB
       run: |
         docker compose -f database/docker-compose.test.yml up --build -d
+    - name: Wait for Services
       run: sleep 10  # Wait until database and backend are up and running...
     - name: Execute API Tests
       run: |
