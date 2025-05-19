@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -19,23 +20,56 @@ import (
 	"golang.org/x/oauth2/gitlab"
 )
 
-var sessionUsers = make(map[string]map[string]string)
-var sessionTokens = make(map[string]map[string]string)
-var sessionURLs = make(map[string]map[string]string)
-var oauthConfigMap = make(map[string]map[string]*oauth2.Config)
+type OAuthProvider string
+
+const (
+	Github OAuthProvider = "github"
+	Gitlab OAuthProvider = "gitlab"
+	GHES   OAuthProvider = "github_enterprise"
+)
+
+var (
+	GithubAddress string = "github.com"
+	GitlabAddress string = "gitlab.com"
+)
+
+type OAuthProviderType struct {
+	token         *oauth2.Token  // token of the session for a provider
+	url           string         // urls of the session for a provider
+	oauthconfig   *oauth2.Config // the oauth2 configuration values of the sessionf or a provider
+	connectionURL *string        // The connection URL to a ghes instance
+}
+
+type OAuthConfig struct {
+	user   map[string]string // user of the session
+	config map[OAuthProvider]OAuthProviderType
+}
+
+type AccessToken struct {
+	token string
+	url   string
+}
+
+var sessionConfig = make(map[string]OAuthConfig)
 var oauthConfigMutex sync.Mutex
+
+var OAuthProviderURL = map[OAuthProvider]*string{
+	Github: &GithubAddress,
+	Gitlab: &GitlabAddress,
+	GHES:   nil,
+}
 
 var baseURL = os.Getenv("BACKEND_URL")
 
 func IsValidSession(sessionID string) bool {
-	// log.Printf("IsValidSession: \"%s\"", sessionID)
+	log.Printf("IsValidSession: \"%s\"", sessionID)
 	if sessionID == "" {
 		return false
 	}
 	oauthConfigMutex.Lock()
-	_, exists := sessionUsers[sessionID]
+	_, exists := sessionConfig[sessionID]
 	oauthConfigMutex.Unlock()
-	// log.Printf("exists=%t, sessionUsers: %v", exists, sessionUsers)
+	log.Printf("exists=%t, sessionUsers: %v", exists, sessionConfig)
 	return exists
 }
 
@@ -55,7 +89,7 @@ func GenerateJWT(userID uint, tokens map[string]string) (string, error) {
 	return tokenString, nil
 }
 
-func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string) (*oauth2.Config, error) {
+func getOAuth2Config(clientID, clientSecret string, serviceType OAuthProvider, ghesURL *string) (*oauth2.Config, error) {
 	// Check the base URL
 	if baseURL == "" {
 		return nil, fmt.Errorf("baseURL is not set")
@@ -64,7 +98,7 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 	var config *oauth2.Config
 
 	switch serviceType {
-	case "github":
+	case Github:
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
@@ -72,7 +106,7 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 			Scopes:       []string{"repo", "user"},
 			Endpoint:     github.Endpoint,
 		}
-	case "github_enterprise":
+	case GHES:
 		// Check if the url is set, other it's not possible to work with a github enterprise server
 		if ghesURL == nil || *ghesURL == "" {
 			return nil, fmt.Errorf("GitHub Enterprise URL is required but not provided")
@@ -87,7 +121,7 @@ func getOAuth2Config(clientID, clientSecret, serviceType string, ghesURL *string
 				TokenURL: fmt.Sprintf("%s/login/oauth/access_token", *ghesURL),
 			},
 		}
-	case "gitlab":
+	case Gitlab:
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
@@ -131,37 +165,40 @@ func Login(c *gin.Context) {
 	oauthConfigMutex.Lock()
 	sessionID := uuid.New().String()
 
-	sessionUsers[sessionID] = map[string]string{
-		"id":       fmt.Sprintf("%d", user.ID),
-		"username": user.Username,
-		"email":    user.Email,
+	sessionConfig[sessionID] = OAuthConfig{
+		user: map[string]string{
+			"id":       fmt.Sprintf("%d", user.ID),
+			"username": user.Username,
+			"email":    user.Email,
+		},
+		config: map[OAuthProvider]OAuthProviderType{},
 	}
-	sessionTokens[sessionID] = make(map[string]string)
-	oauthConfigMap[sessionID] = make(map[string]*oauth2.Config)
+
 	for _, connection := range userConnections {
-		config, err := getOAuth2Config(connection.ClientID, connection.ClientSecret, connection.Type, connection.URL)
+		config, err := getOAuth2Config(connection.ClientID, connection.ClientSecret, OAuthProvider(connection.Type), connection.URL)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "OAuth2 configuration failed"})
 			oauthConfigMutex.Unlock()
 			return
 		}
-		oauthConfigMap[sessionID][connection.Type] = config
+		sessionConfig[sessionID].config[OAuthProvider(connection.Type)] = OAuthProviderType{
+			token:         nil,
+			url:           fmt.Sprintf("%s/api/login/%s?state=%s", baseURL, connection.Type, sessionID),
+			oauthconfig:   config,
+			connectionURL: connection.URL,
+		}
 	}
-
+	// copy structure to provide an answer
 	loginURLs := make(map[string]string)
-	for _, connection := range userConnections {
-		loginURLs[connection.Type] = fmt.Sprintf("%s/api/login/%s?state=%s", baseURL, connection.Type, sessionID)
+	for key, value := range sessionConfig[sessionID].config {
+		loginURLs[string(key)] = value.url
 	}
-	sessionURLs[sessionID] = loginURLs
 	oauthConfigMutex.Unlock()
 
 	// log.Printf("================== Login")
 	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
 
-	// log.Printf("SessionID: %s", sessionID)
-	// log.Printf("LoginURLs: %s", loginURLs)
-	// log.Printf("sessionsUsers: %v", sessionUsers)
-	// log.Printf("oauthConfigMap: %v", oauthConfigMap)
+	// log.Printf("oauthConfigMap: %v", sessionConfig)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "Login successful, please authenticate via OAuth2",
@@ -176,10 +213,9 @@ func Logout(c *gin.Context) {
 		return
 	}
 
-	delete(sessionUsers, sessionID)
-	delete(sessionTokens, sessionID)
-	delete(sessionURLs, sessionID)
-
+	oauthConfigMutex.Lock()
+	delete(sessionConfig, sessionID)
+	oauthConfigMutex.Unlock()
 	c.SetCookie("session_id", "", -1, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
@@ -194,17 +230,17 @@ func LoginProvider(c *gin.Context) {
 	// log.Printf("SessionID: %s", sessionID)
 
 	oauthConfigMutex.Lock()
-	config, exists := oauthConfigMap[sessionID][provider]
+	config, exists := sessionConfig[sessionID].config[OAuthProvider(provider)]
 	oauthConfigMutex.Unlock()
 
-	// log.Printf("oauthConfigMap: %v", oauthConfigMap)
+	// log.Printf("oauthConfigMap: %v", sessionConfig)
 
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No OAuth2 config found for this session"})
 		return
 	}
 
-	url := config.AuthCodeURL(sessionID)
+	url := config.oauthconfig.AuthCodeURL(sessionID)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
@@ -223,27 +259,26 @@ func CallbackProvider(c *gin.Context) {
 	// log.Printf("SessionID: %s", sessionID)
 
 	oauthConfigMutex.Lock()
-	config, exists := oauthConfigMap[sessionID][provider]
+	config, exists := sessionConfig[sessionID].config[OAuthProvider(provider)]
 	oauthConfigMutex.Unlock()
 
-	// log.Printf("oauthConfigMap: %v", oauthConfigMap)
+	log.Printf("sessionConfig: %v", sessionConfig)
 
 	if !exists {
 		c.Redirect(http.StatusFound, "/login?error=Invalid provider")
 		return
 	}
 
-	token, err := config.Exchange(context.Background(), code)
+	token, err := config.oauthconfig.Exchange(context.Background(), code)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/login?error=Token exchange failed")
 		return
 	}
 
 	oauthConfigMutex.Lock()
-	if _, ok := sessionTokens[sessionID]; !ok {
-		sessionTokens[sessionID] = make(map[string]string)
-	}
-	sessionTokens[sessionID][provider] = token.AccessToken
+	providerConfig := sessionConfig[sessionID].config[OAuthProvider(provider)]
+	providerConfig.token = token
+	sessionConfig[sessionID].config[OAuthProvider(provider)] = providerConfig
 	oauthConfigMutex.Unlock()
 
 	// log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
@@ -262,19 +297,21 @@ func GetOAuthStatus(c *gin.Context) {
 	}
 
 	oauthConfigMutex.Lock()
-	token, exists := sessionTokens[sessionID]
+	session, exists := sessionConfig[sessionID]
 	oauthConfigMutex.Unlock()
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
 		return
 	}
 	status := make(map[string]bool)
-	// log.Printf("sessionTokens: %v", sessionTokens)
-	for key, value := range token {
-		status[key] = value != ""
+	// log.Printf("sessionConfig: %v", sessionConfig[sessionID])
+	for key, value := range session.config {
+		if value.token != nil {
+			status[string(key)] = value.token.AccessToken != ""
+		}
 	}
 
-	// log.Printf("Status: %v", status)
+	log.Printf("Status: %v", status)
 	c.JSON(http.StatusOK, status)
 }
 
@@ -288,15 +325,22 @@ func GetOAuthURLs(c *gin.Context) {
 		return
 	}
 
-	urls, exists := sessionURLs[sessionID]
+	oauthConfigMutex.Lock()
+	result, exists := sessionConfig[sessionID]
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		oauthConfigMutex.Unlock()
 		return
 	}
+	// copy structure to provide an answer
+	loginURLs := make(map[string]string)
+	for key, value := range result.config {
+		loginURLs[string(key)] = value.url
+	}
+	oauthConfigMutex.Unlock()
 
-	// log.Printf("sessionURLs: %v", sessionURLs)
-	// log.Printf("URLs: %v", urls)
-	c.JSON(http.StatusOK, urls)
+	log.Printf("URLs: %v", loginURLs)
+	c.JSON(http.StatusOK, loginURLs)
 }
 
 func GetLoggedInUser(c *gin.Context) {
@@ -306,11 +350,18 @@ func GetLoggedInUser(c *gin.Context) {
 		return
 	}
 
-	user, exists := sessionUsers[sessionID]
+	oauthConfigMutex.Lock()
+	result, exists := sessionConfig[sessionID]
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		oauthConfigMutex.Unlock()
 		return
 	}
+	user := make(map[string]string)
+	for key, value := range result.user {
+		user[key] = value
+	}
+	oauthConfigMutex.Unlock()
 
 	// log.Printf("SessionID: %s", sessionID)
 	// log.Printf("User: %s", user)
@@ -318,19 +369,40 @@ func GetLoggedInUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func UseToken(c *gin.Context) {
-	sessionID, err := c.Cookie("session_id")
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
-		return
-	}
-	provider := c.Param("provider")
-	token, exists := sessionTokens[sessionID][provider]
+func GetToken(sessionID string) (map[string]AccessToken, error) {
+	oauthConfigMutex.Lock()
+	result, exists := sessionConfig[sessionID]
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "No access token found"})
-		return
+		oauthConfigMutex.Unlock()
+		return nil, fmt.Errorf("the session %s is not known", sessionID)
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Using token", "provider": provider, "token": token})
+	at := make(map[string]AccessToken)
+	for key, value := range result.config {
+		u := ""
+		switch key {
+		case Github:
+			u = GithubAddress
+		case Gitlab:
+			u = GitlabAddress
+		case GHES:
+			if value.connectionURL != nil {
+				u = *value.connectionURL
+			}
+		default:
+			u = ""
+		}
+		if u == "" {
+			oauthConfigMutex.Unlock()
+			return nil, fmt.Errorf("the URL for the provider %s is missing", key)
+		}
+		at[string(key)] = AccessToken{
+			token: value.token.AccessToken,
+			url:   u,
+		}
+
+	}
+	oauthConfigMutex.Unlock()
+	return at, nil
 }
 
 func SessionRoutes(r *gin.Engine) {
@@ -341,5 +413,4 @@ func SessionRoutes(r *gin.Engine) {
 	r.GET("/api/callback/:provider", CallbackProvider)
 	r.GET("/api/login/:provider", LoginProvider)
 	r.GET("/api/loggedinuser", GetLoggedInUser)
-	r.GET("/api/token/:provider", UseToken)
 }
