@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
-	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -19,6 +18,8 @@ import (
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/gitlab"
 )
+
+var baseURL = os.Getenv("BACKEND_URL")
 
 type OAuthProvider string
 
@@ -46,8 +47,8 @@ type OAuthConfig struct {
 }
 
 type AccessToken struct {
-	token string
-	url   string
+	Token string
+	URL   string
 }
 
 var sessionConfig = make(map[string]OAuthConfig)
@@ -59,17 +60,15 @@ var OAuthProviderURL = map[OAuthProvider]*string{
 	GHES:   nil,
 }
 
-var baseURL = os.Getenv("BACKEND_URL")
-
 func IsValidSession(sessionID string) bool {
-	log.Printf("IsValidSession: \"%s\"", sessionID)
+	// log.Printf("IsValidSession: \"%s\"", sessionID)
 	if sessionID == "" {
 		return false
 	}
 	oauthConfigMutex.Lock()
 	_, exists := sessionConfig[sessionID]
 	oauthConfigMutex.Unlock()
-	log.Printf("exists=%t, sessionUsers: %v", exists, sessionConfig)
+	// log.Printf("exists=%t, sessionUsers: %v", exists, sessionConfig)
 	return exists
 }
 
@@ -260,22 +259,22 @@ func CallbackProvider(c *gin.Context) {
 
 	oauthConfigMutex.Lock()
 	config, exists := sessionConfig[sessionID].config[OAuthProvider(provider)]
-	oauthConfigMutex.Unlock()
 
-	log.Printf("sessionConfig: %v", sessionConfig)
+	// log.Printf("sessionConfig: %v", sessionConfig)
 
 	if !exists {
+		oauthConfigMutex.Unlock()
 		c.Redirect(http.StatusFound, "/login?error=Invalid provider")
 		return
 	}
 
 	token, err := config.oauthconfig.Exchange(context.Background(), code)
 	if err != nil {
+		oauthConfigMutex.Unlock()
 		c.Redirect(http.StatusFound, "/login?error=Token exchange failed")
 		return
 	}
 
-	oauthConfigMutex.Lock()
 	providerConfig := sessionConfig[sessionID].config[OAuthProvider(provider)]
 	providerConfig.token = token
 	sessionConfig[sessionID].config[OAuthProvider(provider)] = providerConfig
@@ -298,8 +297,8 @@ func GetOAuthStatus(c *gin.Context) {
 
 	oauthConfigMutex.Lock()
 	session, exists := sessionConfig[sessionID]
-	oauthConfigMutex.Unlock()
 	if !exists {
+		oauthConfigMutex.Unlock()
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
 		return
 	}
@@ -310,8 +309,9 @@ func GetOAuthStatus(c *gin.Context) {
 			status[string(key)] = value.token.AccessToken != ""
 		}
 	}
+	oauthConfigMutex.Unlock()
 
-	log.Printf("Status: %v", status)
+	// log.Printf("Status: %v", status)
 	c.JSON(http.StatusOK, status)
 }
 
@@ -339,7 +339,7 @@ func GetOAuthURLs(c *gin.Context) {
 	}
 	oauthConfigMutex.Unlock()
 
-	log.Printf("URLs: %v", loginURLs)
+	// log.Printf("URLs: %v", loginURLs)
 	c.JSON(http.StatusOK, loginURLs)
 }
 
@@ -369,15 +369,18 @@ func GetLoggedInUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func GetToken(sessionID string) (map[string]AccessToken, error) {
+func GetToken(sessionID string) (map[OAuthProvider]AccessToken, error) {
 	oauthConfigMutex.Lock()
 	result, exists := sessionConfig[sessionID]
 	if !exists {
 		oauthConfigMutex.Unlock()
 		return nil, fmt.Errorf("the session %s is not known", sessionID)
 	}
-	at := make(map[string]AccessToken)
+	// log.Printf("sessionID=%s, sessionConfig=%v", sessionID, result)
+	at := make(map[OAuthProvider]AccessToken)
+
 	for key, value := range result.config {
+		// log.Printf("key=%v, value=%v", key, value)
 		u := ""
 		switch key {
 		case Github:
@@ -395,13 +398,15 @@ func GetToken(sessionID string) (map[string]AccessToken, error) {
 			oauthConfigMutex.Unlock()
 			return nil, fmt.Errorf("the URL for the provider %s is missing", key)
 		}
-		at[string(key)] = AccessToken{
-			token: value.token.AccessToken,
-			url:   u,
+		if value.token != nil {
+			at[key] = AccessToken{
+				Token: value.token.AccessToken,
+				URL:   u,
+			}
 		}
-
 	}
 	oauthConfigMutex.Unlock()
+	// log.Printf("AccessToken=%v", at)
 	return at, nil
 }
 
