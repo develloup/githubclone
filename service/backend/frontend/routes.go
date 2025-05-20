@@ -2,7 +2,6 @@ package frontend
 
 import (
 	"githubclone-backend/api"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -34,12 +33,12 @@ func Routes(r *gin.Engine) {
 		sessionCookie, err := c.Cookie("session_id")
 
 		if err != nil || !api.IsValidSession(sessionCookie) {
-			log.Printf("No valid session cookie, redirect to /login, sessionCookie=\"%s\" requestpath = %s", sessionCookie, requestPath)
+			// log.Printf("No valid session cookie, redirect to /login, sessionCookie=\"%s\" requestpath = %s", sessionCookie, requestPath)
 			c.Redirect(http.StatusFound, "/login")
 			c.Abort()
 			return
 		}
-		log.Printf("Cookie is valid.")
+		// log.Printf("Cookie is valid.")
 		c.Next() // User is logged in, continue
 	})
 
