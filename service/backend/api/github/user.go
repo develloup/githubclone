@@ -2,7 +2,7 @@ package github
 
 type GitHubUser struct {
 	Data struct {
-		User struct {
+		Viewer struct {
 			Login      string `json:"login"`      // User name
 			Name       string `json:"name"`       // Full name
 			Email      string `json:"email"`      // Public E-Mail (if available)
@@ -12,7 +12,7 @@ type GitHubUser struct {
 			Company    string `json:"company"`    // Company or Organization
 			Location   string `json:"location"`   // User location
 			WebsiteURL string `json:"websiteUrl"` // Personal web site
-		} `json:"user"`
+		} `json:"viewer"`
 	} `json:"data"`
 }
 

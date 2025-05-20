@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"githubclone-backend/api"
+	"githubclone-backend/api/abstracted"
 	"githubclone-backend/db"
 	"githubclone-backend/frontend"
 	"io"
@@ -52,6 +53,7 @@ func main() {
 	api.ConnectionRoutes(r)
 	api.UserConnectionRoutes(r)
 	api.ConfigurationRoutes(r)
+	abstracted.SetupRoutes(r)
 	frontend.Routes(r)
 
 	// React on shutting down via ^C
