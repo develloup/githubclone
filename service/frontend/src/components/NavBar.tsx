@@ -10,13 +10,21 @@ import { SearchField } from "./SearchField";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import LeftMenu from "./LeftMenu";
 
+type OAuthUser = {
+  login: string;
+  name: string;
+  email: string;
+  bio: string;
+  avatarUrl: string;
+}
+
 const Navbar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<{ username: string; email: string } | null>(null);
   const [oauthStatus, setOauthStatus] = useState<{ [key: string]: boolean }>({});
   const [oauthUrls, setOauthUrls] = useState<{ [key: string]: string } | null>(null);
-
+  const [oauthuser, setOAuthUser] = useState<OAuthUser | null>(null);
 
   // ✅ Funktion für OAuth-Status- und URLs-Laden
   const fetchOAuthStatus = async () => {
@@ -81,6 +89,19 @@ const Navbar: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    fetch("/api/oauth/loggedinuser", { method: "GET", credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error("User not logged in");
+        return res.json();
+      })
+      .then((data) => {
+        setOAuthUser(data.data.viewer); // Speichert die OAuthUser
+
+      })
+      .catch((err) => console.error("Error fetching user:", err));
+  }, []);
+
   const handleLogout = async () => {
     console.log("🔹 Logging out...");
     await fetch("/api/logout", { method: "POST", credentials: "include" });
@@ -119,7 +140,7 @@ const Navbar: React.FC = () => {
           {user && <span className="text-white">{user.username}</span>}
         </div>
 
-        {/* 🔹 Rechte Seite: Suchfeld & Navigation-Menü */}
+        {/* 🔹 Right side: The search field and the navigation menu */}
         <div className="flex items-center gap-4 ml-auto">
           <SearchField />
 
@@ -133,7 +154,7 @@ const Navbar: React.FC = () => {
           <Button variant="ghost" onClick={() => router.push("/notifications")} className="rounded-lg border border-gray-500 p-2"><NotificationIcon /></Button>
         </div>
 
-        {/* 🔹 User-Menü als Sheet mit OAuth-Status */}
+        {/* 🔹 User menu as a sheet with the oauth status */}
         {!user ? (
           <Button onClick={() => router.push("/login")} variant="ghost" className="rounded-lg border border-gray-500 p-2 ml-4">
             <SignInIcon />
@@ -150,6 +171,12 @@ const Navbar: React.FC = () => {
                 <SheetTitle><h2>Main Menu</h2></SheetTitle>
                 <SheetDescription>The main user menu with user related functionality.</SheetDescription>
               </VisuallyHidden>
+              { oauthuser && (
+                <div className="flex items-center gap-3">
+                  <img src={oauthuser.avatarUrl} alt={oauthuser.name} className="avatar" />
+                  <p className="text-lg font-bold">{oauthuser.name} ({oauthuser.login})</p>
+                </div>
+              )}
               <p className="text-lg font-bold">{user.username}</p>
               <Button variant="ghost" onClick={() => router.push("/settings")}>⚙️ Einstellungen</Button>
               <Button variant="ghost" onClick={handleLogout}>🚪 Logout</Button>
@@ -181,3 +208,4 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
+
