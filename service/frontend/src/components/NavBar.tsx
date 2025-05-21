@@ -3,33 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DropDownIcon, IssuesIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon, UserIcon } from "./Icons";
-import { Sheet, SheetTitle, SheetTrigger, SheetContent, SheetDescription } from "@/components/ui/sheet";
+import { DropDownIcon, IssuesIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon } from "./Icons";
 import Image from "next/image";
 import { SearchField } from "./SearchField";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import LeftMenu from "./LeftMenu";
+import RightMenu from "./RightMenu";
+import { User, OAuthUser } from "@/types/types";
 
-type OAuthUser = {
-  data: {
-    viewer: {
-      login: string;       // User name
-      name: string;        // Full name
-      email: string;       // Public email (if available)
-      bio: string;         // Description / Biography
-      avatarUrl: string;   // Avatar picture URL
-      createdAt: string;   // Account creation date
-      company?: string;    // Company or Organization (optional)
-      location: string;    // User location
-      websiteUrl?: string; // Personal website (optional)
-    };
-  };
-};
 
 const Navbar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<{ username: string; email: string } | null>(null);
+  const [user, setUser] = useState<User>(null);
   const [oauthStatus, setOauthStatus] = useState<{ [key: string]: boolean }>({});
   const [oauthUrls, setOauthUrls] = useState<{ [key: string]: string } | null>(null);
   const [oauthuser, setOAuthUser] = useState<{ [key:string]: OAuthUser}>({});
@@ -182,58 +167,16 @@ const Navbar: React.FC = () => {
             <SignInIcon />
           </Button>
         ) : (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="rounded-lg p-2 ml-4">
-                <UserIcon />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <VisuallyHidden>
-                <SheetTitle><h2>Main Menu</h2></SheetTitle>
-                <SheetDescription>The main user menu with user related functionality.</SheetDescription>
-              </VisuallyHidden>
-
-              {Object.keys(oauthuser).length > 0 && (
-                <div className="flex flex-col gap-4">
-                  {Object.keys(oauthuser).map((key) => {
-                    const user = oauthuser[key].data.viewer;
-                    return (
-                      <div key={key} className="flex items-center gap-3">
-                        <Image 
-                          src={user.avatarUrl}
-                          alt={user.name}
-                          width={32}
-                          height={32}
-                          className="rounded-full"
-                          unoptimized={true} // Switches off optimization of external images
-                        />
-                        <p className="text-lg font-bold">{user.login}</p>
-                      </div>
-
-                    );
-                  })}
-                </div>
-              )}
-
-              <p className="text-lg font-bold">{user.username}</p>
-              <Button variant="ghost" onClick={() => router.push("/settings")}>⚙️ Einstellungen</Button>
-              <Button variant="ghost" onClick={handleLogout}>🚪 Logout</Button>
-
-              <hr className="my-2 border-gray-600" />
-              <p className="font-bold">OAuth Status</p>
-              {oauthUrls && (
-                <div className="flex flex-col gap-2">
-                  {Object.keys(oauthUrls).map((provider) => (
-                    <div key={provider} className="flex items-center gap-2 cursor-pointer" onClick={() => handleOAuthLogin(provider)}>
-                      {oauthStatus[provider] ? <span>✅ {provider}</span> : <span>❌ {provider}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </SheetContent>
-          </Sheet>
+          <RightMenu 
+            user={user}
+            oauthUrls={oauthUrls || {}}
+            oauthStatus={oauthStatus}
+            oauthuser={oauthuser}
+            handleOAuthLogin={handleOAuthLogin}
+            handleLogout={handleLogout}
+          />
         )}
+
       </nav>
       <nav className="flex items-center justify-start  px-4 py-2  text-base">
         <Button variant="ghost" onClick={() => router.push("/overview")}>Overview</Button>
