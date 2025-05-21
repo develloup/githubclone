@@ -17,6 +17,46 @@ const graphqlgithubpath = "/graphql"
 const graphqlgitlabprefix = "https://"
 const graphqlgitlabpath = "/api/graphql"
 
+func convertGitLabToGitHub(gitlabUser gitlab.GitLabUser) github.GitHubUser {
+	return github.GitHubUser{
+		Data: struct {
+			Viewer struct {
+				Login      string `json:"login"`
+				Name       string `json:"name"`
+				Email      string `json:"email"`
+				Bio        string `json:"bio"`
+				AvatarURL  string `json:"avatarUrl"`
+				CreatedAt  string `json:"createdAt"`
+				Company    string `json:"company"`
+				Location   string `json:"location"`
+				WebsiteURL string `json:"websiteUrl"`
+			} `json:"viewer"`
+		}{
+			Viewer: struct {
+				Login      string `json:"login"`
+				Name       string `json:"name"`
+				Email      string `json:"email"`
+				Bio        string `json:"bio"`
+				AvatarURL  string `json:"avatarUrl"`
+				CreatedAt  string `json:"createdAt"`
+				Company    string `json:"company"`
+				Location   string `json:"location"`
+				WebsiteURL string `json:"websiteUrl"`
+			}{
+				Login:      gitlabUser.Data.CurrentUser.Username,  // GitLab `username` → GitHub `login`
+				Name:       gitlabUser.Data.CurrentUser.Name,      // Gleiches Feld
+				Email:      gitlabUser.Data.CurrentUser.Email,     // GitLab `publicEmail` → GitHub `email`
+				Bio:        gitlabUser.Data.CurrentUser.Bio,       // Gleiches Feld
+				AvatarURL:  gitlabUser.Data.CurrentUser.AvatarURL, // Gleiches Feld
+				CreatedAt:  gitlabUser.Data.CurrentUser.CreatedAt, // Gleiches Feld
+				Company:    "",                                    // GitLab hat kein `company`, daher leer
+				Location:   gitlabUser.Data.CurrentUser.Location,  // Gleiches Feld
+				WebsiteURL: gitlabUser.Data.CurrentUser.WebURL,    // GitLab `webUrl` → GitHub `websiteUrl`
+			},
+		},
+	}
+}
+
 func GetOAuthUser(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
 	if err != nil {
@@ -45,6 +85,7 @@ func GetOAuthUser(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 				return
 			}
+			// You're able to manipulate the data here or put it in the cache.
 			userdata[string(api.Github)] = githubData
 		case api.Gitlab:
 			log.Printf("gitlab found")
@@ -57,7 +98,8 @@ func GetOAuthUser(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 				return
 			}
-			userdata[string(api.Gitlab)] = gitlabData
+			githubData := convertGitLabToGitHub(*gitlabData)
+			userdata[string(api.Gitlab)] = githubData
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": key})
 			return
