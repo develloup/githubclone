@@ -1,87 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
+import { GalleryVerticalEnd } from "lucide-react";
+import { LoginForm } from "@/components/ui/loginform";
+import Image from "next/image";
 
 const Login: React.FC = () => {
-  const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
-      });
-
-      if (!response.ok) {
-        alert("Login fehlgeschlagen! Bitte überprüfe deine Zugangsdaten.");
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.oauth_login_urls) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("oauthUrls", JSON.stringify(data.oauth_login_urls));
-        }
-        router.push("/dashboard");
-      } else {
-        alert("Login fehlgeschlagen! Bitte erneut versuchen.");
-      }
-    } catch (error) {
-      console.error("Fehler beim Login:", error);
-      alert("Ein Fehler ist aufgetreten. Bitte später erneut versuchen.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="p-6 bg-white shadow-md rounded-lg">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Login</h2>
-
-        <form onSubmit={handleLogin} className="w-full">
-          <label htmlFor="identifier" className="block text-gray-700">Email oder Username:</label>
-          <input
-            type="text"
-            id="identifier"
-            name="identifier"
-            placeholder="Email oder Username"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-4 py-2 mb-3 border rounded-md focus:outline-none"
-            required
-          />
-
-          <label htmlFor="password" className="block text-gray-700">Passwort:</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            placeholder="Passwort"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 mb-3 border rounded-md focus:outline-none"
-            required
-          />
-
-          <button
-            type="submit"
-            className={`w-full px-4 py-2 rounded-md ${loading ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
-            disabled={loading}
-          >
-            {loading ? "⏳ Wird geladen..." : "Login"}
-          </button>
-        </form>
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <div className="flex flex-col gap-4 p-6 md:p-10">
+        <div className="flex justify-center gap-2 md:justify-start">
+          <a href="#" className="flex items-center gap-2 font-medium">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <GalleryVerticalEnd className="size-4" />
+            </div>
+            The Wolf App
+          </a>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-xs">
+            <LoginForm />
+          </div>
+        </div>
+      </div>
+      <div className="relative hidden bg-muted lg:block">
+        <Image
+          src="/background.png"
+          alt="The Wolf App"
+          width={1920}
+          height={1080}
+          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          unoptimized
+        />
       </div>
     </div>
   );
