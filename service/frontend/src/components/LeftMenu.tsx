@@ -46,12 +46,12 @@ export default function LeftMenu() {
             <Link href="/projects" passHref onClick={() => setLeftOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-left pl-3"><ProjectIcon/>Projects</Button>
             </Link>
-                <Link href="/discussions" passHref onClick={() => setLeftOpen(false)}>
-            <Button variant="ghost" className="w-full justify-start text-left pl-3"><DiscussionIcon/>Discussions</Button>
+            <Link href="/discussions" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><DiscussionIcon/>Discussions</Button>
             </Link>
         </div>
         <div className="h-px bg-gray-400 mt-0 my-1 mx-2" />
-        {/* 🔹 Repositories-Überschrift mit Icon rechts */}
+        {/* 🔹 repositories heading with the icon on the right side */}
         <div className="flex items-center">
             <span className="text-xs font-semibold pl-3">Repositories</span> {/* Smaller font size */}
             {!showFilter && (
