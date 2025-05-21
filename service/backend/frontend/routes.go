@@ -23,7 +23,7 @@ func Routes(r *gin.Engine) {
 	r.Use(func(c *gin.Context) {
 		requestPath := c.Request.URL.Path
 		if isStaticFile(requestPath) {
-			c.Next() // ✅ Falls eine statische Datei, einfach weiterleiten
+			c.Next() // if it's a static file, just forward
 			return
 		}
 		if requestPath == "/login" {
@@ -50,8 +50,8 @@ func Routes(r *gin.Engine) {
 	r.NoRoute(func(c *gin.Context) {
 		path := "./static" + c.Request.URL.Path
 		// log.Printf("path = %s", path)
-		if _, err := os.Stat(path); err == nil { // ✅ Prüft, ob die Datei existiert
-			c.File(path) // ✅ Datei existiert → ausliefern
+		if _, err := os.Stat(path); err == nil { // Checks if the file exists
+			c.File(path) // File exists, deliver
 		} else {
 			pathhtml := path + ".html"
 			// log.Printf("pathhtml = %s", pathhtml)
