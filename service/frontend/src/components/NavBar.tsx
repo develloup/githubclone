@@ -11,12 +11,20 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import LeftMenu from "./LeftMenu";
 
 type OAuthUser = {
-  login: string;
-  name: string;
-  email: string;
-  bio: string;
-  avatarUrl: string;
-}
+  data: {
+    viewer: {
+      login: string;       // User name
+      name: string;        // Full name
+      email: string;       // Public email (if available)
+      bio: string;         // Description / Biography
+      avatarUrl: string;   // Avatar picture URL
+      createdAt: string;   // Account creation date
+      company?: string;    // Company or Organization (optional)
+      location: string;    // User location
+      websiteUrl?: string; // Personal website (optional)
+    };
+  };
+};
 
 const Navbar: React.FC = () => {
   const router = useRouter();
@@ -24,7 +32,8 @@ const Navbar: React.FC = () => {
   const [user, setUser] = useState<{ username: string; email: string } | null>(null);
   const [oauthStatus, setOauthStatus] = useState<{ [key: string]: boolean }>({});
   const [oauthUrls, setOauthUrls] = useState<{ [key: string]: string } | null>(null);
-  const [oauthuser, setOAuthUser] = useState<OAuthUser | null>(null);
+  const [oauthuser, setOAuthUser] = useState<{ [key:string]: OAuthUser}>({});
+
 
   // ✅ Funktion für OAuth-Status- und URLs-Laden
   const fetchOAuthStatus = async () => {
@@ -89,18 +98,31 @@ const Navbar: React.FC = () => {
     }
   }, []);
 
+  
   useEffect(() => {
+    if (Object.keys(oauthStatus).length === 0) return; // If oauthstatus is still empty
     fetch("/api/oauth/loggedinuser", { method: "GET", credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("User not logged in");
-        return res.json();
-      })
-      .then((data) => {
-        setOAuthUser(data.data.viewer); // Speichert die OAuthUser
+      .then(async (res) => {
+        const responseText = await res.text();
+        console.log("🔍 Rohdaten vom Backend:", responseText); // Log zur Überprüfung
 
+        if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+        const parsedResponse: { [key: string]: OAuthUser } = JSON.parse(responseText); // API-Daten parsen
+
+        // 🔄 **Alle Provider durchlaufen, um OAuthUser zu speichern**
+        const updatedUsers: { [key: string]: OAuthUser } = { ...oauthuser };
+        Object.entries(parsedResponse).forEach(([provider, userData]) => {
+          if (userData?.data?.viewer) {
+            updatedUsers[provider] = userData; // Speichert den OAuthUser unter dem Provider-Namen
+          }
+        });
+
+        console.log("✅ Aktualisierte OAuthUser-Map:", updatedUsers);
+        setOAuthUser(updatedUsers);
       })
-      .catch((err) => console.error("Error fetching user:", err));
-  }, []);
+      .catch((err) => console.error("❌ Fehler beim Abrufen der User-Daten:", err));
+  }, [oauthStatus]);
 
   const handleLogout = async () => {
     console.log("🔹 Logging out...");
@@ -171,12 +193,29 @@ const Navbar: React.FC = () => {
                 <SheetTitle><h2>Main Menu</h2></SheetTitle>
                 <SheetDescription>The main user menu with user related functionality.</SheetDescription>
               </VisuallyHidden>
-              { oauthuser && (
-                <div className="flex items-center gap-3">
-                  <img src={oauthuser.avatarUrl} alt={oauthuser.name} className="avatar" />
-                  <p className="text-lg font-bold">{oauthuser.name} ({oauthuser.login})</p>
+
+              {Object.keys(oauthuser).length > 0 && (
+                <div className="flex flex-col gap-4">
+                  {Object.keys(oauthuser).map((key) => {
+                    const user = oauthuser[key].data.viewer;
+                    return (
+                      <div key={key} className="flex items-center gap-3">
+                        <Image 
+                          src={user.avatarUrl}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="rounded-full"
+                          unoptimized={true} // Switches off optimization of external images
+                        />
+                        <p className="text-lg font-bold">{user.login}</p>
+                      </div>
+
+                    );
+                  })}
                 </div>
               )}
+
               <p className="text-lg font-bold">{user.username}</p>
               <Button variant="ghost" onClick={() => router.push("/settings")}>⚙️ Einstellungen</Button>
               <Button variant="ghost" onClick={handleLogout}>🚪 Logout</Button>
