@@ -70,17 +70,17 @@ func GetOAuthUser(c *gin.Context) {
 		return
 	}
 	userdata := make(map[string]interface{})
-	log.Printf("session=%v", session)
+	// log.Printf("session=%v", session)
 	for key, value := range session {
 		log.Printf("key=%v, value=%v", key, value)
 		switch key {
 		case api.Github, api.GHES:
-			log.Printf("github found")
+			// log.Printf("github found")
 			endpoint := value.URL
 			token := value.Token
-			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
+			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
 			githubData, err := common.SendGraphQLQuery[github.GitHubUser](graphqlgithubprefix+endpoint+graphqlgithubpath, github.GithubUserQuery, token, nil)
-			log.Printf("githubdata=%v, err=%v", githubData, err)
+			// log.Printf("githubdata=%v, err=%v", githubData, err)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 				return
@@ -88,12 +88,12 @@ func GetOAuthUser(c *gin.Context) {
 			// You're able to manipulate the data here or put it in the cache.
 			userdata[string(api.Github)] = githubData
 		case api.Gitlab:
-			log.Printf("gitlab found")
+			// log.Printf("gitlab found")
 			endpoint := value.URL
 			token := value.Token
 			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
 			gitlabData, err := common.SendGraphQLQuery[gitlab.GitLabUser](graphqlgitlabprefix+endpoint+graphqlgitlabpath, gitlab.GitLabUserQuery, token, nil)
-			log.Printf("gitlabdata=%v, err=%v", gitlabData, err)
+			// log.Printf("gitlabdata=%v, err=%v", gitlabData, err)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 				return
@@ -107,6 +107,6 @@ func GetOAuthUser(c *gin.Context) {
 	}
 
 	// Return feedback as json
-	log.Printf("Userdata=%v", userdata)
+	// log.Printf("Userdata=%v", userdata)
 	c.JSON(http.StatusOK, userdata)
 }
