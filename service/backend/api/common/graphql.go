@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 type GraphQLRequest struct {
@@ -15,6 +16,51 @@ type GraphQLRequest struct {
 type GraphQLInit struct {
 	Query  string
 	Answer string
+}
+
+var (
+	DefaultFirst = 10 // Default number of entries for a query, maybe for different values there are different default values available
+)
+
+func ValidateGraphQLParams(useCursor bool, rawParams map[string]string, additionalParams map[string]map[string]bool) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	// If cursor is activated, then add cursor parameters
+	if useCursor {
+		firstInt, err := strconv.Atoi(rawParams["first"])
+		if err != nil || firstInt < 1 {
+			firstInt = DefaultFirst // Fallback
+		}
+		params["first"] = firstInt
+
+		if lastParam, exists := rawParams["last"]; exists {
+			lastInt, err := strconv.Atoi(lastParam)
+			if err != nil || lastInt < 1 {
+				delete(rawParams, "last") // Ungültige Werte entfernen
+			} else {
+				params["last"] = lastInt
+			}
+		}
+
+		params["after"] = rawParams["after"]
+		params["before"] = rawParams["before"]
+
+		// Avoid invalid combination (first & last simultaneously)
+		if _, exists := params["last"]; exists && firstInt != DefaultFirst {
+			delete(params, "last")
+		}
+	}
+
+	// Check additional parameters and add them if they are valid
+	for key, validValues := range additionalParams {
+		if value, exists := rawParams[key]; exists {
+			// Check on valid values, only add those which are valid
+			if _, valid := validValues[value]; valid {
+				params[key] = value
+			}
+		}
+	}
+	return params
 }
 
 func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string]interface{}) (*T, error) {
