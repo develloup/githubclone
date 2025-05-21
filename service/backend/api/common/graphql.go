@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -19,7 +18,7 @@ type GraphQLInit struct {
 }
 
 func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string]interface{}) (*T, error) {
-	log.Printf("SendGraphQLQuery: endpoint=%s, query=%s, token=%s, variables=%v", endpoint, query, token, variables)
+	// log.Printf("SendGraphQLQuery: endpoint=%s, query=%s, token=%s, variables=%v", endpoint, query, token, variables)
 	requestBody, err := json.Marshal(GraphQLRequest{Query: query, Variables: variables})
 	if err != nil {
 		return nil, err
