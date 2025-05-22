@@ -8,6 +8,7 @@ import Image from "next/image";
 import { SearchField } from "./SearchField";
 import LeftMenu from "./LeftMenu";
 import RightMenu from "./RightMenu";
+import NavigationMenu from "./NavigationMenu";
 import { User, OAuthUser } from "@/types/types";
 
 
@@ -178,13 +179,7 @@ const Navbar: React.FC = () => {
         )}
 
       </nav>
-      <nav className="flex items-center justify-start  px-4 py-2  text-base">
-        <Button variant="ghost" onClick={() => router.push("/overview")}>Overview</Button>
-        <Button variant="ghost" onClick={() => router.push("/repositories")}>Repositories</Button>
-        <Button variant="ghost" onClick={() => router.push("/projects")}>Projects</Button>
-        <Button variant="ghost" onClick={() => router.push("/packages")}>Packages</Button>
-        <Button variant="ghost" onClick={() => router.push("/stars")}>Stars</Button>
-      </nav>
+      <NavigationMenu/>
     </div>
   );
 };
