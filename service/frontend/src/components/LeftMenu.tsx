@@ -34,7 +34,7 @@ export default function LeftMenu() {
             <div className="flex justify-start my-3 pl-3">
                 <Image src="/wolf-logo.png" alt="Wolf Logo" width={40} height={40} unoptimized />
             </div>
-            <Link href="/dashboard" passHref onClick={() => setLeftOpen(false)}>
+            <Link href="/" passHref onClick={() => setLeftOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-left pl-3"><HomeIcon/>Home</Button>
             </Link>
             <Link href="/issues" passHref onClick={() => setLeftOpen(false)}>
