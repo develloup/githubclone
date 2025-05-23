@@ -31,6 +31,26 @@ const ArrowUpThinIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const BalanceIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg width={width} height={height} fill="none" viewBox="0 0 392.6 392.6" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M390.94 214.24l-54.88-113.2c7.24 2.13 23.47 7.76 24.82 7.76 4.4 0 8.47-2.65 10.21-7.05 2.13-5.62-0.65-11.89-6.27-14.09-36.33-13.9-83.2-23.01-133.04-25.86-3.3-11.96-12.61-21.53-24.44-25.21v-25.66c0-6.01-4.85-10.93-10.93-10.93-6.08 0-10.99 4.85-10.99 10.93v25.73c-11.77 3.69-20.95 13.19-24.24 25.08-49.97 2.84-97.03 11.89-133.24 25.86-5.62 2.13-8.4 8.47-6.27 14.09 1.68 4.33 5.82 6.98 10.21 6.98 1.29 0 17.52-5.56 24.82-7.76l-55.53 114.68c-0.07 0.13-1.1 5.3-1.1 5.43 1.94 40.02 34.78 71.37 74.86 71.37s71.89-30.38 74.73-69.56c0.13-0.78-0.71-7.24-1.55-8.47l-58.83-121.34c22.56-4.65 47.06-7.82 72.53-9.24 3.81 10.93 12.54 19.46 23.6 22.95v216.95h-46.74c-3.3 0-6.47 1.55-8.6 4.07l-37.43 47.13c-2.65 3.23-3.1 7.76-1.23 11.51 1.87 3.81 5.62 6.21 9.83 6.21h190.26c6.01 0 10.93-4.85 10.93-10.93 0-3.04-1.23-5.82-3.23-7.82l-36.72-46.29c-2.07-2.65-5.24-4.07-8.6-4.07h-46.67v-216.89c11.12-3.49 19.91-12.02 23.73-23.01 25.34 1.49 49.84 4.65 72.4 9.24l-59.41 122.63c-0.07 0.13-1.1 5.3-1.1 5.43 1.94 40.02 34.78 71.37 74.86 71.37 39.5 0 71.89-30.38 74.73-69.56 0.13-0.71-0.71-7.24-1.55-8.47zm-315.99 56.31c-24.5 0-45.19-16.55-51.33-39.3h102.59c-6.01 22.76-26.76 39.3-51.26 39.3zm46.61-61.16h-93.16l46.61-96.07 46.55 96.07zm127.22 135.95l20.17 25.47h-145.13l20.17-25.47h104.79zm-52.36-258.72c-8.28 0-15-6.72-15-15s6.72-15 15-15 15 6.72 15 15-6.72 15-15 15zm121.34 26.7l46.61 96.07h-93.22l46.61-96.07zm0 157.22c-24.5 0-45.19-16.55-51.33-39.3h102.59c-6.08 22.76-26.76 39.3-51.26 39.3z"
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+  </svg>
+);
+
+const CheckIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+  </svg>
+);
+
+const ClockIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M12 8v4l2 2m7-2c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" 
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"/>
+  </svg>
+);
+
 
 const DiscussionIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -90,6 +110,23 @@ const IssuesIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5
     <path fillRule="evenodd" d="M2.5 12a9.5 9.5 0 1119 0 9.5 9.5 0 01-19 0zM12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 13a2 2 0 100-4 2 2 0 000 4z"></path>
   </svg>
 );
+
+const LetterIcon = ({className = "", width = 24, height = 24}) => (
+  <svg width={width} height={height} fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M29,11H3a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1H29a1,1,0,0,0,1-1V12A1,1,0,0,0,29,11Zm-2.79,2L16,20.23,5.79,13ZM4,28V14.18l11.42,8.09a1,1,0,0,0,1.16,0L28,14.18V28Z" 
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"/>
+  </svg>
+);
+
+const LocationIcon = ({className = "", width = 24, height = 24}) => (
+  <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M12 21c3.5-3.6 7-6.82 7-10.8 0-3.98-3.13-7.2-7-7.2s-7 3.22-7 7.2c0 3.98 3.5 7.2 7 10.8z" 
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+    <path d="M12 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z" 
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
+  </svg>
+);
+
 
 const MagnifierIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 410.587 410.588" fill="currentColor" className={className}>
@@ -283,5 +320,5 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ArrowUpIcon, ArrowUpThinIcon, DiscussionIcon, DropDownIcon, GistIcon, HomeIcon, IssuesIcon, MagnifierIcon, MenuIcon, NewIcon};
+export { ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, DiscussionIcon, DropDownIcon, GistIcon, HomeIcon, IssuesIcon, LetterIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
 export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, RepositoryIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, UserIcon };

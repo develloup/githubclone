@@ -137,7 +137,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white">
+    <div className="fixed top-0 left-0 w-full shadow-md z-50 bg-gray-900 text-white">
       <nav className="flex items-center justify-between p-4 py-2 text-sm">
         {/* Left side: hamburger menu as a sheet */}
         <LeftMenu/>

@@ -63,7 +63,7 @@ const RightMenu = ({ user, oauthUrls, oauthStatus, oauthuser, handleOAuthLogin, 
         {oauthUrls && (
             <div className="flex flex-col">
                 {/* Separator and title are integrated in the block */}
-                <div className="h-px bg-gray-400 my-1 mx-2" />
+                <div className="h-px bg-gray-400 mt-0 my-1 mx-2" />
                 <div className="flex items-center">
                     <span className="text-xs font-semibold pl-3 mt-5 mb-3">OAuth accounts</span>
                 </div>
