@@ -4,6 +4,7 @@ type User = {
   email: string;
 } | null;
 
+// The entries of a user
 type OAuthUser = {
   data: {
     viewer: {
@@ -20,4 +21,41 @@ type OAuthUser = {
   };
 };
 
-export type {User, OAuthUser};
+// The entries for a single repository
+type OAuthRepositoryNode = {
+  name: string;
+  description: string;
+  url: string;
+  isPrivate: boolean;
+  isFork: boolean;
+  createdAt: string;
+  updatedAt: string;
+  pushedAt: string;
+  stargazerCount: number;
+  forkCount: number;
+  provider: string; // Identification of the provider
+  avatarUrl: string;   // Avatar picture URL
+};
+
+// PageInfo to handle the cursor
+type OAuthPageInfo = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  endCursor: string;
+  startCursor: string;
+};
+
+// The response to a repository request
+type OAuthRepositories = {
+  data: {
+    viewer: {
+      avatarUrl: string; // Avatar picture URL
+      repositories: {
+        pageInfo: OAuthPageInfo;
+        nodes: OAuthRepositoryNode[];
+      };
+    };
+  };
+};
+
+export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };

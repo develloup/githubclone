@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -69,7 +70,7 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 	if err != nil {
 		return nil, err
 	}
-	// log.Printf("requestbody=%v", requestBody)
+	log.Printf("requestbody=%v", requestBody)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -88,7 +89,7 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 
 	// Read answer
 	body, err := io.ReadAll(resp.Body)
-	// log.Printf("body=%v", body)
+	log.Printf("body=%v", body)
 	if err != nil {
 		return nil, err
 	}

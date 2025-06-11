@@ -4,6 +4,7 @@ import (
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -47,14 +48,14 @@ func GetOAuthRepositories(c *gin.Context) {
 		case api.Github, api.GHES:
 			endpoint := value.URL
 			token := value.Token
-			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
+			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
 			githubData, err := common.SendGraphQLQuery[github.GitHubRepository](
 				graphqlgithubprefix+endpoint+graphqlgithubpath,
 				github.GithubRepositoryQuery,
 				token,
 				validParams,
 			)
-			// log.Printf("githubdata=%v, err=%v", githubData, err)
+			log.Printf("githubdata=%v, err=%v", githubData, err)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 				return

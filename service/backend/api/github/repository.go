@@ -3,6 +3,7 @@ package github
 type GitHubRepository struct {
 	Data struct {
 		Viewer struct {
+			AvatarURL    string `json:"avatarUrl"`
 			Repositories struct {
 				PageInfo struct {
 					HasNextPage     bool   `json:"hasNextPage"`
@@ -25,8 +26,16 @@ type GitHubRepository struct {
 	} `json:"data"`
 }
 
-var GithubRepositoryQuery string = `query GetRepositories($first: Int, $after: String, $last: Int, $before: String, $field: RepositoryOrderField, $direction: OrderDirection) {
+var GithubRepositoryQuery string = `query GetRepositories(
+  $first: Int,
+  $after: String,
+  $last: Int,
+  $before: String,
+  $field: RepositoryOrderField!,
+  $direction: OrderDirection!
+) {
   viewer {
+    avatarUrl
     repositories(
       first: $first
       after: $after
@@ -45,8 +54,10 @@ var GithubRepositoryQuery string = `query GetRepositories($first: Int, $after: S
         description
         url
         isPrivate
+        isFork
         createdAt
         updatedAt
+        pushedAt
         stargazerCount
         forkCount
       }

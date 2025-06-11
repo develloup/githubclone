@@ -5,7 +5,6 @@ import (
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
 	"githubclone-backend/api/gitlab"
-	"log"
 
 	"net/http"
 
@@ -44,13 +43,13 @@ func convertGitLabToGitHub(gitlabUser gitlab.GitLabUser) github.GitHubUser {
 				WebsiteURL string `json:"websiteUrl"`
 			}{
 				Login:      gitlabUser.Data.CurrentUser.Username,  // GitLab `username` → GitHub `login`
-				Name:       gitlabUser.Data.CurrentUser.Name,      // Gleiches Feld
+				Name:       gitlabUser.Data.CurrentUser.Name,      // Same field
 				Email:      gitlabUser.Data.CurrentUser.Email,     // GitLab `publicEmail` → GitHub `email`
-				Bio:        gitlabUser.Data.CurrentUser.Bio,       // Gleiches Feld
-				AvatarURL:  gitlabUser.Data.CurrentUser.AvatarURL, // Gleiches Feld
-				CreatedAt:  gitlabUser.Data.CurrentUser.CreatedAt, // Gleiches Feld
-				Company:    "",                                    // GitLab hat kein `company`, daher leer
-				Location:   gitlabUser.Data.CurrentUser.Location,  // Gleiches Feld
+				Bio:        gitlabUser.Data.CurrentUser.Bio,       // Same field
+				AvatarURL:  gitlabUser.Data.CurrentUser.AvatarURL, // Same field
+				CreatedAt:  gitlabUser.Data.CurrentUser.CreatedAt, // Same field
+				Company:    "",                                    // GitLab does not have `company`, therefore empty
+				Location:   gitlabUser.Data.CurrentUser.Location,  // Same field
 				WebsiteURL: gitlabUser.Data.CurrentUser.WebURL,    // GitLab `webUrl` → GitHub `websiteUrl`
 			},
 		},
@@ -72,7 +71,7 @@ func GetOAuthUser(c *gin.Context) {
 	userdata := make(map[string]interface{})
 	// log.Printf("session=%v", session)
 	for key, value := range session {
-		log.Printf("key=%v, value=%v", key, value)
+		// log.Printf("key=%v, value=%v", key, value)
 		switch key {
 		case api.Github, api.GHES:
 			// log.Printf("github found")
@@ -91,7 +90,7 @@ func GetOAuthUser(c *gin.Context) {
 			// log.Printf("gitlab found")
 			endpoint := value.URL
 			token := value.Token
-			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
+			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
 			gitlabData, err := common.SendGraphQLQuery[gitlab.GitLabUser](graphqlgitlabprefix+endpoint+graphqlgitlabpath, gitlab.GitLabUserQuery, token, nil)
 			// log.Printf("gitlabdata=%v, err=%v", gitlabData, err)
 			if err != nil {

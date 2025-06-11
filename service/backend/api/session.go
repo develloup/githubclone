@@ -20,6 +20,8 @@ import (
 )
 
 var baseURL = os.Getenv("BACKEND_URL")
+var internBaseURL = os.Getenv("INTERN_BACKEND_URL")
+var frontendURL = os.Getenv("FRONTEND_URL")
 
 type OAuthProvider string
 
@@ -101,7 +103,7 @@ func getOAuth2Config(clientID, clientSecret string, serviceType OAuthProvider, g
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/api/callback/github", baseURL),
+			RedirectURL:  fmt.Sprintf("%s/api/callback/github", internBaseURL),
 			Scopes:       []string{"repo", "user"},
 			Endpoint:     github.Endpoint,
 		}
@@ -113,7 +115,7 @@ func getOAuth2Config(clientID, clientSecret string, serviceType OAuthProvider, g
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/api/callback/github_enterprise", baseURL),
+			RedirectURL:  fmt.Sprintf("%s/api/callback/github_enterprise", internBaseURL),
 			Scopes:       []string{"repo", "user"},
 			Endpoint: oauth2.Endpoint{
 				AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", *ghesURL),
@@ -124,7 +126,7 @@ func getOAuth2Config(clientID, clientSecret string, serviceType OAuthProvider, g
 		config = &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
-			RedirectURL:  fmt.Sprintf("%s/api/callback/gitlab", baseURL),
+			RedirectURL:  fmt.Sprintf("%s/api/callback/gitlab", internBaseURL),
 			Scopes:       []string{"read_user", "api"},
 			Endpoint:     gitlab.Endpoint,
 		}
@@ -182,7 +184,7 @@ func Login(c *gin.Context) {
 		}
 		sessionConfig[sessionID].config[OAuthProvider(connection.Type)] = OAuthProviderType{
 			token:         nil,
-			url:           fmt.Sprintf("%s/api/login/%s?state=%s", baseURL, connection.Type, sessionID),
+			url:           fmt.Sprintf("%s/api/login/%s?state=%s", internBaseURL, connection.Type, sessionID),
 			oauthconfig:   config,
 			connectionURL: connection.URL,
 		}
@@ -282,7 +284,8 @@ func CallbackProvider(c *gin.Context) {
 
 	// log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
 
-	c.Redirect(http.StatusSeeOther, "/")
+	r := fmt.Sprintf("%s%s", frontendURL, "/")
+	c.Redirect(http.StatusSeeOther, r)
 }
 
 func GetOAuthStatus(c *gin.Context) {
