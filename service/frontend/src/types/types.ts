@@ -58,4 +58,50 @@ type OAuthRepositories = {
   };
 };
 
+type RepositoryLanguage = {
+  name: string;
+  color: string;
+};
+
+type LanguageEdge = {
+  size: number;
+  node: RepositoryLanguage;
+};
+
+type RepositoryOwner = {
+  avatarUrl: string;
+};
+
+type DefaultBranchRef = {
+  name: string;
+};
+
+type Repository = {
+  name: string;
+  description: string;
+  url: string;
+  isPrivate: boolean;
+  isFork: boolean;
+  createdAt: string;
+  updatedAt: string;
+  pushedAt: string;
+  stargazerCount: number;
+  forkCount: number;
+  owner: RepositoryOwner;
+  defaultBranchRef: DefaultBranchRef | null;
+  languages: {
+    totalSize: number;
+    edges: LanguageEdge[];
+  };
+};
+
+type OAuthRepository = {
+  data: {
+    repository: Repository;
+  }
+};
+
+
+
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
+export type { Repository, RepositoryOwner, RepositoryLanguage, LanguageEdge, DefaultBranchRef, OAuthRepository };

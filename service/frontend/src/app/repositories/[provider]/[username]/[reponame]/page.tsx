@@ -1,18 +1,76 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@radix-ui/react-select";
+import { Separator } from "@/components/ui/separator";
 import { FileText, GitBranch, Info, Tag } from "lucide-react";
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { OAuthRepository } from "@/types/types"; // ⬅️ Typ muss angepasst sein
+
+type ProviderRepositoryMap = {
+  [provider: string]: OAuthRepository;
+};
 
 export default function RepositoryPage() {
+  const params = useParams();
+  const { provider, username, reponame } = params as {
+    provider: string;
+    username: string;
+    reponame: string;
+  };
+
+  const [repository, setRepository] = useState<OAuthRepository | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!provider || !username || !reponame) return;
+
+    setLoading(true);
+    setError(null);
+
+    fetch(
+      `/api/oauth/repository?provider=${provider}&owner=${username}&name=${reponame}`,
+      { credentials: "include" }
+    )
+      .then(async (res) => {
+        const responseText = await res.text();
+        console.log("📦 Backend-Rohdaten:", responseText);
+
+        if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+        const parsed: ProviderRepositoryMap = JSON.parse(responseText);
+        const repo = parsed[provider];
+        if (!repo) throw new Error(`Kein Repository für Provider ${provider} gefunden`);
+        setRepository(repo);
+      })
+      .catch((err) => {
+        console.error("❌ Fehler beim Laden:", err);
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
+  }, [provider, username, reponame]);
+
+  if (loading) return <div className="text-gray-500">Lade Repository-Daten …</div>;
+  if (error) return <div className="text-red-500">Fehler: {error}</div>;
+  if (!repository) return <div className="text-gray-500">Kein Repository gefunden.</div>;
+
   return (
-    <div className="max-w-[1080px] mx-auto p-6 space-y-6">
+    <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <img src="/user-icon.png" className="h-10 w-10 rounded-full" alt="User" />
-          <h1 className="text-2xl font-bold">mein-repository</h1>
-          <Badge variant="outline" className="text-xs rounded-full">public</Badge>
+          <img
+            src={repository.data.repository.owner.avatarUrl}
+            className="h-10 w-10 rounded-full"
+            alt="Owner Avatar"
+          />
+          <h1 className="text-2xl font-bold">{repository.data.repository.name}</h1>
+          <Badge variant="outline" className="text-xs rounded-full">
+            {repository.data.repository.isPrivate ? "private" : "public"}
+          </Badge>
         </div>
         <div className="flex space-x-2">
           <Button variant="secondary" size="sm">Pin</Button>
@@ -25,11 +83,13 @@ export default function RepositoryPage() {
 
       {/* Main Content */}
       <div className="flex space-x-6">
-        {/* Left Column (80%) */}
+        {/* Left Column */}
         <div className="w-[80%] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="default" size="sm">main</Button>
+              <Button variant="default" size="sm">
+                {repository.data.repository.defaultBranchRef?.name ?? "main"}
+              </Button>
               <div className="flex items-center text-sm">
                 <GitBranch className="w-4 h-4 mr-1" />
                 <span className="font-semibold mr-1">4</span>Branches
@@ -58,19 +118,20 @@ export default function RepositoryPage() {
               <div>Init commit</div>
               <div>vor 2 Tagen</div>
             </div>
-            {/* …weitere Dateien */}
           </div>
         </div>
 
-        {/* Right Column (20%) */}
+        {/* Right Column */}
         <div className="w-[20%] space-y-2">
           <div className="flex justify-between items-center text-sm font-medium">
             <span>About</span>
             <Info className="w-4 h-4 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground leading-snug">
-            Das ist ein sehr cooles Repository mit einem vollständigen OAuth2-Flow,
-            Docker, Postgres – und einer Menge Tech-Zauber.
+            {repository.data.repository.description ?? "Kein Beschreibungstext vorhanden."}
+          </p>
+          <p className="text-sm text-muted-foreground pt-2">
+            ⭐ {repository.data.repository.stargazerCount}  ·  🍴 {repository.data.repository.forkCount}
           </p>
         </div>
       </div>

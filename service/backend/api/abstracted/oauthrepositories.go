@@ -49,13 +49,13 @@ func GetOAuthRepositories(c *gin.Context) {
 			endpoint := value.URL
 			token := value.Token
 			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
-			githubData, err := common.SendGraphQLQuery[github.GitHubRepository](
+			githubData, err := common.SendGraphQLQuery[github.GitHubRepositoriesOfViewer](
 				graphqlgithubprefix+endpoint+graphqlgithubpath,
-				github.GithubRepositoryQuery,
+				github.GithubRepositoriesOfViewerQuery,
 				token,
 				validParams,
 			)
-			log.Printf("githubdata=%v, err=%v", githubData, err)
+			// log.Printf("githubdata=%v, err=%v", githubData, err)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 				return
@@ -70,4 +70,54 @@ func GetOAuthRepositories(c *gin.Context) {
 		}
 	}
 	c.JSON(http.StatusOK, userdata)
+}
+
+func GetOAuthRepository(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID found in cookie"})
+		return
+	}
+
+	session, err := api.GetToken(sessionID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err})
+		return
+	}
+
+	provider := c.Query("provider")
+	validParams := map[string]interface{}{
+		"owner": c.Query("owner"),
+		"name":  c.Query("name"),
+	}
+
+	if value, ok := session[api.OAuthProvider(provider)]; ok {
+		switch api.OAuthProvider(provider) {
+		case api.GHES, api.Github:
+			userdata := make(map[string]interface{})
+			endpoint := value.URL
+			token := value.Token
+			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
+			githubData, err := common.SendGraphQLQuery[github.RepositoryNodeWithAttributes](
+				graphqlgithubprefix+endpoint+graphqlgithubpath,
+				github.GithubRepositoryQuery,
+				token,
+				validParams,
+			)
+			log.Printf("githubdata=%v, err=%v", githubData, err)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
+				return
+			}
+			// You're able to manipulate the data here or put it in the cache.
+			userdata[string(api.Github)] = githubData
+			c.JSON(http.StatusOK, userdata)
+		case api.Gitlab:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": provider})
+		}
+
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": provider})
+	}
+
 }

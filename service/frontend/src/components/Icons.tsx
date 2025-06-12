@@ -15,6 +15,7 @@ const ArrowUpIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+
 const ArrowUpThinIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -105,16 +106,66 @@ const HomeIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5 }
   </svg>
 );
 
-const IssuesIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5 }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path fillRule="evenodd" d="M2.5 12a9.5 9.5 0 1119 0 9.5 9.5 0 01-19 0zM12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 13a2 2 0 100-4 2 2 0 000 4z"></path>
+// const IssuesIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5 }) => (
+//   <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+//     <path fillRule="evenodd" d="M2.5 12a9.5 9.5 0 1119 0 9.5 9.5 0 01-19 0zM12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1zm0 13a2 2 0 100-4 2 2 0 000 4z"></path>
+//   </svg>
+// );
+const IssuesIcon = ({
+  className = "",
+  width = 24,
+  height = 24,
+}: {
+  className?: string;
+  width?: number;
+  height?: number;
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="1" />
   </svg>
 );
 
-const LetterIcon = ({className = "", width = 24, height = 24}) => (
-  <svg width={width} height={height} fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M29,11H3a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1H29a1,1,0,0,0,1-1V12A1,1,0,0,0,29,11Zm-2.79,2L16,20.23,5.79,13ZM4,28V14.18l11.42,8.09a1,1,0,0,0,1.16,0L28,14.18V28Z" 
-      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"/>
+// const LetterIcon = ({className = "", width = 24, height = 24}) => (
+//   <svg width={width} height={height} fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className={className}>
+//     <path d="M29,11H3a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1H29a1,1,0,0,0,1-1V12A1,1,0,0,0,29,11Zm-2.79,2L16,20.23,5.79,13ZM4,28V14.18l11.42,8.09a1,1,0,0,0,1.16,0L28,14.18V28Z" 
+//       stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"/>
+//   </svg>
+// );
+const LetterIcon = ({
+  className = "",
+  width = 24,
+  height = 24,
+}: {
+  className?: string;
+  width?: number;
+  height?: number;
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+    <rect x="2" y="4" width="20" height="16" rx="2" />
   </svg>
 );
 
