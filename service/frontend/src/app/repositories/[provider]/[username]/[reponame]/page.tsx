@@ -5,16 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { FileText, GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { OAuthRepository } from "@/types/types"; // ⬅️ Typ muss angepasst sein
+import { OAuthRepository, OAuthRepositoryContents } from "@/types/types"; // ⬅️ Typ muss angepasst sein
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
+import { FileIcon, FolderIcon } from "@/components/Icons";
+import Link from "next/link";
 
 type ProviderRepositoryMap = {
   [provider: string]: OAuthRepository;
 };
 
+type ProviderRepositoryContentMap = {
+  [provider: string]: OAuthRepositoryContents;
+};
+
 export default function RepositoryPage() {
   const params = useParams();
+  const currentPath = usePathname();
+
   const { provider, username, reponame } = params as {
     provider: string;
     username: string;
@@ -22,40 +33,129 @@ export default function RepositoryPage() {
   };
 
   const [repository, setRepository] = useState<OAuthRepository | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [repositorycontent, setRepositoryContent] = useState<OAuthRepositoryContents | null>(null);
+  const [loadingRepository, setLoadingRepository] = useState(true);
+  const [loadingContent, setLoadingContent] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!provider || !username || !reponame) return;
+useEffect(() => {
+  if (!provider || !username || !reponame) return;
 
-    setLoading(true);
-    setError(null);
+  setLoadingRepository(true);
+  setLoadingContent(true);
+  setError(null);
 
-    fetch(
-      `/api/oauth/repository?provider=${provider}&owner=${username}&name=${reponame}`,
-      { credentials: "include" }
-    )
-      .then(async (res) => {
-        const responseText = await res.text();
-        console.log("📦 Backend-Rohdaten:", responseText);
+  fetchWithAuth(
+    `/api/oauth/repository?provider=${provider}&owner=${username}&name=${reponame}`,
+    { credentials: "include" }
+  )
+    .then(async (res) => {
+      const responseText = await res.text();
+      console.log("📦 Backend-Rohdaten (repository):", responseText);
 
-        if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+      if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
 
-        const parsed: ProviderRepositoryMap = JSON.parse(responseText);
-        const repo = parsed[provider];
-        if (!repo) throw new Error(`Kein Repository für Provider ${provider} gefunden`);
-        setRepository(repo);
-      })
-      .catch((err) => {
-        console.error("❌ Fehler beim Laden:", err);
-        setError(err.message);
-      })
-      .finally(() => setLoading(false));
-  }, [provider, username, reponame]);
+      const parsed: ProviderRepositoryMap = JSON.parse(responseText);
+      const repo = parsed[provider];
+      if (!repo) throw new Error(`Kein Repository für Provider ${provider} gefunden`);
+      setRepository(repo);
 
-  if (loading) return <div className="text-gray-500">Lade Repository-Daten …</div>;
-  if (error) return <div className="text-red-500">Fehler: {error}</div>;
-  if (!repository) return <div className="text-gray-500">Kein Repository gefunden.</div>;
+      const defbranch = repo?.data?.repository.defaultBranchRef?.name ?? "HEAD:";
+
+      // Second fetch: get the initial content
+      return fetchWithAuth(
+        `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(toQualifiedRef(defbranch))}`,
+        { credentials: "include" }
+      );
+    })
+    .then(async (res) => {
+      const responseText = await res.text();
+      console.log("📄 Backend-Rohdaten (content):", responseText);
+
+      if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+      const parsed: ProviderRepositoryContentMap = JSON.parse(responseText);
+      const content = parsed[provider];
+      if (!content) throw new Error(`Kein Repository-Inhalt für Provider ${provider} gefunden`);
+      setRepositoryContent(content);
+    })
+    .catch((err) => {
+      console.error("❌ Fehler beim Laden:", err);
+      setError(err.message);
+    })
+    .finally(() => {
+      setLoadingRepository(false);
+      setLoadingContent(false);
+    });
+}, [provider, username, reponame]);
+
+
+
+  if (loadingRepository || error || !repository)
+  return (
+    <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-6 w-[180px]" />
+          <Skeleton className="h-4 w-[60px]" />
+        </div>
+        <div className="flex space-x-2">
+          <Skeleton className="h-8 w-14 rounded-md" />
+          <Skeleton className="h-8 w-20 rounded-md" />
+          <Skeleton className="h-8 w-16 rounded-md" />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Main Content */}
+      <div className="flex space-x-6">
+        {/* Left Column */}
+        <div className="w-[80%] space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Skeleton className="h-8 w-16 rounded-md" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="border rounded-md overflow-hidden">
+            <div className="grid grid-cols-3 bg-muted p-2 text-sm font-medium">
+              <div>Dateiname</div>
+              <div>Letzter Commit</div>
+              <div>Letzte Änderung</div>
+            </div>
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="grid grid-cols-3 p-2 text-sm">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="w-[20%] space-y-2">
+          <div className="flex justify-between items-center text-sm font-medium">
+            <span>About</span>
+            <Info className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
@@ -113,11 +213,37 @@ export default function RepositoryPage() {
               <div>Letzter Commit</div>
               <div>Letzte Änderung</div>
             </div>
-            <div className="grid grid-cols-3 p-2 text-sm hover:bg-accent cursor-pointer">
-              <div><FileText className="inline w-4 h-4 mr-2" />README.md</div>
-              <div>Init commit</div>
-              <div>vor 2 Tagen</div>
-            </div>
+
+            {repositorycontent?.data?.repository?.object?.entries?.length ? (
+              repositorycontent.data.repository.object.entries
+                .slice() // Copy to sort without mutations
+                .sort((a, b) => {
+                  if (a.type === b.type) return 0;
+                  return a.type === "tree" ? -1 : 1;
+                })
+                .map((entry, index) => {
+                  const isDir = entry.type === "tree";
+                  const defbranch = repository?.data?.repository?.defaultBranchRef?.name
+                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
+                  const Icon = isDir ? FolderIcon : FileIcon;
+
+                  return (
+                    <Link
+                      key={index}
+                      href={href}
+                      className="grid grid-cols-3 p-2 text-sm hover:bg-accent cursor-pointer"
+                    >
+                      <div className="flex items-center">
+                        <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
+                        {entry.name}
+                      </div>
+                      <div className="text-muted-foreground">–</div>
+                      <div className="text-muted-foreground">–</div>
+                    </Link>
+                  );
+                })
+            ) : null}
+
           </div>
         </div>
 
@@ -131,7 +257,7 @@ export default function RepositoryPage() {
             {repository.data.repository.description ?? "Kein Beschreibungstext vorhanden."}
           </p>
           <p className="text-sm text-muted-foreground pt-2">
-            ⭐ {repository.data.repository.stargazerCount}  ·  🍴 {repository.data.repository.forkCount}
+            ⭐ {formatNumber(repository.data.repository.stargazerCount)}  ·  🍴 {formatNumber(repository.data.repository.forkCount)}
           </p>
         </div>
       </div>

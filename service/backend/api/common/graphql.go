@@ -64,13 +64,15 @@ func ValidateGraphQLParams(useCursor bool, rawParams map[string]string, addition
 	return params
 }
 
-func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string]interface{}) (*T, error) {
+func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string]interface{}, islog bool) (*T, error) {
 	// log.Printf("SendGraphQLQuery: endpoint=%s, query=%s, token=%s, variables=%v", endpoint, query, token, variables)
 	requestBody, err := json.Marshal(GraphQLRequest{Query: query, Variables: variables})
 	if err != nil {
 		return nil, err
 	}
-	// log.Printf("requestbody=%s", ASCIIToStringFromBytes(requestBody))
+	if islog {
+		log.Printf("requestbody=%s", ASCIIToStringFromBytes(requestBody))
+	}
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -89,7 +91,9 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 
 	// Read answer
 	body, err := io.ReadAll(resp.Body)
-	log.Printf("body=%s", ASCIIToStringFromBytes(body))
+	if islog {
+		log.Printf("body=%s", ASCIIToStringFromBytes(body))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +104,8 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("result=%v", result)
+	if islog {
+		log.Printf("result=%v", result)
+	}
 	return &result, nil
 }

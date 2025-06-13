@@ -78,7 +78,7 @@ func GetOAuthUser(c *gin.Context) {
 			endpoint := value.URL
 			token := value.Token
 			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
-			githubData, err := common.SendGraphQLQuery[github.GitHubUser](graphqlgithubprefix+endpoint+graphqlgithubpath, github.GithubUserQuery, token, nil)
+			githubData, err := common.SendGraphQLQuery[github.GitHubUser](graphqlgithubprefix+endpoint+graphqlgithubpath, github.GithubUserQuery, token, nil, false)
 			// log.Printf("githubdata=%v, err=%v", githubData, err)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
@@ -91,7 +91,7 @@ func GetOAuthUser(c *gin.Context) {
 			endpoint := value.URL
 			token := value.Token
 			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
-			gitlabData, err := common.SendGraphQLQuery[gitlab.GitLabUser](graphqlgitlabprefix+endpoint+graphqlgitlabpath, gitlab.GitLabUserQuery, token, nil)
+			gitlabData, err := common.SendGraphQLQuery[gitlab.GitLabUser](graphqlgitlabprefix+endpoint+graphqlgitlabpath, gitlab.GitLabUserQuery, token, nil, false)
 			// log.Printf("gitlabdata=%v, err=%v", gitlabData, err)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})

@@ -101,7 +101,22 @@ type OAuthRepository = {
   }
 };
 
+type RepositoryContents = {
+  repository: {
+    object: {
+      entries: {
+        name: string;
+        type: "blob" | "tree" | "commit"; // Git-Objekttyp
+        mode: string; // z. B. "100644" für Dateien, "040000" für Verzeichnisse
+      }[];
+    } | null;
+  } | null;
+};
 
+type OAuthRepositoryContents = {
+  data: RepositoryContents
+}
 
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { Repository, RepositoryOwner, RepositoryLanguage, LanguageEdge, DefaultBranchRef, OAuthRepository };
+export type { RepositoryContents, OAuthRepositoryContents };

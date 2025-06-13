@@ -175,7 +175,10 @@ var GithubRepositoryQuery string = `query GetRepository(
   }
 }`
 
-var GithubRepositoryMeta string = `query GetRepositoryMeta($owner: String!, $name: String!) {
+var GithubRepositoryMeta string = `query GetRepositoryMeta(
+  $owner: String!,
+  $name: String!
+  ) {
   repository(owner: $owner, name: $name) {
     name
     refs(refPrefix: "refs/heads/") {

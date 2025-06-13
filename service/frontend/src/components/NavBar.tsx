@@ -10,6 +10,7 @@ import LeftMenu from "./LeftMenu";
 import RightMenu from "./RightMenu";
 import NavigationMenu from "./NavigationMenu";
 import { User, OAuthUser } from "@/types/types";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 
 const Navbar: React.FC = () => {
@@ -52,7 +53,7 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       console.log("🔹 Fetching user data...");
-      const response = await fetch("/api/loggedinuser", { credentials: "include" });
+      const response = await fetchWithAuth("/api/loggedinuser", { credentials: "include" });
 
       if (response.ok) {
         const userData = await response.json();
@@ -87,7 +88,7 @@ const Navbar: React.FC = () => {
   
   useEffect(() => {
     if (Object.keys(oauthStatus).length === 0) return; // If oauthstatus is still empty
-    fetch("/api/oauth/loggedinuser", { method: "GET", credentials: "include" })
+    fetchWithAuth("/api/oauth/loggedinuser", { method: "GET", credentials: "include" })
       .then(async (res) => {
         const responseText = await res.text();
         console.log("🔍 Rohdaten vom Backend:", responseText); // Log zur Überprüfung
