@@ -5,14 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { FileText, GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OAuthRepository, OAuthRepositoryContents } from "@/types/types"; // ⬅️ Typ muss angepasst sein
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
-import { FileIcon, FolderIcon } from "@/components/Icons";
+import { EyeIcon, FileIcon, FolderIcon, ForkIcon, StarIcon } from "@/components/Icons";
 import Link from "next/link";
+import { BranchTagSelector } from "@/components/BranchTagSelector";
 
 type ProviderRepositoryMap = {
   [provider: string]: OAuthRepository;
@@ -25,6 +26,7 @@ type ProviderRepositoryContentMap = {
 export default function RepositoryPage() {
   const params = useParams();
   const currentPath = usePathname();
+  const router = useRouter();
 
   const { provider, username, reponame } = params as {
     provider: string;
@@ -187,16 +189,23 @@ useEffect(() => {
         <div className="w-[80%] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="default" size="sm">
-                {repository.data.repository.defaultBranchRef?.name ?? "main"}
-              </Button>
+              <BranchTagSelector
+                selected={repository.data.repository.defaultBranchRef.name ?? "main"}
+                onSelect={(type, name) => {
+                  router.push(`/${type}/${encodeURIComponent(name)}`);
+                }} 
+                defaultBranch={repository.data.repository.defaultBranchRef?.name ?? "main"}
+                branches={repository.data.repository.branches.nodes.map((b) => b.name)}
+                tags={repository.data.repository.tags.nodes.map((t) => t.name)}
+                curPath={currentPath}
+              />
               <div className="flex items-center text-sm">
                 <GitBranch className="w-4 h-4 mr-1" />
-                <span className="font-semibold mr-1">4</span>Branches
+                <span className="font-semibold mr-1">{repository.data.repository.branches.totalCount}</span>Branches
               </div>
               <div className="flex items-center text-sm">
                 <Tag className="w-4 h-4 mr-1" />
-                <span className="font-semibold mr-1">2</span>Tags
+                <span className="font-semibold mr-1">{repository.data.repository.tags.totalCount}</span>Tags
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -256,8 +265,19 @@ useEffect(() => {
           <p className="text-sm text-muted-foreground leading-snug">
             {repository.data.repository.description ?? "Kein Beschreibungstext vorhanden."}
           </p>
-          <p className="text-sm text-muted-foreground pt-2">
-            ⭐ {formatNumber(repository.data.repository.stargazerCount)}  ·  🍴 {formatNumber(repository.data.repository.forkCount)}
+          <p className="text-sm text-muted-foreground pt-2 flex items-center space-x-4">
+            <span className="flex items-center space-x-1">
+              <StarIcon className="w-4 h-4 text-yellow-500" />
+              <span>{formatNumber(repository.data.repository.stargazerCount)}</span>
+            </span>
+            <span className="flex items-center space-x-1">
+              <ForkIcon className="w-4 h-4 text-muted-foreground" />
+              <span>{formatNumber(repository.data.repository.forkCount)}</span>
+            </span>
+            <span className="flex items-center space-x-1">
+              <EyeIcon className="w-4 h-4 text-muted-foreground" />
+              <span>{formatNumber(repository.data.repository.watchers.totalCount)}</span>
+            </span>
           </p>
         </div>
       </div>

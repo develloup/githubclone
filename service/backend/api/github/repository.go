@@ -33,15 +33,63 @@ type RepositoryOwner struct {
 	AvatarURL string `json:"avatarUrl"`
 }
 
+type RepositoryLanguage struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type RepositoryLanguageEdge struct {
+	Size int                `json:"size"`
+	Node RepositoryLanguage `json:"node"`
+}
+
+type RepositoryLanguages struct {
+	TotalSize int                      `json:"totalSize"`
+	Edges     []RepositoryLanguageEdge `json:"edges"`
+}
+
 type RepositoryDefaultBranch struct {
 	Name string `json:"name"`
+}
+
+type RepositoryBranches struct {
+	TotalCount int `json:"totalCount"`
+	Nodes      []struct {
+		Name string `json:"name"`
+	} `json:"nodes"`
+}
+
+type RepositoryTags struct {
+	TotalCount int `json:"totalCount"`
+	Nodes      []struct {
+		Name string `json:"name"`
+	} `json:"nodes"`
+}
+
+type RepositoryReleases struct {
+	TotalCount int `json:"totalCount"`
+}
+
+type RepositoryWatchers struct {
+	TotalCount int `json:"totalCount"`
+}
+
+type RepositoryLicenseInfo struct {
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+	Nickname string `json:"nickname"`
 }
 
 type ExtendedRepository struct {
 	RepositoryNode
 	Owner            RepositoryOwner         `json:"owner"`
-	DefaultBranchRef RepositoryDefaultBranch `json:"defaultBranchRef"`
 	Languages        RepositoryLanguages     `json:"languages"`
+	DefaultBranchRef RepositoryDefaultBranch `json:"defaultBranchRef"`
+	Branches         RepositoryBranches      `json:"branches"`
+	Tags             RepositoryTags          `json:"tags"`
+	Releases         RepositoryReleases      `json:"releases"`
+	LicenseInfo      RepositoryLicenseInfo   `json:"licenseInfo"`
+	Watchers         RepositoryWatchers      `json:"watchers"`
 }
 
 type RepositoryNodeWithAttributes struct {
@@ -62,44 +110,6 @@ type RepositoryTree struct {
 			} `json:"object"`
 		} `json:"repository"`
 	} `json:"data"`
-}
-
-type Language struct {
-	Name  string `json:"name"`
-	Color string `json:"color"`
-}
-
-type LanguageEdge struct {
-	Size int      `json:"size"`
-	Node Language `json:"node"`
-}
-
-type RepositoryLanguages struct {
-	TotalSize int            `json:"totalSize"`
-	Edges     []LanguageEdge `json:"edges"`
-}
-
-type LicenseInfo struct {
-	Key      string `json:"key"`
-	Name     string `json:"name"`
-	Nickname string `json:"nickname"`
-}
-
-type RepositoryMeta struct {
-	Name     string `json:"name"`
-	Branches struct {
-		TotalCount int `json:"totalCount"`
-	} `json:"refs"`
-	Tags struct {
-		TotalCount int `json:"totalCount"`
-	} `json:"tags"`
-	Releases struct {
-		TotalCount int `json:"totalCount"`
-	} `json:"releases"`
-	LicenseInfo *LicenseInfo `json:"licenseInfo"`
-	Watchers    struct {
-		TotalCount int `json:"totalCount"`
-	} `json:"watchers"`
 }
 
 var GithubRepositoriesOfViewerQuery string = `query GetRepositories(
@@ -159,9 +169,6 @@ var GithubRepositoryQuery string = `query GetRepository(
     owner {
       avatarUrl
     }
-    defaultBranchRef {
-      name
-    }
     languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
       totalSize
       edges {
@@ -172,20 +179,28 @@ var GithubRepositoryQuery string = `query GetRepository(
         }
       }
     }
-  }
-}`
-
-var GithubRepositoryMeta string = `query GetRepositoryMeta(
-  $owner: String!,
-  $name: String!
-  ) {
-  repository(owner: $owner, name: $name) {
-    name
-    refs(refPrefix: "refs/heads/") {
-      totalCount
+    defaultBranchRef {
+      name
     }
-    tags: refs(refPrefix: "refs/tags/") {
+    branches: refs(
+      refPrefix: "refs/heads/"
+      first: 9
+      orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
+    ) {
       totalCount
+      nodes {
+        name
+      }
+    }
+    tags: refs(
+      refPrefix: "refs/tags/"
+      first: 10
+      orderBy: { field: TAG_COMMIT_DATE, direction: DESC }
+    ) {
+      totalCount
+      nodes {
+        name
+      }
     }
     releases {
       totalCount
@@ -218,4 +233,48 @@ var GithubRepositoryContentsQuery string = `query GetRepositoryContents(
       }
     }
   }
+`
+
+var GithubRepositoryBranches string = `query GetRepositoryBranches(
+  $owner: String!,
+  $name: String!
+  $first: Int,
+  $after: String,
+  $last: Int,
+  $before: String,
+) {
+  repository(owner: $owner, name: $name) {
+    refs(
+      refPrefix: "refs/heads/",
+      first: $first,
+      after: $after,
+      last: $last,
+      before: $before
+    ) {
+      totalCount
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      nodes {
+        name
+        target {
+          ... on Commit {
+            committedDate
+            author {
+              user {
+                login
+              }
+            }
+          }
+        }
+      }
+    }
+    viewer {
+      login
+    }
+  }
+}
 `

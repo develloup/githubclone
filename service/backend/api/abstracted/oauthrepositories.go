@@ -83,16 +83,6 @@ func GetOAuthRepository(c *gin.Context) {
 	GetOAuthCommonProvider[github.RepositoryNodeWithAttributes](c, provider, github.GithubRepositoryQuery, validParams, false)
 }
 
-func GetOauthRepositoryMeta(c *gin.Context) {
-	provider := c.Query("provider")
-	validParams := map[string]interface{}{
-		"owner": c.Query("owner"),
-		"name":  c.Query("name"),
-	}
-
-	GetOAuthCommonProvider[github.RepositoryMeta](c, provider, github.GithubRepositoryMeta, validParams, false)
-}
-
 func GetOauthRepositoryContents(c *gin.Context) {
 	provider := c.Query("provider")
 	validParams := map[string]interface{}{

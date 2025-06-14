@@ -63,20 +63,57 @@ type RepositoryLanguage = {
   color: string;
 };
 
-type LanguageEdge = {
+type RepositoryLanguageEdge = {
   size: number;
   node: RepositoryLanguage;
+};
+
+type RepositoryLanguages = {
+  totalSize: number;
+  edges: RepositoryLanguageEdge[];
+};
+
+type RepositoryBranchNode = {
+  name: string;
+};
+
+type RepositoryBranches = {
+  totalCount: number;
+  nodes: RepositoryBranchNode[];
+};
+
+type RepositoryTagNode = {
+  name: string;
+};
+
+type RepositoryTags = {
+  totalCount: number;
+  nodes: RepositoryTagNode[];
+};
+
+type RepositoryReleases = {
+  totalCount: number;
+};
+
+type RepositoryLicenseInfo = {
+  key: string;
+  name: string;
+  nickname: string;
+};
+
+type RepositoryWatchers = {
+  totalCount: number;
 };
 
 type RepositoryOwner = {
   avatarUrl: string;
 };
 
-type DefaultBranchRef = {
+type RepositoryDefaultBranchRef = {
   name: string;
 };
 
-type Repository = {
+type ExtendedRepository = {
   name: string;
   description: string;
   url: string;
@@ -88,16 +125,19 @@ type Repository = {
   stargazerCount: number;
   forkCount: number;
   owner: RepositoryOwner;
-  defaultBranchRef: DefaultBranchRef | null;
-  languages: {
-    totalSize: number;
-    edges: LanguageEdge[];
-  };
+  languages: RepositoryLanguages;
+  defaultBranchRef: RepositoryDefaultBranchRef;
+  branches: RepositoryBranches;
+  tags: RepositoryTags;
+  releases: RepositoryReleases;
+  licenseInfo: RepositoryLicenseInfo | null;
+  watchers: RepositoryWatchers;
 };
+
 
 type OAuthRepository = {
   data: {
-    repository: Repository;
+    repository: ExtendedRepository;
   }
 };
 
@@ -118,5 +158,5 @@ type OAuthRepositoryContents = {
 }
 
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
-export type { Repository, RepositoryOwner, RepositoryLanguage, LanguageEdge, DefaultBranchRef, OAuthRepository };
+export type { ExtendedRepository, RepositoryOwner, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { RepositoryContents, OAuthRepositoryContents };

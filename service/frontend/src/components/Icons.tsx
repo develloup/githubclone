@@ -75,6 +75,24 @@ const DropDownIcon = ({ className = "", width = 24, height = 24 }) => (
     </svg>
 );
 
+const EyeIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`lucide lucide-eye ${className}`}
+  >
+    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
 const FileIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -110,6 +128,20 @@ const FolderIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const ForkIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 512 512"
+    fill="currentColor"
+    className={className}
+  >
+    <path
+      d="M124,166.291V345.709a76,76,0,1,0,32,0V282H308a80.091,80.091,0,0,0,80-80V165.311a75.983,75.983,0,1,0-32,1.733V202a48.055,48.055,0,0,1-48,48H156V166.291a76,76,0,1,0-32,0ZM324,92a44,44,0,1,1,44,44A44.049,44.049,0,0,1,324,92ZM184,420a44,44,0,1,1-44-44A44.049,44.049,0,0,1,184,420ZM140,48A44,44,0,1,1,96,92,44.049,44.049,0,0,1,140,48Z"
+    />
+  </svg>
+);
 
 const GistIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -407,5 +439,5 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, DiscussionIcon, DropDownIcon, FileIcon, FolderIcon, GistIcon, HomeIcon, IssuesIcon, LetterIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
+export { ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HomeIcon, IssuesIcon, LetterIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
 export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, RepositoryIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, UserIcon };
