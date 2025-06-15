@@ -68,6 +68,41 @@ type RepositoryTags struct {
 
 type RepositoryReleases struct {
 	TotalCount int `json:"totalCount"`
+	Nodes      []struct {
+		Name      string `json:"name"`
+		TagName   string `json:"tagName"`
+		CreatedAt string `json:"createdAt"`
+		IsDraft   bool   `json:"isDraft"`
+		IsLatest  bool   `json:"isLatest"`
+	} `json:"nodes"`
+}
+
+type RepositoryDeployments struct {
+	TotalCount int `json:"totalCount"`
+	Nodes      []struct {
+		CreatedAt   string `json:"createdAt"`
+		State       string `json:"state"`
+		Environment string `json:"environment"`
+		Ref         struct {
+			Name string `json:"name"`
+		} `json:"ref"`
+	} `json:"nodes"`
+}
+
+type RepositoryCollaborators struct {
+	TotalCount int `json:"totalCount"`
+	Nodes      []struct {
+		Login           string `json:"login"`
+		Name            string `json:"name"`
+		AvatarURL       string `json:"avatarUrl"`
+		URL             string `json:"url"`
+		Bio             string `json:"bio"`
+		Company         string `json:"company"`
+		Location        string `json:"location"`
+		WebsiteURL      string `json:"websiteUrl"`
+		TwitterUsername string `json:"twitterUsername"`
+		IsSiteAdmin     bool   `json:"isSiteAdmin"`
+	} `json:"nodes"`
 }
 
 type RepositoryWatchers struct {
@@ -88,6 +123,7 @@ type ExtendedRepository struct {
 	Branches         RepositoryBranches      `json:"branches"`
 	Tags             RepositoryTags          `json:"tags"`
 	Releases         RepositoryReleases      `json:"releases"`
+	Deployments      RepositoryDeployments   `json:"deployments"`
 	LicenseInfo      RepositoryLicenseInfo   `json:"licenseInfo"`
 	Watchers         RepositoryWatchers      `json:"watchers"`
 }
@@ -108,6 +144,52 @@ type RepositoryTree struct {
 					Mode string `json:"mode"`
 				} `json:"entries"`
 			} `json:"object"`
+		} `json:"repository"`
+	} `json:"data"`
+}
+
+type RepositoryBranchCommit struct {
+	Data struct {
+		Repository struct {
+			Ref struct {
+				Target struct {
+					OID             string `json:"oid"`
+					CommittedDate   string `json:"committedDate"`
+					MessageHeadline string `json:"messageHeadline"`
+					Author          struct {
+						Name  string `json:"name"`
+						Email string `json:"email"`
+						User  *struct {
+							Login     string `json:"login"`
+							AvatarURL string `json:"avatarUrl"`
+							URL       string `json:"url"`
+						} `json:"user"`
+					} `json:"author"`
+					Signature *struct {
+						IsValid   bool   `json:"isValid"`
+						KeyID     string `json:"keyId"`
+						Payload   string `json:"payload"`
+						Signature string `json:"signature"`
+						Signer    *struct {
+							Name  string `json:"name"`
+							Email string `json:"email"`
+						} `json:"signer"`
+					} `json:"signature"`
+					CheckSuites struct {
+						TotalCount int `json:"totalCount"`
+						Nodes      []struct {
+							Status     string `json:"status"`
+							Conclusion string `json:"conclusion"`
+							App        struct {
+								Name string `json:"name"`
+							} `json:"app"`
+						} `json:"nodes"`
+					} `json:"checkSuites"`
+					History struct {
+						TotalCount int `json:"totalCount"`
+					} `json:"history"`
+				} `json:"target"`
+			} `json:"ref"`
 		} `json:"repository"`
 	} `json:"data"`
 }
@@ -202,16 +284,34 @@ var GithubRepositoryQuery string = `query GetRepository(
         name
       }
     }
-    releases {
+    releases(first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {
       totalCount
+      nodes {
+        name
+        tagName
+        createdAt
+        isDraft
+        isLatest
+      }
+    }
+    deployments(first: 1, orderBy: { field: CREATED_AT, direction: DESC }) {
+      totalCount
+      nodes {
+        createdAt
+        state
+        ref {
+          name
+        }
+        environment
+      }
     }
     licenseInfo {
-      key
-      name
-      nickname
+        key
+        name
+        nickname
     }
     watchers {
-      totalCount
+        totalCount
     }
   }
 }`
@@ -274,6 +374,57 @@ var GithubRepositoryBranches string = `query GetRepositoryBranches(
     }
     viewer {
       login
+    }
+  }
+}
+`
+
+var GithubRepositoryBranchCommit = `query GetRepositoryBranchCommit(
+  $owner: String!,
+  $repo: String!,
+  $qualifiedRef: String!
+) {
+  repository(owner: $owner, name: $repo) {
+    ref(qualifiedName: $qualifiedRef) {
+      target {
+        ... on Commit {
+          oid
+          committedDate
+          messageHeadline
+          author {
+            name
+            email
+            user {
+              login
+              avatarUrl
+              url
+            }
+          }
+          signature {
+            isValid
+            keyId
+            payload
+            signature
+            signer {
+              name
+              email
+            }
+          }
+          checkSuites(first: 1, orderBy: {field: COMPLETED_AT, direction: DESC}) {
+            totalCount
+            nodes {
+              status
+              conclusion
+              app {
+                name
+              }
+            }
+          }
+          history {
+            totalCount
+          }
+        }
+      }
     }
   }
 }

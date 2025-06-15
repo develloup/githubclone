@@ -1,11 +1,13 @@
 package abstracted
 
 import (
+	"fmt"
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -92,4 +94,66 @@ func GetOauthRepositoryContents(c *gin.Context) {
 	}
 
 	GetOAuthCommonProvider[github.RepositoryTree](c, provider, github.GithubRepositoryContentsQuery, validParams, true)
+}
+
+func GetOauthRepositoryBranchCommit(c *gin.Context) {
+	provider := c.Query("provider")
+	validParams := map[string]interface{}{
+		"owner":      c.Query("owner"),
+		"name":       c.Query("name"),
+		"expression": c.DefaultQuery("expression", "HEAD:"),
+	}
+
+	GetOAuthCommonProvider[github.RepositoryBranchCommit](c, provider, github.GithubRepositoryBranchCommit, validParams, true)
+}
+
+func GetOAuthRepositoryContributors(c *gin.Context) {
+	provider := c.Query("provider")
+	validParams := map[string]interface{}{
+		"owner": c.Query("owner"),
+		"name":  c.Query("name"),
+	}
+
+	GetOAuthCommonProviderREST(c, provider, validParams, FetchContributorsWithCount, true)
+}
+
+func FetchContributorsWithCount(
+	endpoint string,
+	token string,
+	params map[string]interface{},
+	islog bool,
+) (*github.RepositoryContributor, error) {
+
+	owner, _ := params["owner"].(string)
+	repo, _ := params["name"].(string)
+	limit := 14
+
+	// Determine the total count via per_page=1
+	countPath := fmt.Sprintf("/repos/%s/%s/contributors?per_page=1", owner, repo)
+	countResp, err := common.SendRestAPIQuery[[]github.RepositoryContributorNode](endpoint, countPath, token, islog)
+	if err != nil {
+		return nil, err
+	}
+
+	total := 1 // Fallback
+	if link := countResp.Resp.Header.Get("Link"); link != "" {
+		re := regexp.MustCompile(`&page=(\d+)>; rel="last"`)
+		if m := re.FindStringSubmatch(link); len(m) == 2 {
+			if parsed, err := strconv.Atoi(m[1]); err == nil {
+				total = parsed
+			}
+		}
+	}
+
+	// Load first 14 contributors
+	dataPath := fmt.Sprintf("/repos/%s/%s/contributors?per_page=%d&page=1", owner, repo, limit)
+	dataResp, err := common.SendRestAPIQuery[[]github.RepositoryContributorNode](endpoint, dataPath, token, islog)
+	if err != nil {
+		return nil, err
+	}
+
+	return &github.RepositoryContributor{
+		TotalCount: total,
+		Nodes:      *dataResp.Result,
+	}, nil
 }

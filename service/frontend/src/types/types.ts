@@ -91,9 +91,50 @@ type RepositoryTags = {
   nodes: RepositoryTagNode[];
 };
 
+type RepositoryReleaseNode = {
+  name: string;
+  tagName: string;
+  createdAt: string;
+  isDraft: boolean;
+  isLatest: boolean;
+}
+
 type RepositoryReleases = {
   totalCount: number;
+  nodes: RepositoryReleaseNode[];
 };
+
+type RepositoryCollaboratorNode = {
+  login: string;
+  name: string | null;
+  avatarUrl: string;
+  url: string;
+  bio: string | null;
+  company: string | null;
+  location: string | null;
+  websiteUrl: string | null;
+  twitterUsername: string | null;
+  isSiteAdmin: boolean;
+};
+
+type RepositoryCollaborators = {
+  totalCount: number;
+  nodes: RepositoryCollaboratorNode[];
+}
+
+type RepositoryDeploymentNode = {
+  createdAt: string;
+  state: string;
+  environment: string;
+  ref: {
+    name: string;
+  };
+};
+
+type RepositoryDeployments = {
+  totalCount: number;
+  nodes: RepositoryDeploymentNode[];
+}
 
 type RepositoryLicenseInfo = {
   key: string;
@@ -130,6 +171,7 @@ type ExtendedRepository = {
   branches: RepositoryBranches;
   tags: RepositoryTags;
   releases: RepositoryReleases;
+  deployments: RepositoryDeployments;
   licenseInfo: RepositoryLicenseInfo | null;
   watchers: RepositoryWatchers;
 };
@@ -157,6 +199,56 @@ type OAuthRepositoryContents = {
   data: RepositoryContents
 }
 
+type RepositoryBranchCommit = {
+  repository: {
+    ref: {
+      target: {
+        oid: string
+        committedDate: string
+        messageHeadline: string
+        author: {
+          name: string
+          email: string
+          user: {
+            login: string
+            avatarUrl: string
+            url: string
+          } | null
+        }
+        signature: {
+          isValid: boolean
+          keyId: string
+          payload: string
+          signature: string
+          signer: {
+            name: string
+            email: string
+          } | null
+        } | null
+        checkSuites: {
+          totalCount: number
+          nodes: Array<{
+            status: string
+            conclusion: string
+            app: {
+              name: string
+            }
+          }>
+        }
+        history: {
+          totalCount: number
+        }
+      }
+    }
+  }
+}
+
+type OAuthRepositoryBranchCommit = {
+  data: RepositoryBranchCommit
+}
+
+
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
+export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents };

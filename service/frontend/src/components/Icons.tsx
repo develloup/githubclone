@@ -1,3 +1,21 @@
+const ActivityIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
+  </svg>
+);
+
+
 
 const ArrowUpIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -430,6 +448,25 @@ const StarIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const TagIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+    <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+  </svg>
+);
+
+
 const UserIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 8.4667 8.4667" fill="currentColor" className={className}>
     <g transform="translate(0 -288.53)">
@@ -439,5 +476,5 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HomeIcon, IssuesIcon, LetterIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
-export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, RepositoryIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, UserIcon };
+export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HomeIcon, IssuesIcon, LetterIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
+export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, RepositoryIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };

@@ -15,6 +15,15 @@ const graphqlgithubprefix = "https://api."
 const graphqlgithubpath = "/graphql"
 const graphqlgitlabprefix = "https://"
 const graphqlgitlabpath = "/api/graphql"
+const graphqlghesprefix = "https://"
+const graphqlghespath = "/api/graphql"
+
+const restapigithubprefix = "https://api."
+const restapigithubpath = ""
+const restapigitlabprefix = "https://"
+const restapigitlabpath = "/api/v4"
+const restapighesprefix = "https://"
+const restapighespath = "/api/v3"
 
 func convertGitLabToGitHub(gitlabUser gitlab.GitLabUser) github.GitHubUser {
 	return github.GitHubUser{
