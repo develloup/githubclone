@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -37,7 +38,11 @@ func SendRestAPIQuery[T any](endpoint, path, token string, islog bool) (*RestAPI
 	if err != nil {
 		return nil, fmt.Errorf("reading body failed: %w", err)
 	}
+	limit := resp.Header.Get("X-RateLimit-Limit")
+	remaining := resp.Header.Get("X-RateLimit-Remaining")
+	reset := resp.Header.Get("X-RateLimit-Reset")
 
+	log.Printf("GitHub Rate Limit: %s remaining of %s – resets at %s", remaining, limit, reset)
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("GitHub API error %d: %s", resp.StatusCode, string(body))
 	}

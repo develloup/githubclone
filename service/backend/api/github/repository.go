@@ -184,7 +184,6 @@ type RepositoryBranchCommit struct {
 					} `json:"author"`
 					Signature *struct {
 						IsValid   bool   `json:"isValid"`
-						KeyID     string `json:"keyId"`
 						Payload   string `json:"payload"`
 						Signature string `json:"signature"`
 						Signer    *struct {
@@ -396,13 +395,13 @@ var GithubRepositoryBranches string = `query GetRepositoryBranches(
 }
 `
 
-var GithubRepositoryBranchCommit = `query GetRepositoryBranchCommit(
+var GithubRepositoryBranchCommitQuery = `query GetRepositoryBranchCommit(
   $owner: String!,
-  $repo: String!,
-  $qualifiedRef: String!
+  $name: String!,
+  $expression: String!
 ) {
-  repository(owner: $owner, name: $repo) {
-    ref(qualifiedName: $qualifiedRef) {
+  repository(owner: $owner, name: $name) {
+    ref(qualifiedName: $expression) {
       target {
         ... on Commit {
           oid
@@ -419,7 +418,6 @@ var GithubRepositoryBranchCommit = `query GetRepositoryBranchCommit(
           }
           signature {
             isValid
-            keyId
             payload
             signature
             signer {
@@ -427,7 +425,7 @@ var GithubRepositoryBranchCommit = `query GetRepositoryBranchCommit(
               email
             }
           }
-          checkSuites(first: 1, orderBy: {field: COMPLETED_AT, direction: DESC}) {
+          checkSuites(first: 1) {
             totalCount
             nodes {
               status

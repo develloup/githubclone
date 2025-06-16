@@ -86,6 +86,17 @@ func GetOAuthRepository(c *gin.Context) {
 	GetOAuthCommonProvider[github.RepositoryNodeWithAttributes](c, provider, github.GithubRepositoryQuery, validParams, false)
 }
 
+func GetOAuthRepositoryBranchCommit(c *gin.Context) {
+	provider := c.Query("provider")
+	validParams := map[string]interface{}{
+		"owner":      c.Query("owner"),
+		"name":       c.Query("name"),
+		"expression": c.Query("expression"),
+	}
+
+	GetOAuthCommonProvider[github.RepositoryBranchCommit](c, provider, github.GithubRepositoryBranchCommitQuery, validParams, true)
+}
+
 func GetOauthRepositoryContents(c *gin.Context) {
 	provider := c.Query("provider")
 	validParams := map[string]interface{}{
@@ -94,18 +105,7 @@ func GetOauthRepositoryContents(c *gin.Context) {
 		"expression": c.DefaultQuery("expression", "HEAD:"),
 	}
 
-	GetOAuthCommonProvider[github.RepositoryTree](c, provider, github.GithubRepositoryContentsQuery, validParams, true)
-}
-
-func GetOauthRepositoryBranchCommit(c *gin.Context) {
-	provider := c.Query("provider")
-	validParams := map[string]interface{}{
-		"owner":      c.Query("owner"),
-		"name":       c.Query("name"),
-		"expression": c.DefaultQuery("expression", "HEAD:"),
-	}
-
-	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, true)
+	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, false)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -124,7 +124,7 @@ func GetOauthRepositoryBranchCommit(c *gin.Context) {
 	commitMap := make(map[string]CommitInfo)
 
 	for _, query := range queries {
-		data1, err1 := GetOAuthCommonProviderIntern[map[string]interface{}](c, provider, query, validParams, true)
+		data1, err1 := GetOAuthCommonProviderIntern[map[string]interface{}](c, provider, query, validParams, false)
 		if err1 != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err1.Error()})
 			return

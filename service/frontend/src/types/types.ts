@@ -216,7 +216,6 @@ type RepositoryBranchCommit = {
         }
         signature: {
           isValid: boolean
-          keyId: string
           payload: string
           signature: string
           signer: {

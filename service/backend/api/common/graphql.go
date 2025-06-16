@@ -89,6 +89,12 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 	}
 	defer resp.Body.Close()
 
+	limit := resp.Header.Get("X-RateLimit-Limit")
+	remaining := resp.Header.Get("X-RateLimit-Remaining")
+	reset := resp.Header.Get("X-RateLimit-Reset")
+
+	log.Printf("[GitHub GraphQL] Remaining: %s / %s | Reset at: %s", remaining, limit, reset)
+
 	// Read answer
 	body, err := io.ReadAll(resp.Body)
 	if islog {

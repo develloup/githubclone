@@ -7,7 +7,7 @@ import { FileText, GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { OAuthRepository, OAuthRepositoryContents, RepositoryCollaboratorNode, RepositoryCollaborators } from "@/types/types"; // ⬅️ Typ muss angepasst sein
+import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, RepositoryCollaboratorNode, RepositoryCollaborators } from "@/types/types"; // ⬅️ Typ muss angepasst sein
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
@@ -47,9 +47,11 @@ export default function RepositoryPage() {
     useState<OAuthRepositoryContents | null>(null);
   const [contributors, setContributors] = useState<RepositoryCollaboratorNode[] | null>(null);
   const [totalContributors, setTotalContributors] = useState<number>(0);
+  const [branchcommits, setBranchCommits] = useState<OAuthRepositoryBranchCommit | null>(null);
   const [loadingRepository, setLoadingRepository] = useState(true);
   const [loadingContent, setLoadingContent] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  let defbranch:string = "";
 
   useEffect(() => {
     if (!provider || !username || !reponame) return;
@@ -75,12 +77,11 @@ export default function RepositoryPage() {
           throw new Error(`Kein Repository für Provider ${provider} gefunden`);
         setRepository(repo);
 
-        const defbranch =
-          repo?.data?.repository.defaultBranchRef?.name ?? "HEAD:";
+        defbranch = repo?.data?.repository.defaultBranchRef?.name ?? "HEAD:";
 
         // Second fetch: get the initial content
         return fetchWithAuth(
-          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(
+          `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
             username
           )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
             toQualifiedRef(defbranch)
@@ -105,9 +106,7 @@ export default function RepositoryPage() {
 
         // Third fetch: get contributors
         return fetchWithAuth(
-          `/api/oauth/repositorycontributors?provider=${provider}&owner=${encodeURIComponent(
-            username
-          )}&name=${encodeURIComponent(reponame)}`,
+          `/api/oauth/repositorycontributors?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}`,
           { credentials: "include" }
         );
 
@@ -127,6 +126,28 @@ export default function RepositoryPage() {
 
         setContributors(contribs.nodes);
         setTotalContributors(contribs.totalCount);
+
+        // Fourth fetch: get branch commits
+        return fetchWithAuth(
+          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(defbranch))}`,
+          { credentials: "include" }
+        );
+
+      })
+      .then(async (res) => {
+        const responseText = await res.text();
+        console.log("Backend-Rohdaten (branchcommit):", responseText)
+
+        if (!res.ok)
+          throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+        const parsed = JSON.parse(responseText);
+        const branchcommits = parsed[provider];
+
+        if (!branchcommits)
+          throw new Error("Invalid Branch commit data structure");
+
+        setBranchCommits(branchcommits)
       })
       .catch((err) => {
         console.error("❌ Fehler beim Laden:", err);
@@ -282,12 +303,32 @@ export default function RepositoryPage() {
 
           {/* Table */}
           <div className="border rounded-md overflow-hidden">
-            <div className="grid grid-cols-3 bg-muted p-2 text-sm font-medium">
-              <div>Dateiname</div>
-              <div>Letzter Commit</div>
-              <div>Letzte Änderung</div>
-            </div>
 
+            {branchcommits ? (
+              <div className="grid grid-cols-3 bg-muted p-2 text-sm font-medium truncate">
+                <div className="flex items-center gap-2 font-mono text-muted-foreground">
+                  {branchcommits.data.repository.ref.target.oid.slice(0, 8)}
+                </div>
+                <div
+                  className="truncate"
+                  title={branchcommits.data.repository.ref.target.messageHeadline}
+                >
+                  {branchcommits.data.repository.ref.target.messageHeadline}
+                </div>
+                <div className="flex items-center justify-end gap-2 text-muted-foreground whitespace-nowrap">
+                  <span>
+                    {new Date(
+                      branchcommits.data.repository.ref.target.committedDate
+                    ).toLocaleDateString()}
+                  </span>
+                  <span className="text-xs font-mono text-gray-400">
+                    ({branchcommits.data.repository.ref.target.history.totalCount} commits)
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 bg-muted p-2 text-sm font-medium h-5" />
+            )}
             {repositorycontent?.data?.repository?.object?.entries?.length
               ? repositorycontent.data.repository.object.entries
                 .slice() // Copy to sort without mutations
@@ -313,7 +354,7 @@ export default function RepositoryPage() {
                         <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
                         {entry.name}
                       </div>
-                      <div className="text-muted-foreground">{entry.message}</div>
+                      <div className="text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{entry.message}</div>
                       <div className="text-muted-foreground">{entry.committedDate}</div>
                     </Link>
                   );
