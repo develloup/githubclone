@@ -7,7 +7,7 @@ import { FileText, GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { OAuthRepository, OAuthRepositoryContents } from "@/types/types"; // ⬅️ Typ muss angepasst sein
+import { OAuthRepository, OAuthRepositoryContents, RepositoryCollaboratorNode, RepositoryCollaborators } from "@/types/types"; // ⬅️ Typ muss angepasst sein
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
@@ -45,6 +45,8 @@ export default function RepositoryPage() {
   const [repository, setRepository] = useState<OAuthRepository | null>(null);
   const [repositorycontent, setRepositoryContent] =
     useState<OAuthRepositoryContents | null>(null);
+  const [contributors, setContributors] = useState<RepositoryCollaboratorNode[] | null>(null);
+  const [totalContributors, setTotalContributors] = useState<number>(0);
   const [loadingRepository, setLoadingRepository] = useState(true);
   const [loadingContent, setLoadingContent] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +80,7 @@ export default function RepositoryPage() {
 
         // Second fetch: get the initial content
         return fetchWithAuth(
-          `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
+          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(
             username
           )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
             toQualifiedRef(defbranch)
@@ -100,6 +102,31 @@ export default function RepositoryPage() {
             `Kein Repository-Inhalt für Provider ${provider} gefunden`
           );
         setRepositoryContent(content);
+
+        // Third fetch: get contributors
+        return fetchWithAuth(
+          `/api/oauth/repositorycontributors?provider=${provider}&owner=${encodeURIComponent(
+            username
+          )}&name=${encodeURIComponent(reponame)}`,
+          { credentials: "include" }
+        );
+
+      })
+      .then(async (res) => {
+        const responseText = await res.text();
+        console.log("👥 Backend-Rohdaten (contributors):", responseText);
+
+        if (!res.ok)
+          throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+        const parsed = JSON.parse(responseText);
+        const contribs = parsed[provider];
+
+        if (!contribs || !Array.isArray(contribs.nodes))
+          throw new Error("Ungültige Contributor-Datenstruktur");
+
+        setContributors(contribs.nodes);
+        setTotalContributors(contribs.totalCount);
       })
       .catch((err) => {
         console.error("❌ Fehler beim Laden:", err);
@@ -286,8 +313,8 @@ export default function RepositoryPage() {
                         <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
                         {entry.name}
                       </div>
-                      <div className="text-muted-foreground">–</div>
-                      <div className="text-muted-foreground">–</div>
+                      <div className="text-muted-foreground">{entry.message}</div>
+                      <div className="text-muted-foreground">{entry.committedDate}</div>
                     </Link>
                   );
                 })
@@ -404,6 +431,51 @@ export default function RepositoryPage() {
               </>
             )}
           </div>
+
+          {Array.isArray(contributors) && contributors.length > 0 && (
+            <>
+              <hr className="my-4 border-muted" />
+
+              <div className="space-y-2 text-sm">
+                <h3 className="font-semibold flex items-center gap-2">
+                  Contributors
+                  <Badge variant="secondary">
+                    {totalContributors}
+                  </Badge>
+                </h3>
+
+                {/* Avatars */}
+                <div className="flex flex-wrap gap-2">
+                  {contributors.slice(0, 14).map((user) =>
+                    user?.login && user?.avatarUrl && user?.htmlUrl ? (
+                      <Link
+                        key={user.login}
+                        href={user.htmlUrl}
+                        className="inline-block"
+                        title={user.login}
+                      >
+                        <img
+                          src={user.avatarUrl}
+                          alt={`Avatar of ${user.login}`}
+                          className="w-8 h-8 rounded-full ring-1 ring-muted"
+                        />
+                      </Link>
+                    ) : null
+                  )}
+                </div>
+
+                {/* +X Contributors */}
+                {totalContributors > 14 && (
+                  <Link
+                    href="/contributors"
+                    className="block text-sm text-muted-foreground hover:underline pl-1"
+                  >
+                    + {totalContributors - 14} contributors
+                  </Link>
+                )}
+              </div>
+            </>
+          )}
 
           {repository.data.repository.deployments.totalCount > 0 && (
             <>

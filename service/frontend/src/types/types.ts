@@ -106,15 +106,9 @@ type RepositoryReleases = {
 
 type RepositoryCollaboratorNode = {
   login: string;
-  name: string | null;
+  contributions: number;
   avatarUrl: string;
-  url: string;
-  bio: string | null;
-  company: string | null;
-  location: string | null;
-  websiteUrl: string | null;
-  twitterUsername: string | null;
-  isSiteAdmin: boolean;
+  htmlUrl: string;
 };
 
 type RepositoryCollaborators = {
@@ -183,13 +177,18 @@ type OAuthRepository = {
   }
 };
 
+type EntryType = "blob" | "tree"
+
+
 type RepositoryContents = {
   repository: {
     object: {
       entries: {
         name: string;
-        type: "blob" | "tree" | "commit"; // Git-Objekttyp
-        mode: string; // z. B. "100644" für Dateien, "040000" für Verzeichnisse
+        type: EntryType;
+        mode: number;
+        message: string;
+        committedDate: string;
       }[];
     } | null;
   } | null;
@@ -251,4 +250,4 @@ type OAuthRepositoryBranchCommit = {
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
-export type { RepositoryContents, OAuthRepositoryContents };
+export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };

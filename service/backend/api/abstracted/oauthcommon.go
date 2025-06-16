@@ -1,6 +1,7 @@
 package abstracted
 
 import (
+	"fmt"
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"log"
@@ -54,6 +55,51 @@ func GetOAuthCommonProvider[T any](c *gin.Context, provider string, gql string, 
 	} else {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": provider})
 		return
+	}
+}
+
+func GetOAuthCommonProviderIntern[T any](c *gin.Context, provider string, gql string, validParams map[string]interface{}, islog bool) (*T, error) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		return nil, fmt.Errorf("missing session_id cookie: %w", err)
+	}
+
+	session, err := api.GetToken(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("token fetch failed: %w", err)
+	}
+
+	value, ok := session[api.OAuthProvider(provider)]
+	if !ok {
+		return nil, fmt.Errorf("unsupported provider: %s", provider)
+	}
+
+	switch api.OAuthProvider(provider) {
+	case api.GHES, api.Github:
+		endpoint := value.URL
+		token := value.Token
+
+		if islog {
+			log.Printf("GraphQL endpoint: %s", graphqlgithubprefix+endpoint+graphqlgithubpath)
+		}
+
+		data, err := common.SendGraphQLQuery[T](
+			graphqlgithubprefix+endpoint+graphqlgithubpath,
+			gql,
+			token,
+			validParams,
+			islog,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("GraphQL query failed: %w", err)
+		}
+		return data, nil
+
+	case api.Gitlab:
+		return nil, fmt.Errorf("provider %s currently not supported", provider)
+
+	default:
+		return nil, fmt.Errorf("unsupported provider: %s", provider)
 	}
 }
 
