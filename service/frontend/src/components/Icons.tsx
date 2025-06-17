@@ -70,6 +70,46 @@ const ClockIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const CodeOfConductIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    <path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66" />
+    <path d="m18 15-2-2" />
+    <path d="m15 18-2-2" />
+  </svg>
+);
+
+const ContributingIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
+    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+    <path d="M2 15h10" />
+    <path d="m9 18 3-3-3-3" />
+  </svg>
+);
+
 
 const DiscussionIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -174,6 +214,47 @@ const GistIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const HistoryIcon = ({
+  className = "",
+  width = 24,
+  height = 24,
+}: {
+  className?: string
+  width?: number
+  height?: number
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    fill="none"
+    viewBox="0 0 24 24"
+    className={className}
+  >
+    <path
+      d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M3 3v5h5"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 7v5l4 2"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
 
 const HomeIcon = ({ className = "", width = 24, height = 24, strokeWidth = 1.5 }) => (
   <svg
@@ -252,6 +333,27 @@ const LetterIcon = ({
   >
     <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
     <rect x="2" y="4" width="20" height="16" rx="2" />
+  </svg>
+);
+
+const LicenseIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+    <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+    <path d="M7 21h10" />
+    <path d="M12 3v18" />
+    <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
   </svg>
 );
 
@@ -367,6 +469,28 @@ const ProjectIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const ReadmeIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+    <path d="M10 9H8" />
+    <path d="M16 13H8" />
+    <path d="M16 17H8" />
+  </svg>
+);
+
+
 
 const RepositoryIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -382,6 +506,38 @@ const RepositoryIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const SecurityIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+  </svg>
+);
+
+const SettingIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 1024 1024"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M600.7 64a32 32 0 0 1 30.464 22.208l35.2 109.38c14.784 7.232 28.928 15.36 42.432 24.512l112.38-24.192a32 32 0 0 1 34.432 15.36l88.704 153.54a32 32 0 0 1-4.032 37.504l-77.12 85.12a357.12 357.12 0 0 1 0 49.024l77.12 85.248a32 32 0 0 1 4.032 37.504l-88.704 153.6a32 32 0 0 1-34.432 15.296l-112.38-24.192c-13.44 9.088-27.648 17.28-42.368 24.512l-35.264 109.38a32 32 0 0 1-30.464 22.208h-177.41a32 32 0 0 1-30.464-22.208l-35.136-109.31a351.62 351.62 0 0 1-42.56-24.64l-112.32 24.256a32 32 0 0 1-34.432-15.36l-88.704-153.54a32 32 0 0 1 4.032-37.504l77.12-85.248a357.12 357.12 0 0 1 0-48.896l-77.12-85.248a32 32 0 0 1-4.032-37.504l88.704-153.6a32 32 0 0 1 34.432-15.296l112.32 24.256c13.568-9.152 27.776-17.408 42.56-24.64l35.2-109.31a32 32 0 0 1 30.336-22.208h177.41zm-23.424 64h-130.56l-36.352 113.09-24.512 11.968a294.11 294.11 0 0 0-34.816 20.096l-22.656 15.36-116.22-25.088-65.28 113.15 79.68 88.192-1.92 27.136a293.12 293.12 0 0 0 0 40.192l1.92 27.136-79.808 88.192 65.344 113.15 116.22-25.024 22.656 15.296a294.11 294.11 0 0 0 34.816 20.096l24.512 11.968 36.416 113.09h130.69l36.48-113.15 24.448-11.904a288.28 288.28 0 0 0 34.752-20.096l22.592-15.296 116.29 25.024 65.28-113.15-79.744-88.192 1.92-27.136a293.12 293.12 0 0 0 0-40.256l-1.92-27.136 79.808-88.128-65.344-113.15-116.29 24.96-22.592-15.232a287.62 287.62 0 0 0-34.752-20.096l-24.448-11.904-36.544-113.15zm-65.28 192a192 192 0 1 1 0 384 192 192 0 0 1 0-384zm0 64a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"
+      fill="currentColor"
+    />
+  </svg>
+);
 
 const SignInIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -419,21 +575,6 @@ const SignOutIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
-const SettingIcon = ({ className = "", width = 24, height = 24 }) => (
-  <svg
-    width={width}
-    height={height}
-    viewBox="0 0 1024 1024"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <path
-      d="M600.7 64a32 32 0 0 1 30.464 22.208l35.2 109.38c14.784 7.232 28.928 15.36 42.432 24.512l112.38-24.192a32 32 0 0 1 34.432 15.36l88.704 153.54a32 32 0 0 1-4.032 37.504l-77.12 85.12a357.12 357.12 0 0 1 0 49.024l77.12 85.248a32 32 0 0 1 4.032 37.504l-88.704 153.6a32 32 0 0 1-34.432 15.296l-112.38-24.192c-13.44 9.088-27.648 17.28-42.368 24.512l-35.264 109.38a32 32 0 0 1-30.464 22.208h-177.41a32 32 0 0 1-30.464-22.208l-35.136-109.31a351.62 351.62 0 0 1-42.56-24.64l-112.32 24.256a32 32 0 0 1-34.432-15.36l-88.704-153.54a32 32 0 0 1 4.032-37.504l77.12-85.248a357.12 357.12 0 0 1 0-48.896l-77.12-85.248a32 32 0 0 1-4.032-37.504l88.704-153.6a32 32 0 0 1 34.432-15.296l112.32 24.256c13.568-9.152 27.776-17.408 42.56-24.64l35.2-109.31a32 32 0 0 1 30.336-22.208h177.41zm-23.424 64h-130.56l-36.352 113.09-24.512 11.968a294.11 294.11 0 0 0-34.816 20.096l-22.656 15.36-116.22-25.088-65.28 113.15 79.68 88.192-1.92 27.136a293.12 293.12 0 0 0 0 40.192l1.92 27.136-79.808 88.192 65.344 113.15 116.22-25.024 22.656 15.296a294.11 294.11 0 0 0 34.816 20.096l24.512 11.968 36.416 113.09h130.69l36.48-113.15 24.448-11.904a288.28 288.28 0 0 0 34.752-20.096l22.592-15.296 116.29 25.024 65.28-113.15-79.744-88.192 1.92-27.136a293.12 293.12 0 0 0 0-40.256l-1.92-27.136 79.808-88.128-65.344-113.15-116.29 24.96-22.592-15.232a287.62 287.62 0 0 0-34.752-20.096l-24.448-11.904-36.544-113.15zm-65.28 192a192 192 0 1 1 0 384 192 192 0 0 1 0-384zm0 64a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"
-      fill="currentColor"
-    />
-  </svg>
-);
 
 const StarIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -476,5 +617,5 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HomeIcon, IssuesIcon, LetterIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
-export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, RepositoryIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };
+export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HistoryIcon, HomeIcon, IssuesIcon, LetterIcon, LicenseIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
+export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, ReadmeIcon, RepositoryIcon, SecurityIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };

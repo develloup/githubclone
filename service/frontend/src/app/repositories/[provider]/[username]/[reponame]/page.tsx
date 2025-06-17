@@ -6,22 +6,31 @@ import { Separator } from "@/components/ui/separator";
 import { FileText, GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, RepositoryCollaboratorNode, RepositoryCollaborators } from "@/types/types"; // ⬅️ Typ muss angepasst sein
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
 import {
   ActivityIcon,
+  CodeOfConductIcon,
+  ContributingIcon,
   EyeIcon,
   FileIcon,
   FolderIcon,
   ForkIcon,
+  HistoryIcon,
+  LicenseIcon,
+  ReadmeIcon,
+  SecurityIcon,
   StarIcon,
   TagIcon,
 } from "@/components/Icons";
 import Link from "next/link";
 import { BranchTagSelector } from "@/components/BranchTagSelector";
+import { formatRelativeTime, formatWithCommas } from '../../../../../lib/format';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
 
 type ProviderRepositoryMap = {
   [provider: string]: OAuthRepository;
@@ -52,6 +61,20 @@ export default function RepositoryPage() {
   const [loadingContent, setLoadingContent] = useState(true);
   const [error, setError] = useState<string | null>(null);
   let defbranch:string = "";
+
+  const iconMap = {
+    readme: <ReadmeIcon className="w-4 h-4 text-muted-foreground" />,
+    license: <LicenseIcon className="w-4 h-4 text-muted-foreground" />,
+    security: <SecurityIcon className="w-4 h-4 text-muted-foreground" />,
+    code_of_conduct: <CodeOfConductIcon className="w-4 h-4 text-muted-foreground" />,
+    contributing: <ContributingIcon className="w-4 h-4 text-muted-foreground" />,
+  }
+
+  const statBadge = (count: number) => (
+    <span className="ml-1 px-2 rounded-full bg-muted text-xs font-mono text-muted-foreground">
+      {count.toLocaleString()}
+    </span>
+  )
 
   useEffect(() => {
     if (!provider || !username || !reponame) return;
@@ -159,6 +182,19 @@ export default function RepositoryPage() {
       });
   }, [provider, username, reponame]);
 
+  const detectedFiles = useMemo(() => {
+    const entries = repositorycontent?.data?.repository?.object?.entries ?? []
+    if (!entries || entries.length === 0) return []
+    return detectStandardFilesFromEntries(entries)
+  }, [repositorycontent])
+
+  const detectedFileNames = useMemo(() => {
+    return new Set(detectedFiles.map((f) => f.filename.toLowerCase()))
+  }, [detectedFiles])
+
+  const entries = repositorycontent?.data?.repository?.object?.entries;
+
+
   if (loadingRepository || error || !repository)
     return (
       <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
@@ -243,15 +279,50 @@ export default function RepositoryPage() {
           </Badge>
         </div>
         <div className="flex space-x-2">
-          <Button variant="secondary" size="sm">
-            Pin
-          </Button>
-          <Button variant="secondary" size="sm">
-            Unwatch
-          </Button>
-          <Button variant="secondary" size="sm">
-            Star
-          </Button>
+          {/* Watch */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm">
+                <EyeIcon className="w-4 h-4 mr-1" />
+                Watch {statBadge(repository.data.repository.watchers.totalCount)}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Not Watching</DropdownMenuItem>
+              <DropdownMenuItem>Watching</DropdownMenuItem>
+              <DropdownMenuItem>Custom Notification…</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Fork */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm">
+                <ForkIcon className="w-4 h-4 mr-1" />
+                Fork {statBadge(repository.data.repository.forkCount)}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Fork this repo</DropdownMenuItem>
+              <DropdownMenuItem>Compare with fork</DropdownMenuItem>
+              <DropdownMenuItem>Open forks</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Star */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm">
+                <StarIcon className="w-4 h-4 mr-1 fill-current text-yellow-500" />
+                Star {statBadge(repository.data.repository.stargazerCount)}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Starred</DropdownMenuItem>
+              <DropdownMenuItem>Unstar</DropdownMenuItem>
+              <DropdownMenuItem>Add to list…</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -304,44 +375,81 @@ export default function RepositoryPage() {
           {/* Table */}
           <div className="border rounded-md overflow-hidden">
 
-            {branchcommits ? (
-              <div className="grid grid-cols-3 bg-muted p-2 text-sm font-medium truncate">
-                <div className="flex items-center gap-2 font-mono text-muted-foreground">
-                  {branchcommits.data.repository.ref.target.oid.slice(0, 8)}
+            {branchcommits ? (() => {
+              const commit = branchcommits.data.repository.ref.target
+              const author = commit.author?.user
+              const signatureValid = commit.signature?.isValid
+              const check = commit.checkSuites?.nodes?.[0]
+
+              const getStatusSymbol = (status?: string, conclusion?: string) => {
+                if (status && status !== "COMPLETED") return "•"
+                if (conclusion === "FAILURE") return "❌"
+                if (conclusion === "SUCCESS") return "✔️"
+                return ""
+              }
+
+              return (
+                <div className="flex items-center justify-between bg-muted p-2 text-sm font-medium space-x-4 overflow-hidden">
+                  {/* Avatar & Login */}
+                  <div className="flex items-center space-x-2 min-w-0">
+                    {author?.avatarUrl && (
+                      <img
+                        src={author.avatarUrl}
+                        alt={author.login}
+                        className="w-6 h-6 rounded-full"
+                      />
+                    )}
+                    <span className="truncate text-muted-foreground font-mono">
+                      {author?.login || commit.author.name}
+                    </span>
+                  </div>
+
+                  {/* Commit Message */}
+                  <div className="flex-1 truncate" title={commit.messageHeadline}>
+                    {commit.messageHeadline}
+                  </div>
+
+                  {/* Signature */}
+                  <div className="hidden sm:block text-muted-foreground">
+                    {signatureValid ? "🔏 valid" : commit.signature ? "⚠️ invalid" : null}
+                  </div>
+
+                  {/* Check Status */}
+                  <div className="text-xs text-muted-foreground">
+                    {getStatusSymbol(check?.status, check?.conclusion)}
+                  </div>
+
+                  {/* SHA · Datum · Commits */}
+                  <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap text-xs font-mono">
+                    <span className="text-primary-600">
+                      {commit.oid.slice(0, 8)}
+                    </span>
+                    <span className="text-muted-foreground">•</span>
+                    <span>
+                      {formatRelativeTime(commit.committedDate)}
+                    </span>
+                    <span className="flex items-center gap-1 text-gray-400">
+                      <HistoryIcon className="w-4 h-4" />
+                      {formatWithCommas(commit.history.totalCount)}
+                    </span>
+                  </div>
                 </div>
-                <div
-                  className="truncate"
-                  title={branchcommits.data.repository.ref.target.messageHeadline}
-                >
-                  {branchcommits.data.repository.ref.target.messageHeadline}
-                </div>
-                <div className="flex items-center justify-end gap-2 text-muted-foreground whitespace-nowrap">
-                  <span>
-                    {new Date(
-                      branchcommits.data.repository.ref.target.committedDate
-                    ).toLocaleDateString()}
-                  </span>
-                  <span className="text-xs font-mono text-gray-400">
-                    ({branchcommits.data.repository.ref.target.history.totalCount} commits)
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 bg-muted p-2 text-sm font-medium h-5" />
+              )
+            })() : (
+              <div className="h-5 bg-muted p-2" />
             )}
-            {repositorycontent?.data?.repository?.object?.entries?.length
-              ? repositorycontent.data.repository.object.entries
-                .slice() // Copy to sort without mutations
+
+            {entries && entries.length > 0 && (
+              entries
+                .slice()
                 .sort((a, b) => {
                   if (a.type === b.type) return 0;
                   return a.type === "tree" ? -1 : 1;
                 })
                 .map((entry, index) => {
                   const isDir = entry.type === "tree";
-                  const defbranch =
-                    repository?.data?.repository?.defaultBranchRef?.name;
-                  const href = `${currentPath}/${isDir ? "tree" : "blob"
-                    }/${defbranch}/${encodeURIComponent(entry.name)}`;
+                  const defbranch = repository?.data?.repository?.defaultBranchRef?.name;
+                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
                   const Icon = isDir ? FolderIcon : FileIcon;
 
                   return (
@@ -354,12 +462,16 @@ export default function RepositoryPage() {
                         <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
                         {entry.name}
                       </div>
-                      <div className="text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{entry.message}</div>
-                      <div className="text-muted-foreground">{entry.committedDate}</div>
+                      <div className="text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+                        {entry.message}
+                      </div>
+                      <div className="text-muted-foreground text-right justify-self-end">
+                        {formatRelativeTime(entry.committedDate)}
+                      </div>
                     </Link>
                   );
                 })
-              : null}
+            )}
           </div>
         </div>
 
@@ -377,41 +489,56 @@ export default function RepositoryPage() {
               "No description, website, or topics provided."}
           </p>
 
-          {/* ➤ Activity Button */}
-          <Link
-            href={`${currentPath}/activity`}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            <ActivityIcon className="w-4 h-4" />
-            Activity
-          </Link>
-
-          {/* ➤ Stats */}
           <div className="space-y-2 pt-1 text-sm text-muted-foreground">
             <Link
               href={`${currentPath}/stargazer`}
               className="flex items-center gap-2 hover:underline"
             >
               <StarIcon className="w-4 h-4 text-yellow-500" />
-              {formatNumber(repository.data.repository.stargazerCount)} Stars
+              {formatNumber(repository.data.repository.stargazerCount)}{" "}
+              {repository.data.repository.stargazerCount === 1 ? "Star" : "Stars"}
             </Link>
+
             <Link
               href={`${currentPath}/watchers`}
               className="flex items-center gap-2 hover:underline"
             >
               <EyeIcon className="w-4 h-4" />
-              {formatNumber(
-                repository.data.repository.watchers.totalCount
-              )}{" "}
-              Watchers
+              {formatNumber(repository.data.repository.watchers.totalCount)}{" "}
+              {repository.data.repository.watchers.totalCount === 1 ? "Watcher" : "Watchers"}
             </Link>
+
             <Link
               href={`${currentPath}/forks`}
               className="flex items-center gap-2 hover:underline"
             >
               <ForkIcon className="w-4 h-4" />
-              {formatNumber(repository.data.repository.forkCount)} Forks
+              {formatNumber(repository.data.repository.forkCount)}{" "}
+              {repository.data.repository.forkCount === 1 ? "Fork" : "Forks"}
             </Link>
+
+            <Link
+              href={`${currentPath}/activity`}
+              className="flex items-center gap-2 hover:underline text-primary"
+            >
+              <ActivityIcon className="w-4 h-4" />
+              Activity
+            </Link>
+
+            {detectedFiles.length > 0 && (
+              <>
+                {detectedFiles.map(({ category, filename }) => (
+                  <Link
+                    key={category}
+                    href={`${currentPath}/blob/${defbranch}/${encodeURIComponent(filename)}`}
+                    className="flex items-center gap-2 hover:underline"
+                  >
+                    {iconMap[category]}
+                    {category.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())}
+                  </Link>
+                ))}
+              </>
+            )}
           </div>
 
           <hr className="my-4 border-muted" />
@@ -453,9 +580,9 @@ export default function RepositoryPage() {
                   )}
                 </Link>
                 <p className="text-xs text-muted-foreground pl-6">
-                  {new Date(
+                  {formatRelativeTime(
                     repository.data.repository.releases.nodes[0].createdAt
-                  ).toLocaleDateString()}
+                  )}
                 </p>
                 {repository.data.repository.releases.totalCount > 1 && (
                   <Link
@@ -540,9 +667,9 @@ export default function RepositoryPage() {
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(
+                    {formatRelativeTime(
                       repository.data.repository.deployments.nodes[0].createdAt
-                    ).toLocaleString()}
+                    )}
                   </p>
                 </div>
 

@@ -5,7 +5,6 @@ import (
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -51,7 +50,7 @@ func GetOAuthRepositories(c *gin.Context) {
 		case api.Github, api.GHES:
 			endpoint := value.URL
 			token := value.Token
-			log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
+			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
 			githubData, err := common.SendGraphQLQuery[github.GitHubRepositoriesOfViewer](
 				graphqlgithubprefix+endpoint+graphqlgithubpath,
 				github.GithubRepositoriesOfViewerQuery,
@@ -94,7 +93,7 @@ func GetOAuthRepositoryBranchCommit(c *gin.Context) {
 		"expression": c.Query("expression"),
 	}
 
-	GetOAuthCommonProvider[github.RepositoryBranchCommit](c, provider, github.GithubRepositoryBranchCommitQuery, validParams, true)
+	GetOAuthCommonProvider[github.RepositoryBranchCommit](c, provider, github.GithubRepositoryBranchCommitQuery, validParams, false)
 }
 
 func GetOauthRepositoryContents(c *gin.Context) {
@@ -158,7 +157,7 @@ type CommitInfo struct {
 func ParseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string]string) map[string]CommitInfo {
 	results := make(map[string]CommitInfo)
 
-	// Tiefer Zugriff ins JSON-Ergebnis
+	// Deep access to JSON result
 	data, ok := raw["data"].(map[string]interface{})
 	if !ok {
 		return results
@@ -196,7 +195,7 @@ func ParseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string
 }
 
 func BuildCommitQueriesFromEntries(entries []string, owner, repo string) ([]string, map[string]string) {
-	const maxPerQuery = 20
+	const maxPerQuery = 40
 	var queries []string
 	aliasToPath := make(map[string]string)
 
@@ -249,7 +248,7 @@ func GetOAuthRepositoryContributors(c *gin.Context) {
 		"name":  c.Query("name"),
 	}
 
-	GetOAuthCommonProviderREST(c, provider, validParams, fetchContributorsWithCount, true)
+	GetOAuthCommonProviderREST(c, provider, validParams, fetchContributorsWithCount, false)
 }
 
 func fetchContributorsWithCount(

@@ -179,17 +179,18 @@ type OAuthRepository = {
 
 type EntryType = "blob" | "tree"
 
+type RepositoryEntry = {
+  name: string;
+  type: EntryType;
+  mode: number;
+  message: string;
+  committedDate: string;
+}
 
 type RepositoryContents = {
   repository: {
     object: {
-      entries: {
-        name: string;
-        type: EntryType;
-        mode: number;
-        message: string;
-        committedDate: string;
-      }[];
+      entries: RepositoryEntry[];
     } | null;
   } | null;
 };
@@ -247,6 +248,6 @@ type OAuthRepositoryBranchCommit = {
 
 
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
-export type { ExtendedRepository, RepositoryOwner, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
+export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };

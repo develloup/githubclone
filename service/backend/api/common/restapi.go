@@ -6,7 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type RestAPIResult[T any] struct {
@@ -40,9 +42,9 @@ func SendRestAPIQuery[T any](endpoint, path, token string, islog bool) (*RestAPI
 	}
 	limit := resp.Header.Get("X-RateLimit-Limit")
 	remaining := resp.Header.Get("X-RateLimit-Remaining")
-	reset := resp.Header.Get("X-RateLimit-Reset")
+	reset, _ := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64)
 
-	log.Printf("GitHub Rate Limit: %s remaining of %s – resets at %s", remaining, limit, reset)
+	log.Printf("GitHub Rate Limit: %s remaining of %s – resets at %s", remaining, limit, time.Unix(reset, 0).Local())
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("GitHub API error %d: %s", resp.StatusCode, string(body))
 	}

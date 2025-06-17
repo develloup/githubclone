@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type GraphQLRequest struct {
@@ -91,9 +92,9 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 
 	limit := resp.Header.Get("X-RateLimit-Limit")
 	remaining := resp.Header.Get("X-RateLimit-Remaining")
-	reset := resp.Header.Get("X-RateLimit-Reset")
+	reset, _ := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64)
 
-	log.Printf("[GitHub GraphQL] Remaining: %s / %s | Reset at: %s", remaining, limit, reset)
+	log.Printf("[GitHub GraphQL] Remaining: %s / %s | Reset at: %s", remaining, limit, time.Unix(reset, 0).Local())
 
 	// Read answer
 	body, err := io.ReadAll(resp.Body)
