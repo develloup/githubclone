@@ -3,16 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { FileText, GitBranch, Info, Tag } from "lucide-react";
+import { GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, RepositoryCollaboratorNode, RepositoryCollaborators } from "@/types/types"; // ⬅️ Typ muss angepasst sein
+import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, RepositoryCollaboratorNode } from "@/types/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
 import {
   ActivityIcon,
+  BulletListIcon,
   CodeOfConductIcon,
   ContributingIcon,
   EyeIcon,
@@ -21,6 +22,7 @@ import {
   ForkIcon,
   HistoryIcon,
   LicenseIcon,
+  PencilIcon,
   ReadmeIcon,
   SecurityIcon,
   StarIcon,
@@ -28,9 +30,13 @@ import {
 } from "@/components/Icons";
 import Link from "next/link";
 import { BranchTagSelector } from "@/components/BranchTagSelector";
-import { formatRelativeTime, formatWithCommas } from '../../../../../lib/format';
+import { formatLicenseLabel, formatRelativeTime, formatWithCommas } from '../../../../../lib/format';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
+import ReactMarkdown from "react-markdown";
+import { JSX } from "react/jsx-runtime";
+
+// Optional: import "highlight.js/styles/github.css"; // Style z.B. GitHub-Style
 
 type ProviderRepositoryMap = {
   [provider: string]: OAuthRepository;
@@ -39,6 +45,32 @@ type ProviderRepositoryMap = {
 type ProviderRepositoryContentMap = {
   [provider: string]: OAuthRepositoryContents;
 };
+
+function formatCommitMessageWithLinks(message: string, basePath: string): JSX.Element {
+  const parts = message.split(/(#\d+)/g); // Erhalte Text und Matches getrennt
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        const match = part.match(/^#(\d+)$/);
+        if (match) {
+          const prNumber = match[1];
+          return (
+            <Link
+              key={index}
+              href={`${basePath}/pull/${prNumber}`}
+              className="text-primary underline hover:no-underline"
+            >
+              #{prNumber}
+            </Link>
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 
 export default function RepositoryPage() {
   const params = useParams();
@@ -57,10 +89,10 @@ export default function RepositoryPage() {
   const [contributors, setContributors] = useState<RepositoryCollaboratorNode[] | null>(null);
   const [totalContributors, setTotalContributors] = useState<number>(0);
   const [branchcommits, setBranchCommits] = useState<OAuthRepositoryBranchCommit | null>(null);
+  const [defbranch, setDefBranch] = useState<string | undefined>(undefined);
   const [loadingRepository, setLoadingRepository] = useState(true);
   const [loadingContent, setLoadingContent] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  let defbranch:string = "";
 
   const iconMap = {
     readme: <ReadmeIcon className="w-4 h-4 text-muted-foreground" />,
@@ -75,6 +107,7 @@ export default function RepositoryPage() {
       {count.toLocaleString()}
     </span>
   )
+
 
   useEffect(() => {
     if (!provider || !username || !reponame) return;
@@ -99,15 +132,14 @@ export default function RepositoryPage() {
         if (!repo)
           throw new Error(`Kein Repository für Provider ${provider} gefunden`);
         setRepository(repo);
-
-        defbranch = repo?.data?.repository.defaultBranchRef?.name ?? "HEAD:";
+        setDefBranch(repo?.data?.repository?.defaultBranchRef?.name)
 
         // Second fetch: get the initial content
         return fetchWithAuth(
           `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
             username
           )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
-            toQualifiedRef(defbranch)
+            toQualifiedRef(defbranch??"")
           )}`,
           { credentials: "include" }
         );
@@ -152,7 +184,7 @@ export default function RepositoryPage() {
 
         // Fourth fetch: get branch commits
         return fetchWithAuth(
-          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(defbranch))}`,
+          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(defbranch??""))}`,
           { credentials: "include" }
         );
 
@@ -180,7 +212,7 @@ export default function RepositoryPage() {
         setLoadingRepository(false);
         setLoadingContent(false);
       });
-  }, [provider, username, reponame]);
+  }, [provider, username, reponame, defbranch]);
 
   const detectedFiles = useMemo(() => {
     const entries = repositorycontent?.data?.repository?.object?.entries ?? []
@@ -188,11 +220,31 @@ export default function RepositoryPage() {
     return detectStandardFilesFromEntries(entries)
   }, [repositorycontent])
 
-  const detectedFileNames = useMemo(() => {
-    return new Set(detectedFiles.map((f) => f.filename.toLowerCase()))
-  }, [detectedFiles])
-
   const entries = repositorycontent?.data?.repository?.object?.entries;
+
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "readme-ov-file";
+
+  const tabList = detectedFiles.length > 0
+    ? detectedFiles.map(({ category, filename }) => ({
+        key: `${category}-ov-file`,
+        label: filename, // oder category.toUpperCase()
+        category,
+        filename
+      }))
+    : [{
+        key: "readme-ov-file",
+        label: "README.md",
+        category: "readme",
+        filename: "README.md"
+      }]
+
+  const activeFile = tabList.find((f) => `${f.category}-ov-file` === activeTab) ?? tabList[0];
+  const fileExt = activeFile.filename.toLowerCase().split(".").pop();
+  const safeDefBranch = defbranch ?? "main"
+  const fileHref = `${currentPath}/edit/${safeDefBranch}/${encodeURIComponent(activeFile.filename)}`;
+
+  type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
 
 
   if (loadingRepository || error || !repository)
@@ -375,67 +427,65 @@ export default function RepositoryPage() {
           {/* Table */}
           <div className="border rounded-md overflow-hidden">
 
-            {branchcommits ? (() => {
-              const commit = branchcommits.data.repository.ref.target
-              const author = commit.author?.user
-              const signatureValid = commit.signature?.isValid
-              const check = commit.checkSuites?.nodes?.[0]
+            {branchcommits?.data?.repository?.ref?.target && typeof branchcommits.data.repository.ref.target === "object" && "oid" in branchcommits.data.repository.ref.target ? (
+              (() => {
+                const commit = branchcommits.data.repository.ref.target;
+                const author = commit.author?.user;
+                const signatureValid = commit.signature?.isValid;
+                const check = commit.checkSuites?.nodes?.[0];
 
-              const getStatusSymbol = (status?: string, conclusion?: string) => {
-                if (status && status !== "COMPLETED") return "•"
-                if (conclusion === "FAILURE") return "❌"
-                if (conclusion === "SUCCESS") return "✔️"
-                return ""
-              }
+                const getStatusSymbol = (status?: string, conclusion?: string) => {
+                  if (status && status !== "COMPLETED") return "•";
+                  if (conclusion === "FAILURE") return "❌";
+                  if (conclusion === "SUCCESS") return "✔️";
+                  return "";
+                };
 
-              return (
-                <div className="flex items-center justify-between bg-muted p-2 text-sm font-medium space-x-4 overflow-hidden">
-                  {/* Avatar & Login */}
-                  <div className="flex items-center space-x-2 min-w-0">
-                    {author?.avatarUrl && (
-                      <img
-                        src={author.avatarUrl}
-                        alt={author.login}
-                        className="w-6 h-6 rounded-full"
-                      />
-                    )}
-                    <span className="truncate text-muted-foreground font-mono">
-                      {author?.login || commit.author.name}
-                    </span>
+                return (
+                  <div className="flex items-center justify-between bg-muted p-2 text-sm font-medium space-x-4 overflow-hidden">
+                    {/* Avatar & Login */}
+                    <div className="flex items-center space-x-2 min-w-0">
+                      {author?.avatarUrl && (
+                        <img
+                          src={author.avatarUrl}
+                          alt={author.login}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      )}
+                      <span className="truncate text-muted-foreground font-mono">
+                        {author?.login || commit.author.name}
+                      </span>
+                    </div>
+
+                    {/* Commit Message */}
+                    <div className="flex-1 truncate" title={commit.messageHeadline}>
+                      {commit.messageHeadline}
+                    </div>
+
+                    {/* Signature */}
+                    <div className="hidden sm:block text-muted-foreground">
+                      {signatureValid ? "🔏 valid" : commit.signature ? "⚠️ invalid" : null}
+                    </div>
+
+                    {/* Check Status */}
+                    <div className="text-xs text-muted-foreground">
+                      {getStatusSymbol(check?.status, check?.conclusion)}
+                    </div>
+
+                    {/* SHA · Datum · Commits */}
+                    <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap text-xs font-mono">
+                      <span className="text-primary-600">{commit.oid.slice(0, 8)}</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span>{formatRelativeTime(commit.committedDate)}</span>
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <HistoryIcon className="w-4 h-4" />
+                        {formatWithCommas(commit.history.totalCount)}
+                      </span>
+                    </div>
                   </div>
-
-                  {/* Commit Message */}
-                  <div className="flex-1 truncate" title={commit.messageHeadline}>
-                    {commit.messageHeadline}
-                  </div>
-
-                  {/* Signature */}
-                  <div className="hidden sm:block text-muted-foreground">
-                    {signatureValid ? "🔏 valid" : commit.signature ? "⚠️ invalid" : null}
-                  </div>
-
-                  {/* Check Status */}
-                  <div className="text-xs text-muted-foreground">
-                    {getStatusSymbol(check?.status, check?.conclusion)}
-                  </div>
-
-                  {/* SHA · Datum · Commits */}
-                  <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap text-xs font-mono">
-                    <span className="text-primary-600">
-                      {commit.oid.slice(0, 8)}
-                    </span>
-                    <span className="text-muted-foreground">•</span>
-                    <span>
-                      {formatRelativeTime(commit.committedDate)}
-                    </span>
-                    <span className="flex items-center gap-1 text-gray-400">
-                      <HistoryIcon className="w-4 h-4" />
-                      {formatWithCommas(commit.history.totalCount)}
-                    </span>
-                  </div>
-                </div>
-              )
-            })() : (
+                );
+              })()
+            ) : (
               <div className="h-5 bg-muted p-2" />
             )}
 
@@ -448,30 +498,93 @@ export default function RepositoryPage() {
                 })
                 .map((entry, index) => {
                   const isDir = entry.type === "tree";
-                  const defbranch = repository?.data?.repository?.defaultBranchRef?.name;
-                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
+
+                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${safeDefBranch}/${encodeURIComponent(entry.name)}`;
                   const Icon = isDir ? FolderIcon : FileIcon;
 
                   return (
                     <Link
                       key={index}
                       href={href}
-                      className="grid grid-cols-3 p-2 text-sm hover:bg-accent cursor-pointer"
+                      className="grid grid-cols-12 gap-2 p-2 text-sm hover:bg-accent cursor-pointer"
                     >
-                      <div className="flex items-center">
+                      {/* Name + Icon */}
+                      <div className="flex items-center col-span-4">
                         <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
                         {entry.name}
                       </div>
-                      <div className="text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-                        {entry.message}
+
+                      {/* Commit-Message */}
+                      <div className="text-muted-foreground col-span-6 whitespace-nowrap overflow-hidden text-ellipsis">
+                        {formatCommitMessageWithLinks(entry.message, currentPath)}
                       </div>
-                      <div className="text-muted-foreground text-right justify-self-end">
+
+                      {/* Datum */}
+                      <div className="text-muted-foreground text-right col-span-2 whitespace-nowrap">
                         {formatRelativeTime(entry.committedDate)}
                       </div>
                     </Link>
                   );
                 })
             )}
+          </div>
+
+          <div className="border rounded-md overflow-hidden">
+            {/* Tabs + Actions */}
+            <div className="border rounded-md overflow-hidden">
+              <div className="flex justify-between items-center bg-muted px-4 py-2 border-b">
+                <div className="flex gap-3 flex-wrap text-sm">
+                  {tabList.map(({ key, filename, category }) => {
+                    const isActive = key === activeTab;
+                    const licenseInfo = repository?.data?.repository?.licenseInfo;
+
+                    const label =
+                      category === "license"
+                        ? formatLicenseLabel(filename, licenseInfo?.name, licenseInfo?.key)
+                        : filename;
+
+                    return (
+                      <Link
+                        key={key}
+                        href={`?tab=${key}#${key}`}
+                        className={`px-2 py-1 border-b-2 ${
+                          isActive
+                            ? "border-primary text-primary font-semibold"
+                            : "border-transparent hover:underline"
+                        }`}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {iconMap[category as IconCategory]}
+                          {label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link href={fileHref}>
+                    <PencilIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                  </Link>
+                  <button className="relative group">
+                    <BulletListIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    <div className="hidden group-hover:block absolute right-0 mt-2 bg-popover border rounded shadow-md z-10 p-2 text-sm">
+                      <button className="block w-full text-left px-2 py-1 hover:bg-accent">Als Datei herunterladen</button>
+                      <button className="block w-full text-left px-2 py-1 hover:bg-accent">Als Raw anzeigen</button>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Dateiinhalt */}
+              <div className="prose max-w-none px-4 py-3 text-sm whitespace-pre-wrap">
+                {["md", "markdown"].includes(fileExt ?? "")
+                  ? <ReactMarkdown></ReactMarkdown>
+                  : <pre></pre>}
+              </div>
+            </div>
+
+
           </div>
         </div>
 
@@ -490,6 +603,39 @@ export default function RepositoryPage() {
           </p>
 
           <div className="space-y-2 pt-1 text-sm text-muted-foreground">
+            {detectedFiles.length > 0 && (
+              <>
+                {detectedFiles.map(({ category, filename }) => {
+                  const tabKey = `${category}-ov-file`;
+                  const licenseInfo = repository?.data?.repository?.licenseInfo;
+
+                  const label =
+                    category === "license"
+                      ? formatLicenseLabel(filename, licenseInfo?.name || licenseInfo?.key)
+                      : filename;
+
+                  return (
+                    <Link
+                      key={category}
+                      href={`?tab=${tabKey}#${tabKey}`}
+                      className="flex items-center gap-2 hover:underline"
+                    >
+                      {iconMap[category as keyof typeof iconMap]}
+                      {label}
+                    </Link>
+                  );
+                })}
+              </>
+            )}
+
+            <Link
+              href={`${currentPath}/activity`}
+              className="flex items-center gap-2 hover:underline text-primary"
+            >
+              <ActivityIcon className="w-4 h-4" />
+              Activity
+            </Link>
+
             <Link
               href={`${currentPath}/stargazer`}
               className="flex items-center gap-2 hover:underline"
@@ -517,28 +663,6 @@ export default function RepositoryPage() {
               {repository.data.repository.forkCount === 1 ? "Fork" : "Forks"}
             </Link>
 
-            <Link
-              href={`${currentPath}/activity`}
-              className="flex items-center gap-2 hover:underline text-primary"
-            >
-              <ActivityIcon className="w-4 h-4" />
-              Activity
-            </Link>
-
-            {detectedFiles.length > 0 && (
-              <>
-                {detectedFiles.map(({ category, filename }) => (
-                  <Link
-                    key={category}
-                    href={`${currentPath}/blob/${defbranch}/${encodeURIComponent(filename)}`}
-                    className="flex items-center gap-2 hover:underline"
-                  >
-                    {iconMap[category]}
-                    {category.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())}
-                  </Link>
-                ))}
-              </>
-            )}
           </div>
 
           <hr className="my-4 border-muted" />

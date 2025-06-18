@@ -57,6 +57,29 @@ const BalanceIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const BulletListIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M3 12h.01" />
+    <path d="M3 18h.01" />
+    <path d="M3 6h.01" />
+    <path d="M8 12h13" />
+    <path d="M8 18h13" />
+    <path d="M8 6h13" />
+  </svg>
+);
+
+
 const CheckIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
     <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/>
@@ -413,6 +436,24 @@ const OverviewIcon = ({className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const PencilIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+    <path d="m15 5 4 4" />
+  </svg>
+);
+
 
 const ProfileIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -617,5 +658,5 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, CheckIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HistoryIcon, HomeIcon, IssuesIcon, LetterIcon, LicenseIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
-export { NotificationIcon, OverviewIcon, PullRequestIcon, ProfileIcon, ProjectIcon, ReadmeIcon, RepositoryIcon, SecurityIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };
+export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, BulletListIcon, CheckIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderIcon, ForkIcon, GistIcon, HistoryIcon, HomeIcon, IssuesIcon, LetterIcon, LicenseIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon};
+export { NotificationIcon, OverviewIcon, PencilIcon, PullRequestIcon, ProfileIcon, ProjectIcon, ReadmeIcon, RepositoryIcon, SecurityIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };

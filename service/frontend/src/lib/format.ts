@@ -57,3 +57,12 @@ export function formatRelativeTime(date: string | Date): string {
   if (years === 1) return "last year"
   return rtf.format(-years, "year")
 }
+
+
+export function formatLicenseLabel(fallback: string, name?: string, key?: string): string {
+  const raw = name || key;
+  if (!raw) return fallback;
+
+  const endsWithLicense = /\blicense\b$/i.test(raw);
+  return endsWithLicense ? raw : `${raw} License`;
+}
