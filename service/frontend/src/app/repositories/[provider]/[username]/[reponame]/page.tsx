@@ -33,8 +33,8 @@ import { BranchTagSelector } from "@/components/BranchTagSelector";
 import { formatLicenseLabel, formatRelativeTime, formatWithCommas } from '../../../../../lib/format';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
-import ReactMarkdown from "react-markdown";
 import { JSX } from "react/jsx-runtime";
+import { MarkdownViewer } from "@/components/markdownviewer";
 
 // Optional: import "highlight.js/styles/github.css"; // Style z.B. GitHub-Style
 
@@ -575,13 +575,8 @@ export default function RepositoryPage() {
                   </button>
                 </div>
               </div>
-
-              {/* Dateiinhalt */}
-              <div className="prose max-w-none px-4 py-3 text-sm whitespace-pre-wrap">
-                {["md", "markdown"].includes(fileExt ?? "")
-                  ? <ReactMarkdown></ReactMarkdown>
-                  : <pre></pre>}
-              </div>
+              {/* show file content */}
+              <MarkdownViewer provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={safeDefBranch}></MarkdownViewer>
             </div>
 
 

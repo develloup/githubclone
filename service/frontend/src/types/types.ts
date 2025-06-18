@@ -247,7 +247,14 @@ type OAuthRepositoryBranchCommit = {
 }
 
 
+type RepositoryFile = {
+  content: string;
+  mime: string;
+};
+
+
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };
+export type { RepositoryFile }

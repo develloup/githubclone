@@ -9,4 +9,5 @@ func SetupRoutes(router *gin.Engine) {
 	router.GET("/api/oauth/repositorycontents", GetOauthRepositoryContents)
 	router.GET("/api/oauth/repositorycontributors", GetOAuthRepositoryContributors)
 	router.GET("/api/oauth/repositorybranchcommit", GetOAuthRepositoryBranchCommit)
+	router.GET("/api/oauth/repositorycontent", GetOAuthRepositoryContent)
 }

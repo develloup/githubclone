@@ -1,15 +1,18 @@
 package abstracted
 
 import (
+	"encoding/base64"
 	"fmt"
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 )
 
@@ -306,4 +309,49 @@ func fetchContributorsWithCount(
 		TotalCount: total,
 		Nodes:      mapped,
 	}, nil
+}
+
+type GitHubFile struct {
+	Content string `json:"content"`
+	MIME    string `json:"mime"`
+}
+
+func fetchFileViaHelper(endpoint string, token string, params map[string]interface{}, islog bool) (*GitHubFile, error) {
+	owner, _ := params["owner"].(string)
+	name, _ := params["name"].(string)
+	path, _ := params["path"].(string)
+	ref, _ := params["ref"].(string)
+
+	contentPath := fmt.Sprintf("repos/%s/%s/contents/%s", owner, name, path)
+	if ref != "" {
+		contentPath += "?ref=" + url.QueryEscape(ref)
+	}
+
+	result, err := common.SendRestAPIQuery[GitHubFile](endpoint, contentPath, token, islog)
+	if err != nil {
+		return nil, err
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(result.Result.Content)
+	if err != nil {
+		return nil, fmt.Errorf("Base64 decoding failed: %w", err)
+	}
+
+	mime := mimetype.Detect(decoded).String()
+	result.Result.MIME = mime
+
+	return result.Result, nil
+}
+
+func GetOAuthRepositoryContent(c *gin.Context) {
+	provider := c.Query("provider")
+	validParams := map[string]interface{}{
+		"owner": c.Query("owner"),
+		"name":  c.Query("name"),
+		"path":  c.Query("path"),
+		"ref":   c.Query("ref"),
+	}
+
+	GetOAuthCommonProviderREST(c, provider, validParams, fetchFileViaHelper, false)
+
 }
