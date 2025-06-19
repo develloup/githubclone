@@ -3,6 +3,15 @@ import { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: false, // Resolves problems with URLs
+  
+  images: {
+    domains: [
+      "img.shields.io",
+      "user-images.githubusercontent.com",
+      "raw.githubusercontent.com",
+      "avatars.githubusercontent.com"
+    ]
+  },
 
   async rewrites() {
     return [

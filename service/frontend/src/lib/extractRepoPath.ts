@@ -6,7 +6,7 @@ export function extractRepoPath(repoUrl: string): string | null {
       return `${segments[0]}/${segments[1]}`;
     }
   } catch (err) {
-    console.warn("⚠️ Ungültige URL:", repoUrl, err);
+    console.warn("Invalid URL:", repoUrl, err);
   }
   return null;
 }

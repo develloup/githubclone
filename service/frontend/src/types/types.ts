@@ -253,6 +253,7 @@ type RepositoryFile = {
 };
 
 
+
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }

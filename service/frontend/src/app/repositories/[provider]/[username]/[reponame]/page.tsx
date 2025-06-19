@@ -246,6 +246,19 @@ export default function RepositoryPage() {
 
   type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
 
+  useEffect(() => {
+    const el = document.getElementById(activeTab);
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const isVisible =
+      rect.top >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight);
+
+    if (!isVisible) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [activeTab]);
 
   if (loadingRepository || error || !repository)
     return (
@@ -459,7 +472,7 @@ export default function RepositoryPage() {
 
                     {/* Commit Message */}
                     <div className="flex-1 truncate" title={commit.messageHeadline}>
-                      {commit.messageHeadline}
+                      {formatCommitMessageWithLinks(commit.messageHeadline, currentPath)}
                     </div>
 
                     {/* Signature */}
@@ -576,7 +589,7 @@ export default function RepositoryPage() {
                 </div>
               </div>
               {/* show file content */}
-              <MarkdownViewer provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={safeDefBranch}></MarkdownViewer>
+              <MarkdownViewer id={`${activeFile.category}-ov-file`} provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={safeDefBranch}></MarkdownViewer>
             </div>
 
 

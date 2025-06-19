@@ -6,13 +6,14 @@ import (
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
+	"githubclone-backend/utils"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 )
 
@@ -327,6 +328,10 @@ func fetchFileViaHelper(endpoint string, token string, params map[string]interfa
 		contentPath += "?ref=" + url.QueryEscape(ref)
 	}
 
+	if islog {
+		log.Printf("contentPath=%s", contentPath)
+	}
+
 	result, err := common.SendRestAPIQuery[GitHubFile](endpoint, contentPath, token, islog)
 	if err != nil {
 		return nil, err
@@ -336,10 +341,7 @@ func fetchFileViaHelper(endpoint string, token string, params map[string]interfa
 	if err != nil {
 		return nil, fmt.Errorf("Base64 decoding failed: %w", err)
 	}
-
-	mime := mimetype.Detect(decoded).String()
-	result.Result.MIME = mime
-
+	result.Result.MIME = utils.DetectMIME(path, decoded)
 	return result.Result, nil
 }
 
@@ -348,7 +350,7 @@ func GetOAuthRepositoryContent(c *gin.Context) {
 	validParams := map[string]interface{}{
 		"owner": c.Query("owner"),
 		"name":  c.Query("name"),
-		"path":  c.Query("path"),
+		"path":  c.Query("content"),
 		"ref":   c.Query("ref"),
 	}
 

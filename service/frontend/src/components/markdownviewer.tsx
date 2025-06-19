@@ -2,6 +2,8 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { RepositoryFile } from "@/types/types";
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm"
+import rehypeHighlight from "rehype-highlight"
 
 // 🧠 Base64 sicher decodieren mit Unicode-Support
 function decodeBase64(input: string): string {
@@ -14,16 +16,22 @@ function decodeBase64(input: string): string {
   }
 }
 
-
 type MarkdownViewerProps = {
+  id: string;
   provider: string;
   owner: string;
   name: string;
   ref?: string;
   contentPath: string;
 };
+
+type ProviderRepositoryFileContentsMap = {
+  [provider: string]: RepositoryFile
+};
+
 // 📘 Komponente: MarkdownViewer
 export function MarkdownViewer({
+  id,
   provider,
   owner,
   name,
@@ -43,18 +51,18 @@ export function MarkdownViewer({
         if (ref) url.searchParams.set("ref", ref);
 
         const res = await fetchWithAuth(url.toString());
-        const text = await res.text();
-        console.log("📦 Rohdaten vom Backend (Content):", text);
+        const responseText = await res.text();
+        console.log("📦 Rohdaten vom Backend (FileContent):", responseText);
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
-
-        const data: RepositoryFile = JSON.parse(text);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${responseText}`);
+        const parsed: ProviderRepositoryFileContentsMap = JSON.parse(responseText);
+        const data = parsed[provider];
         setFile(data);
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);
         } else {
-          setError("Unbekannter Fehler");
+          setError("Unknown error");
         }
       }
     };
@@ -89,8 +97,16 @@ export function MarkdownViewer({
   }
 
   return (
-    <div className="prose dark:prose-invert max-w-none">
-      <ReactMarkdown>{decoded}</ReactMarkdown>
-    </div>
+    <>
+    {file.mime.includes("markdown") ? (
+      <div id={id} className="prose prose-sm dark:prose-invert max-w-4xl mx-auto px-4">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>{decoded}</ReactMarkdown>
+      </div>
+    ) : (
+      <pre id={id} className="text-sm whitespace-pre-wrap overflow-auto max-w-4xl mx-auto p-4">
+        {decoded}
+      </pre>
+    )}
+    </>
   );
 }
