@@ -130,21 +130,26 @@ export default function RepositoryPage() {
         const parsed: ProviderRepositoryMap = JSON.parse(responseText);
         const repo = parsed[provider];
         if (!repo)
-          throw new Error(`Kein Repository für Provider ${provider} gefunden`);
-        setRepository(repo);
-        setDefBranch(repo?.data?.repository?.defaultBranchRef?.name)
+          throw new Error(`Found no repository for provider ${provider}`);
 
-        // Second fetch: get the initial content
-        return fetchWithAuth(
-          `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
-            username
-          )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
-            toQualifiedRef(defbranch??"")
-          )}`,
-          { credentials: "include" }
-        );
+        setRepository(repo);
+        const db = repo.data.repository.defaultBranchRef.name;
+        console.log("The default branch: ", db);
+
+        return {
+          db,
+          fetch: fetchWithAuth(
+            `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
+              username
+            )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
+              toQualifiedRef(db)
+            )}`,
+            { credentials: "include" }
+          )
+        };
       })
-      .then(async (res) => {
+      .then(async ({ db, fetch }) => {
+        const res = await fetch;
         const responseText = await res.text();
         console.log("📄 Backend-Rohdaten (content):", responseText);
 
@@ -154,19 +159,20 @@ export default function RepositoryPage() {
         const parsed: ProviderRepositoryContentMap = JSON.parse(responseText);
         const content = parsed[provider];
         if (!content)
-          throw new Error(
-            `Kein Repository-Inhalt für Provider ${provider} gefunden`
-          );
+          throw new Error(`Kein Repository-Inhalt für Provider ${provider} gefunden`);
+
         setRepositoryContent(content);
 
-        // Third fetch: get contributors
-        return fetchWithAuth(
-          `/api/oauth/repositorycontributors?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}`,
-          { credentials: "include" }
-        );
-
+        return { 
+          db,
+          fetch: fetchWithAuth(
+            `/api/oauth/repositorycontributors?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}`,
+            { credentials: "include" }
+          ) 
+        };
       })
-      .then(async (res) => {
+      .then(async ({ db, fetch }) => {
+        const res = await fetch;
         const responseText = await res.text();
         console.log("👥 Backend-Rohdaten (contributors):", responseText);
 
@@ -182,16 +188,14 @@ export default function RepositoryPage() {
         setContributors(contribs.nodes);
         setTotalContributors(contribs.totalCount);
 
-        // Fourth fetch: get branch commits
         return fetchWithAuth(
-          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(defbranch??""))}`,
+          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(db))}`,
           { credentials: "include" }
         );
-
       })
       .then(async (res) => {
         const responseText = await res.text();
-        console.log("Backend-Rohdaten (branchcommit):", responseText)
+        console.log("📌 Backend-Rohdaten (branchcommit):", responseText);
 
         if (!res.ok)
           throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
@@ -202,7 +206,7 @@ export default function RepositoryPage() {
         if (!branchcommits)
           throw new Error("Invalid Branch commit data structure");
 
-        setBranchCommits(branchcommits)
+        setBranchCommits(branchcommits);
       })
       .catch((err) => {
         console.error("❌ Fehler beim Laden:", err);
@@ -212,7 +216,7 @@ export default function RepositoryPage() {
         setLoadingRepository(false);
         setLoadingContent(false);
       });
-  }, [provider, username, reponame, defbranch]);
+  }, [provider, username, reponame]);
 
   const detectedFiles = useMemo(() => {
     const entries = repositorycontent?.data?.repository?.object?.entries ?? []

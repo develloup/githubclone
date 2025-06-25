@@ -108,7 +108,9 @@ func GetOauthRepositoryContents(c *gin.Context) {
 		"expression": c.DefaultQuery("expression", "HEAD:"),
 	}
 
-	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, false)
+	islog := false
+
+	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, islog)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -123,21 +125,31 @@ func GetOauthRepositoryContents(c *gin.Context) {
 	owner, _ := validParams["owner"].(string)
 	repo, _ := validParams["name"].(string)
 
-	queries, aliasToPath := BuildCommitQueriesFromEntries(names, owner, repo)
+	queries, aliasToPath := BuildCommitQueriesFromEntries(names, owner, repo, islog)
 	commitMap := make(map[string]CommitInfo)
 
 	for _, query := range queries {
-		data1, err1 := GetOAuthCommonProviderIntern[map[string]interface{}](c, provider, query, validParams, false)
+		data1, err1 := GetOAuthCommonProviderIntern[map[string]interface{}](c, provider, query, validParams, islog)
 		if err1 != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err1.Error()})
 			return
 		}
 		chunk := ParseCommitHistoryResult(*data1, aliasToPath)
+		if islog {
+			log.Printf("chunk=%v", chunk)
+		}
 		for k, v := range chunk {
 			commitMap[k] = v
 		}
 	}
+	if islog {
+		log.Printf("data=%v", data)
+		log.Printf("commitMap=%v", commitMap)
+	}
 	MergeCommitsIntoTree(data, commitMap)
+	if islog {
+		log.Printf("mergeddata=%v", data)
+	}
 	var userdata = make(map[string]interface{})
 	userdata[string(api.Github)] = data
 	c.JSON(http.StatusOK, userdata)
@@ -179,7 +191,7 @@ func ParseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string
 		return results
 	}
 
-	// Jetzt über alle Aliases iterieren
+	// Iterate over all aliases
 	for alias, path := range aliasToPath {
 		if entry, ok := target[alias].(map[string]interface{}); ok {
 			if nodes, ok := entry["nodes"].([]interface{}); ok && len(nodes) > 0 {
@@ -198,7 +210,7 @@ func ParseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string
 	return results
 }
 
-func BuildCommitQueriesFromEntries(entries []string, owner, repo string) ([]string, map[string]string) {
+func BuildCommitQueriesFromEntries(entries []string, owner, repo string, islog bool) ([]string, map[string]string) {
 	const maxPerQuery = 40
 	var queries []string
 	aliasToPath := make(map[string]string)
@@ -236,7 +248,10 @@ query {
 }`, owner, repo, indentLines(fields, 10))
 		queries = append(queries, query)
 	}
-
+	if islog {
+		log.Printf("queries=%v,", queries)
+		log.Printf("aliasToPath=%v", aliasToPath)
+	}
 	return queries, aliasToPath
 }
 

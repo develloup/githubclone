@@ -97,7 +97,7 @@ type RepositoryReleaseNode = {
   createdAt: string;
   isDraft: boolean;
   isLatest: boolean;
-}
+};
 
 type RepositoryReleases = {
   totalCount: number;
@@ -114,7 +114,7 @@ type RepositoryCollaboratorNode = {
 type RepositoryCollaborators = {
   totalCount: number;
   nodes: RepositoryCollaboratorNode[];
-}
+};
 
 type RepositoryDeploymentNode = {
   createdAt: string;
@@ -128,7 +128,7 @@ type RepositoryDeploymentNode = {
 type RepositoryDeployments = {
   totalCount: number;
   nodes: RepositoryDeploymentNode[];
-}
+};
 
 type RepositoryLicenseInfo = {
   key: string;
@@ -177,7 +177,7 @@ type OAuthRepository = {
   }
 };
 
-type EntryType = "blob" | "tree"
+type EntryType = "blob" | "tree";
 
 type RepositoryEntry = {
   name: string;
@@ -185,7 +185,7 @@ type RepositoryEntry = {
   mode: number;
   message: string;
   committedDate: string;
-}
+};
 
 type RepositoryContents = {
   repository: {
@@ -197,7 +197,7 @@ type RepositoryContents = {
 
 type OAuthRepositoryContents = {
   data: RepositoryContents
-}
+};
 
 type RepositoryBranchCommit = {
   repository: {
@@ -240,22 +240,19 @@ type RepositoryBranchCommit = {
       }
     }
   }
-}
+};
 
 type OAuthRepositoryBranchCommit = {
   data: RepositoryBranchCommit
-}
-
+};
 
 type RepositoryFile = {
   content: string;
   mime: string;
 };
 
-
-
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };
-export type { RepositoryFile }
+export type { RepositoryFile };
