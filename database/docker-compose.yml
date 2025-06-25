@@ -1,7 +1,23 @@
 services:
+  frontend:
+    build: ../service/frontend
+    container_name: frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - BACKEND_URL=http://backend:${BACKEND_PORT}
+
   backend:
-    build: ../service
+    build: ../service/backend
     container_name: backend
+    ports:
+      - "3002:3000" # Public port to access backend for oauth2 authentication
     restart: always
     depends_on:
       db:
@@ -16,8 +32,13 @@ services:
       - DB_PORT=5432
       - BACKEND_URL=${BACKEND_URL}    # Get value from .env
       - BACKEND_PORT=${BACKEND_PORT}  # Get the value from .env
-    ports:
-      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 15
+    expose:
+      - "3000"
     volumes:
       - backend_logs:/var/log/githubclone  # Persistent logging
 

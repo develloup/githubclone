@@ -3,19 +3,23 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { DropDownIcon, IssuesIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon, UserIcon } from "./Icons";
-import { Sheet, SheetTitle, SheetTrigger, SheetContent, SheetDescription } from "@/components/ui/sheet";
+import { DropDownIcon, IssuesIcon, NewIcon, NotificationIcon, PullRequestIcon, SignInIcon } from "./Icons";
 import Image from "next/image";
 import { SearchField } from "./SearchField";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import LeftMenu from "./LeftMenu";
+import RightMenu from "./RightMenu";
+import NavigationMenu from "./NavigationMenu";
+import { User, OAuthUser } from "@/types/types";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+
 
 const Navbar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<{ username: string; email: string } | null>(null);
+  const [user, setUser] = useState<User>(null);
   const [oauthStatus, setOauthStatus] = useState<{ [key: string]: boolean }>({});
   const [oauthUrls, setOauthUrls] = useState<{ [key: string]: string } | null>(null);
+  const [oauthuser, setOAuthUser] = useState<{ [key:string]: OAuthUser}>({});
 
 
   // ✅ Funktion für OAuth-Status- und URLs-Laden
@@ -49,7 +53,7 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       console.log("🔹 Fetching user data...");
-      const response = await fetch("/api/loggedinuser", { credentials: "include" });
+      const response = await fetchWithAuth("/api/loggedinuser", { credentials: "include" });
 
       if (response.ok) {
         const userData = await response.json();
@@ -81,6 +85,32 @@ const Navbar: React.FC = () => {
     }
   }, []);
 
+  
+  useEffect(() => {
+    if (Object.keys(oauthStatus).length === 0) return; // If oauthstatus is still empty
+    fetchWithAuth("/api/oauth/loggedinuser", { method: "GET", credentials: "include" })
+      .then(async (res) => {
+        const responseText = await res.text();
+        console.log("🔍 Rohdaten vom Backend:", responseText); // Log zur Überprüfung
+
+        if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+        const parsedResponse: { [key: string]: OAuthUser } = JSON.parse(responseText); // API-Daten parsen
+
+        // 🔄 **Alle Provider durchlaufen, um OAuthUser zu speichern**
+        const updatedUsers: { [key: string]: OAuthUser } = { ...oauthuser };
+        Object.entries(parsedResponse).forEach(([provider, userData]) => {
+          if (userData?.data?.viewer) {
+            updatedUsers[provider] = userData; // Speichert den OAuthUser unter dem Provider-Namen
+          }
+        });
+
+        console.log("✅ Aktualisierte OAuthUser-Map:", updatedUsers);
+        setOAuthUser(updatedUsers);
+      })
+      .catch((err) => console.error("❌ Fehler beim Abrufen der User-Daten:", err));
+  }, [oauthStatus]);
+
   const handleLogout = async () => {
     console.log("🔹 Logging out...");
     await fetch("/api/logout", { method: "POST", credentials: "include" });
@@ -108,7 +138,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-900 text-white">
+    <div className="fixed top-0 left-0 w-full shadow-md z-50 bg-gray-900 text-white">
       <nav className="flex items-center justify-between p-4 py-2 text-sm">
         {/* Left side: hamburger menu as a sheet */}
         <LeftMenu/>
@@ -119,7 +149,7 @@ const Navbar: React.FC = () => {
           {user && <span className="text-white">{user.username}</span>}
         </div>
 
-        {/* 🔹 Rechte Seite: Suchfeld & Navigation-Menü */}
+        {/* 🔹 Right side: The search field and the navigation menu */}
         <div className="flex items-center gap-4 ml-auto">
           <SearchField />
 
@@ -133,51 +163,27 @@ const Navbar: React.FC = () => {
           <Button variant="ghost" onClick={() => router.push("/notifications")} className="rounded-lg border border-gray-500 p-2"><NotificationIcon /></Button>
         </div>
 
-        {/* 🔹 User-Menü als Sheet mit OAuth-Status */}
+        {/* 🔹 User menu as a sheet with the oauth status */}
         {!user ? (
           <Button onClick={() => router.push("/login")} variant="ghost" className="rounded-lg border border-gray-500 p-2 ml-4">
             <SignInIcon />
           </Button>
         ) : (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="rounded-lg p-2 ml-4">
-                <UserIcon />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <VisuallyHidden>
-                <SheetTitle><h2>Main Menu</h2></SheetTitle>
-                <SheetDescription>The main user menu with user related functionality.</SheetDescription>
-              </VisuallyHidden>
-              <p className="text-lg font-bold">{user.username}</p>
-              <Button variant="ghost" onClick={() => router.push("/settings")}>⚙️ Einstellungen</Button>
-              <Button variant="ghost" onClick={handleLogout}>🚪 Logout</Button>
-
-              <hr className="my-2 border-gray-600" />
-              <p className="font-bold">OAuth Status</p>
-              {oauthUrls && (
-                <div className="flex flex-col gap-2">
-                  {Object.keys(oauthUrls).map((provider) => (
-                    <div key={provider} className="flex items-center gap-2 cursor-pointer" onClick={() => handleOAuthLogin(provider)}>
-                      {oauthStatus[provider] ? <span>✅ {provider}</span> : <span>❌ {provider}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </SheetContent>
-          </Sheet>
+          <RightMenu 
+            user={user}
+            oauthUrls={oauthUrls || {}}
+            oauthStatus={oauthStatus}
+            oauthuser={oauthuser}
+            handleOAuthLogin={handleOAuthLogin}
+            handleLogout={handleLogout}
+          />
         )}
+
       </nav>
-      <nav className="flex items-center justify-start  px-4 py-2  text-base">
-        <Button variant="ghost" onClick={() => router.push("/overview")}>Overview</Button>
-        <Button variant="ghost" onClick={() => router.push("/repositories")}>Repositories</Button>
-        <Button variant="ghost" onClick={() => router.push("/projects")}>Projects</Button>
-        <Button variant="ghost" onClick={() => router.push("/packages")}>Packages</Button>
-        <Button variant="ghost" onClick={() => router.push("/stars")}>Stars</Button>
-      </nav>
+      <NavigationMenu/>
     </div>
   );
 };
 
 export default Navbar;
+

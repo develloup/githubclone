@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"githubclone-backend/api"
+	"githubclone-backend/api/abstracted"
 	"githubclone-backend/db"
-	"githubclone-backend/frontend"
 	"io"
 	"log"
 	"os"
@@ -52,7 +52,8 @@ func main() {
 	api.ConnectionRoutes(r)
 	api.UserConnectionRoutes(r)
 	api.ConfigurationRoutes(r)
-	frontend.Routes(r)
+	abstracted.SetupRoutes(r)
+	// frontend.Routes(r)
 
 	// React on shutting down via ^C
 	sigs := make(chan os.Signal, 1) // Catches CTRL+C

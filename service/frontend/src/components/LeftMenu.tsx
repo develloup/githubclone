@@ -7,11 +7,49 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { MenuIcon, HomeIcon, IssuesIcon, PullRequestIcon, ProjectIcon, DiscussionIcon, MagnifierIcon, ArrowUpThinIcon } from "./Icons";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { OAuthRepositories, OAuthRepositoryNode } from "@/types/types";
+import { extractRepoPath } from "@/lib/extractRepoPath";
 
 export default function LeftMenu() {
   const [leftOpen, setLeftOpen] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const pathname = usePathname(); // Gets the current route
+  const [repositories, setRepositories] = useState<OAuthRepositoryNode[]>([]);
+
+  useEffect(() => {
+    fetch("/api/oauth/repositories", { method: "GET", credentials: "include" })
+      .then(async (res) => {
+        const responseText = await res.text();
+        console.log("📦 Rohdaten vom Backend (Repositories):", responseText);
+
+        if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
+
+        const parsedResponse: { [provider: string]: OAuthRepositories } = JSON.parse(responseText);
+        const allRepoNodes: OAuthRepositoryNode[] = [];
+
+        Object.entries(parsedResponse).forEach(([provider, repoData]) => {
+          try {
+            const repos = repoData?.data?.viewer?.repositories?.nodes;
+            const avatarUrl = repoData?.data?.viewer?.avatarUrl;
+            if (repos && Array.isArray(repos)) {
+              console.log(`📁 Repos von '${provider}':`, repos);
+              const extended = repos.map((repo) => ({ ...repo, provider, avatarUrl }));
+              allRepoNodes.push(...extended);
+            } else {
+              console.warn(`⚠️ Keine Repos gefunden für Provider '${provider}'`);
+            }
+          } catch (err) {
+            console.error(`❌ Fehler beim Verarbeiten der Daten für '${provider}':`, err);
+          }
+        });
+
+        setRepositories(allRepoNodes);
+      })
+      .catch((err) =>
+        console.error("❌ Fehler beim Abrufen der Repository-Daten:", err)
+      );
+  }, []);
+
 
   useEffect(() => {
     setLeftOpen(false); // Closes the sheet if the path changes
@@ -34,7 +72,7 @@ export default function LeftMenu() {
             <div className="flex justify-start my-3 pl-3">
                 <Image src="/wolf-logo.png" alt="Wolf Logo" width={40} height={40} unoptimized />
             </div>
-            <Link href="/dashboard" passHref onClick={() => setLeftOpen(false)}>
+            <Link href="/" passHref onClick={() => setLeftOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-left pl-3"><HomeIcon/>Home</Button>
             </Link>
             <Link href="/issues" passHref onClick={() => setLeftOpen(false)}>
@@ -46,12 +84,12 @@ export default function LeftMenu() {
             <Link href="/projects" passHref onClick={() => setLeftOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-left pl-3"><ProjectIcon/>Projects</Button>
             </Link>
-                <Link href="/discussions" passHref onClick={() => setLeftOpen(false)}>
-            <Button variant="ghost" className="w-full justify-start text-left pl-3"><DiscussionIcon/>Discussions</Button>
+            <Link href="/discussions" passHref onClick={() => setLeftOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-left pl-3"><DiscussionIcon/>Discussions</Button>
             </Link>
         </div>
         <div className="h-px bg-gray-400 mt-0 my-1 mx-2" />
-        {/* 🔹 Repositories-Überschrift mit Icon rechts */}
+        {/* 🔹 repositories heading with the icon on the right side */}
         <div className="flex items-center">
             <span className="text-xs font-semibold pl-3">Repositories</span> {/* Smaller font size */}
             {!showFilter && (
@@ -78,6 +116,34 @@ export default function LeftMenu() {
             </Button>
         </div>
         )}
+
+        {repositories.length === 0 && (
+          <p className="text-sm text-muted-foreground">No repositories found.</p>
+        )}
+
+        {repositories.map((repo, idx) => {
+          const repoPath = extractRepoPath(repo.url); // resolves to PATH/REPOSITORYNAME
+          const href = repoPath ? `/repositories/${repo.provider}/${repoPath}` : "#";
+
+          return (
+            <Link href={href} passHref key={idx} onClick={() => setLeftOpen(false)}>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-left pl-3"
+              >
+              <Image 
+                  src={repo.avatarUrl}
+                  alt={repo.name}
+                  width={24}
+                  height={24}
+                  className="rounded-full"
+                  unoptimized={true}
+              />
+                {repoPath ?? repo.name}
+              </Button>
+            </Link>
+          );
+        })}
         </SheetContent>
     </Sheet>
   );

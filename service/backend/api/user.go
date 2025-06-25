@@ -462,4 +462,5 @@ func UserRoutes(r *gin.Engine) {
 	r.GET("/api/users/:id", GetUser)
 	r.GET("/api/users", GetAllUsers)
 	r.GET("/api/users/:id/connections", GetConnectionsForUser)
+	r.GET("/api/health", HealthCheck)
 }
