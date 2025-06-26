@@ -7,7 +7,7 @@ import { GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, RepositoryCollaboratorNode } from "@/types/types";
+import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, ProviderRepositoryFileContentsMap, RepositoryCollaboratorNode, RepositoryFile } from "@/types/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
@@ -18,6 +18,7 @@ import {
   ContributingIcon,
   EyeIcon,
   FileIcon,
+  FolderCommitIcon,
   FolderIcon,
   ForkIcon,
   HistoryIcon,
@@ -35,7 +36,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
 import { JSX } from "react/jsx-runtime";
 import { MarkdownViewer } from "@/components/markdownviewer";
-import { getInternalRepositoryPath } from "@/lib/utils";
+import { decodeBase64, getInternalRepositoryPath, parseGitmodules } from "@/lib/utils";
 
 // Optional: import "highlight.js/styles/github.css"; // Style z.B. GitHub-Style
 
@@ -85,8 +86,9 @@ export default function RepositoryPage() {
   };
 
   const [repository, setRepository] = useState<OAuthRepository | null>(null);
-  const [repositorycontent, setRepositoryContent] =
-    useState<OAuthRepositoryContents | null>(null);
+  const [repositorycontent, setRepositoryContent] = useState<OAuthRepositoryContents | null>(null);
+  const [submodules, setSubmodules] = useState<Record<string, string>>({});
+  const [hasCommitEntry, setHasCommitEntry] = useState(false);
   const [contributors, setContributors] = useState<RepositoryCollaboratorNode[] | null>(null);
   const [totalContributors, setTotalContributors] = useState<number>(0);
   const [branchcommits, setBranchCommits] = useState<OAuthRepositoryBranchCommit | null>(null);
@@ -245,7 +247,7 @@ export default function RepositoryPage() {
         filename: "README.md"
       }]
 
-   useEffect(() => {
+  useEffect(() => {
     const el = document.getElementById(activeTab);
     if (!el) return;
 
@@ -258,6 +260,39 @@ export default function RepositoryPage() {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    const hasCommitEntry = entries?.some((e) => e.type === "commit");
+    if (!hasCommitEntry || !defbranch) return;
+
+    const fetchGitmodules = async () => {
+      try {
+        const url = new URL("/api/oauth/repositorycontent", window.location.origin);
+        url.searchParams.set("provider", provider);
+        url.searchParams.set("owner", username);
+        url.searchParams.set("name", reponame);
+        url.searchParams.set("content", ".gitmodules");
+        url.searchParams.set("expression", defbranch);
+
+        const res = await fetchWithAuth(url.toString());
+        const responseText = await res.text();
+        console.log("📦 Rohdaten vom Backend (.gitmodules):", responseText);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${responseText}`);
+        const parsed: ProviderRepositoryFileContentsMap = JSON.parse(responseText);
+        const gitmodulesText = parsed[provider];
+        const decoded = decodeBase64(gitmodulesText.content)
+
+        const submodules = parseGitmodules(decoded);
+        setSubmodules(submodules);
+      } catch (err: unknown) {
+        console.error("❌ Fehler beim Laden von .gitmodules:", err);
+      }
+    };
+
+    fetchGitmodules();
+  }, [entries, provider, username, reponame, defbranch]);
+
 
   if (loadingRepository || error || !repository || !defbranch)
     return (
@@ -407,7 +442,7 @@ export default function RepositoryPage() {
         <div className="ml-14 text-sm text-muted-foreground">
           Forked from{" "}
           <Link
-            to={getInternalRepositoryPath(
+            href={getInternalRepositoryPath(
               repository.data.repository.parent.url,
               "repositories",
               provider
@@ -534,25 +569,54 @@ export default function RepositoryPage() {
               entries
                 .slice()
                 .sort((a, b) => {
-                  if (a.type === b.type) return 0;
-                  return a.type === "tree" ? -1 : 1;
+                  const priority = (type: string) =>
+                    type === "tree" || type === "commit" ? 0 : 1;
+
+                  const priA = priority(a.type);
+                  const priB = priority(b.type);
+
+                  if (priA !== priB) return priA - priB;
+                  return a.name.localeCompare(b.name);
                 })
                 .map((entry, index) => {
-                  const isDir = entry.type === "tree";
+                  const isTree = entry.type === "tree";
+                  const isCommit = entry.type === "commit";
+                  const hasSubmodule = isCommit && submodules?.[entry.name];
+                  const submodulePath = hasSubmodule
+                    ? getInternalRepositoryPath(
+                        submodules[entry.name].replace(/\.git$/, "") + `/tree/${entry.oid}`,
+                        "repositories",
+                        provider
+                      )
+                    : null;
 
-                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
-                  const Icon = isDir ? FolderIcon : FileIcon;
+                  const href = `${currentPath}/${isTree || isCommit ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
+                  const Icon = isCommit
+                    ? FolderCommitIcon
+                    : isTree
+                      ? FolderIcon
+                      : FileIcon;
 
+                  const Wrapper = hasSubmodule ? "a" : Link;
+                  const wrapperProps = hasSubmodule && submodulePath
+                    ? {
+                        href: submodulePath,
+                      }
+                    : {
+                        href,
+                      };
                   return (
-                    <Link
+                    <Wrapper
                       key={index}
-                      href={href}
+                      {...wrapperProps}
                       className="grid grid-cols-12 gap-2 p-2 text-sm hover:bg-accent cursor-pointer"
                     >
                       {/* Name + Icon */}
                       <div className="flex items-center col-span-4">
                         <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
-                        {entry.name}
+                        {isCommit
+                          ? `${entry.name} @ ${entry.oid.slice(0, 7)}`
+                          : entry.name}
                       </div>
 
                       {/* Commit-Message */}
@@ -564,7 +628,7 @@ export default function RepositoryPage() {
                       <div className="text-muted-foreground text-right col-span-2 whitespace-nowrap">
                         {formatRelativeTime(entry.committedDate)}
                       </div>
-                    </Link>
+                    </Wrapper>
                   );
                 })
             )}

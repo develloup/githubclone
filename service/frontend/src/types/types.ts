@@ -183,12 +183,13 @@ type OAuthRepository = {
   }
 };
 
-type EntryType = "blob" | "tree";
+type EntryType = "blob" | "tree" | "commit";
 
 type RepositoryEntry = {
   name: string;
   type: EntryType;
   mode: number;
+  oid: string;
   message: string;
   committedDate: string;
 };
@@ -257,8 +258,14 @@ type RepositoryFile = {
   mime: string;
 };
 
+
+type ProviderRepositoryFileContentsMap = {
+  [provider: string]: RepositoryFile
+};
+
+
 export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };
-export type { RepositoryFile };
+export type { RepositoryFile, ProviderRepositoryFileContentsMap };

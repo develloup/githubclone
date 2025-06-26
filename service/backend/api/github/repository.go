@@ -162,6 +162,7 @@ type RepositoryTreeCommit struct {
 					Name          string      `json:"name"`
 					Type          string      `json:"type"` // blob, tree, etc.
 					Mode          json.Number `json:"mode"`
+					Oid           string      `json:"oid"`
 					Message       string      `json:"message"`
 					CommittedDate string      `json:"committedDate"`
 				} `json:"entries"`

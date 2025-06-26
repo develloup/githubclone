@@ -160,6 +160,7 @@ func MergeCommitsIntoTree(tree *github.RepositoryTreeCommit, commits map[string]
 	entries := tree.Data.Repository.Object.Entries
 	for i, entry := range entries {
 		if commit, ok := commits[entry.Name]; ok {
+			tree.Data.Repository.Object.Entries[i].Oid = commit.Oid
 			tree.Data.Repository.Object.Entries[i].Message = commit.Message
 			tree.Data.Repository.Object.Entries[i].CommittedDate = commit.CommittedDate
 		}
@@ -167,6 +168,7 @@ func MergeCommitsIntoTree(tree *github.RepositoryTreeCommit, commits map[string]
 }
 
 type CommitInfo struct {
+	Oid           string
 	Message       string
 	CommittedDate string
 }
@@ -197,9 +199,11 @@ func ParseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string
 		if entry, ok := target[alias].(map[string]interface{}); ok {
 			if nodes, ok := entry["nodes"].([]interface{}); ok && len(nodes) > 0 {
 				if node, ok := nodes[0].(map[string]interface{}); ok {
+					oid, _ := node["oid"].(string)
 					msg, _ := node["message"].(string)
 					date, _ := node["committedDate"].(string)
 					results[path] = CommitInfo{
+						Oid:           oid,
 						Message:       msg,
 						CommittedDate: date,
 					}
@@ -229,6 +233,7 @@ func BuildCommitQueriesFromEntries(entries []string, owner, repo string, validPa
 			aliasToPath[alias] = name
 			fields = append(fields, fmt.Sprintf(`%s: history(first: 1, path: %q) {
   nodes {
+    oid
     message
     committedDate
   }

@@ -1,20 +1,10 @@
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { RepositoryFile } from "@/types/types";
+import { ProviderRepositoryFileContentsMap, RepositoryFile } from "@/types/types";
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
-
-// 🧠 Base64 sicher decodieren mit Unicode-Support
-function decodeBase64(input: string): string {
-  try {
-    const binary = atob(input);
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-    return new TextDecoder("utf-8").decode(bytes);
-  } catch {
-    return "(Fehler beim Dekodieren)";
-  }
-}
+import { decodeBase64 } from "@/lib/utils";
 
 type MarkdownViewerProps = {
   id: string;
@@ -25,11 +15,8 @@ type MarkdownViewerProps = {
   contentPath: string;
 };
 
-type ProviderRepositoryFileContentsMap = {
-  [provider: string]: RepositoryFile
-};
 
-// 📘 Komponente: MarkdownViewer
+// Component: MarkdownViewer
 export function MarkdownViewer({
   id,
   provider,
