@@ -103,12 +103,13 @@ func GetOAuthRepositoryBranchCommit(c *gin.Context) {
 func GetOauthRepositoryContents(c *gin.Context) {
 	provider := c.Query("provider")
 	validParams := map[string]interface{}{
-		"owner":      c.Query("owner"),
-		"name":       c.Query("name"),
-		"expression": c.DefaultQuery("expression", "HEAD:"),
+		"owner":             c.Query("owner"),
+		"name":              c.Query("name"),
+		"expression":        c.Query("expression") + ":",
+		"expressioncontent": c.Query("expression"),
 	}
 
-	islog := false
+	islog := true
 
 	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, islog)
 	if err != nil {
@@ -125,7 +126,7 @@ func GetOauthRepositoryContents(c *gin.Context) {
 	owner, _ := validParams["owner"].(string)
 	repo, _ := validParams["name"].(string)
 
-	queries, aliasToPath := BuildCommitQueriesFromEntries(names, owner, repo, islog)
+	queries, aliasToPath := BuildCommitQueriesFromEntries(names, owner, repo, validParams, islog)
 	commitMap := make(map[string]CommitInfo)
 
 	for _, query := range queries {
@@ -210,7 +211,7 @@ func ParseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string
 	return results
 }
 
-func BuildCommitQueriesFromEntries(entries []string, owner, repo string, islog bool) ([]string, map[string]string) {
+func BuildCommitQueriesFromEntries(entries []string, owner, repo string, validParams map[string]interface{}, islog bool) ([]string, map[string]string) {
 	const maxPerQuery = 40
 	var queries []string
 	aliasToPath := make(map[string]string)
@@ -237,7 +238,7 @@ func BuildCommitQueriesFromEntries(entries []string, owner, repo string, islog b
 		query := fmt.Sprintf(`
 query {
   repository(owner: %q, name: %q) {
-    ref(qualifiedName: "refs/heads/main") {
+    ref(qualifiedName: %q) {
       target {
         ... on Commit {
 %s
@@ -245,7 +246,7 @@ query {
       }
     }
   }
-}`, owner, repo, indentLines(fields, 10))
+}`, owner, repo, validParams["expressioncontent"], indentLines(fields, 10))
 		queries = append(queries, query)
 	}
 	if islog {
@@ -366,7 +367,7 @@ func GetOAuthRepositoryContent(c *gin.Context) {
 		"owner": c.Query("owner"),
 		"name":  c.Query("name"),
 		"path":  c.Query("content"),
-		"ref":   c.Query("ref"),
+		"ref":   c.Query("expression"),
 	}
 
 	GetOAuthCommonProviderREST(c, provider, validParams, fetchFileViaHelper, false)

@@ -35,6 +35,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
 import { JSX } from "react/jsx-runtime";
 import { MarkdownViewer } from "@/components/markdownviewer";
+import { getInternalRepositoryPath } from "@/lib/utils";
 
 // Optional: import "highlight.js/styles/github.css"; // Style z.B. GitHub-Style
 
@@ -110,10 +111,10 @@ export default function RepositoryPage() {
 
 
   useEffect(() => {
-    if (!provider || !username || !reponame) return;
-
     setLoadingRepository(true);
     setLoadingContent(true);
+    if (!provider || !username || !reponame) return;
+
     setError(null);
 
     fetchWithAuth(
@@ -134,6 +135,7 @@ export default function RepositoryPage() {
 
         setRepository(repo);
         const db = repo.data.repository.defaultBranchRef.name;
+        setDefBranch(db)
         console.log("The default branch: ", db);
 
         return {
@@ -141,7 +143,7 @@ export default function RepositoryPage() {
           fetch: fetchWithAuth(
             `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
               username
-            )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
+            )}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(
               toQualifiedRef(db)
             )}`,
             { credentials: "include" }
@@ -243,14 +245,7 @@ export default function RepositoryPage() {
         filename: "README.md"
       }]
 
-  const activeFile = tabList.find((f) => `${f.category}-ov-file` === activeTab) ?? tabList[0];
-  const fileExt = activeFile.filename.toLowerCase().split(".").pop();
-  const safeDefBranch = defbranch ?? "main"
-  const fileHref = `${currentPath}/edit/${safeDefBranch}/${encodeURIComponent(activeFile.filename)}`;
-
-  type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
-
-  useEffect(() => {
+   useEffect(() => {
     const el = document.getElementById(activeTab);
     if (!el) return;
 
@@ -264,7 +259,7 @@ export default function RepositoryPage() {
     }
   }, [activeTab]);
 
-  if (loadingRepository || error || !repository)
+  if (loadingRepository || error || !repository || !defbranch)
     return (
       <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
         {/* Header */}
@@ -330,6 +325,13 @@ export default function RepositoryPage() {
       </div>
     );
 
+  const activeFile = tabList.find((f) => `${f.category}-ov-file` === activeTab) ?? tabList[0];
+  // const fileExt = activeFile.filename.toLowerCase().split(".").pop();
+  const fileHref = `${currentPath}/edit/${defbranch}/${encodeURIComponent(activeFile.filename)}`;
+
+  type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
+
+
   return (
     <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
       {/* Header */}
@@ -344,7 +346,13 @@ export default function RepositoryPage() {
             {repository.data.repository.name}
           </h1>
           <Badge variant="outline" className="text-xs rounded-full">
-            {repository.data.repository.isPrivate ? "private" : "public"}
+            {repository.data.repository.isArchived
+              ? repository.data.repository.isPrivate
+                ? "Private archive"
+                : "Public archive"
+              : repository.data.repository.isPrivate
+                ? "Private"
+                : "Public"}
           </Badge>
         </div>
         <div className="flex space-x-2">
@@ -394,6 +402,22 @@ export default function RepositoryPage() {
           </DropdownMenu>
         </div>
       </div>
+      {/* Fork origin info (second line) */}
+      {repository.data.repository.isFork && repository.data.repository.parent && (
+        <div className="ml-14 text-sm text-muted-foreground">
+          Forked from{" "}
+          <Link
+            to={getInternalRepositoryPath(
+              repository.data.repository.parent.url,
+              "repositories",
+              provider
+            )}
+            className="text-blue-600 hover:underline"
+          >
+            {repository.data.repository.parent.nameWithOwner}
+          </Link>
+        </div>
+      )}
 
       <Separator />
 
@@ -405,13 +429,13 @@ export default function RepositoryPage() {
             <div className="flex items-center space-x-4">
               <BranchTagSelector
                 selected={
-                  repository.data.repository.defaultBranchRef.name ?? "main"
+                  repository.data.repository.defaultBranchRef.name
                 }
                 onSelect={(type, name) => {
                   router.push(`/${type}/${encodeURIComponent(name)}`);
                 }}
                 defaultBranch={
-                  repository.data.repository.defaultBranchRef?.name ?? "main"
+                  repository.data.repository.defaultBranchRef?.name
                 }
                 branches={repository.data.repository.branches.nodes.map(
                   (b) => b.name
@@ -516,7 +540,7 @@ export default function RepositoryPage() {
                 .map((entry, index) => {
                   const isDir = entry.type === "tree";
 
-                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${safeDefBranch}/${encodeURIComponent(entry.name)}`;
+                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
                   const Icon = isDir ? FolderIcon : FileIcon;
 
                   return (
@@ -593,7 +617,7 @@ export default function RepositoryPage() {
                 </div>
               </div>
               {/* show file content */}
-              <MarkdownViewer id={`${activeFile.category}-ov-file`} provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={safeDefBranch}></MarkdownViewer>
+              <MarkdownViewer id={`${activeFile.category}-ov-file`} provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={defbranch}></MarkdownViewer>
             </div>
 
 

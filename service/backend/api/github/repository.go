@@ -18,11 +18,16 @@ type GitHubRepositoriesOfViewer struct {
 }
 
 type RepositoryNode struct {
-	Name           string `json:"name"`
-	Description    string `json:"description"`
-	URL            string `json:"url"`
-	IsPrivate      bool   `json:"isPrivate"`
-	IsFork         bool   `json:"isFork"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	IsArchived  bool   `json:"isArchived"`
+	IsPrivate   bool   `json:"isPrivate"`
+	IsFork      bool   `json:"isFork"`
+	Parent      *struct {
+		NameWithOwner string `json:"nameWithOwner"`
+		URL           string `json:"url"`
+	}
 	CreatedAt      string `json:"createdAt"`
 	UpdatedAt      string `json:"updatedAt"`
 	PushedAt       string `json:"pushedAt"`
@@ -257,8 +262,13 @@ var GithubRepositoryQuery string = `query GetRepository(
     name
     description
     url
+    isArchived
     isPrivate
     isFork
+    parent {
+      nameWithOwner
+      url
+    }
     createdAt
     updatedAt
     pushedAt
@@ -395,6 +405,14 @@ var GithubRepositoryBranches string = `query GetRepositoryBranches(
 }
 `
 
+// The `expression` parameter in the GraphQL query refers to a Git reference name.
+// It can be one of the following:
+// - A branch name (e.g. "main", "develop") or its fully qualified form (e.g. "refs/heads/main")
+// - A tag name (e.g. "v1.0.0") or "refs/tags/v1.0.0"
+// - A full commit SHA (e.g. "a1b2c3d4e5f6...")
+//
+// GitHub will resolve the reference to the corresponding object (usually a commit),
+// which can then be used to access commit metadata like author, date, and CI check results.
 var GithubRepositoryBranchCommitQuery = `query GetRepositoryBranchCommit(
   $owner: String!,
   $name: String!,

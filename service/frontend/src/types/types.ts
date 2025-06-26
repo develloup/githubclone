@@ -26,6 +26,7 @@ type OAuthRepositoryNode = {
   name: string;
   description: string;
   url: string;
+  isArchived: boolean;
   isPrivate: boolean;
   isFork: boolean;
   createdAt: string;
@@ -154,6 +155,11 @@ type ExtendedRepository = {
   url: string;
   isPrivate: boolean;
   isFork: boolean;
+  isArchived:boolean;
+  parent?: {
+    nameWithOwner: string;
+    url: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   pushedAt: string;

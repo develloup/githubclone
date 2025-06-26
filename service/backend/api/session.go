@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -283,6 +284,15 @@ func CallbackProvider(c *gin.Context) {
 	oauthConfigMutex.Unlock()
 
 	// log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
+	log.Printf("AccessToken:  %s", token.AccessToken)
+	log.Printf("TokenType:    %s", token.TokenType)
+	if token.RefreshToken != "" {
+		log.Printf("Expiry:       %s", token.Expiry.Format(time.RFC3339))
+		log.Printf("Valid unitl:  %s", time.Until(token.Expiry).Round(time.Second))
+		log.Printf("RefreshToken: %s", token.RefreshToken)
+	} else {
+		log.Printf("Token does not expire.")
+	}
 
 	r := fmt.Sprintf("%s%s", frontendURL, "/")
 	c.Redirect(http.StatusSeeOther, r)

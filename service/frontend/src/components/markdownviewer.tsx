@@ -48,7 +48,7 @@ export function MarkdownViewer({
         url.searchParams.set("owner", owner);
         url.searchParams.set("name", name);
         url.searchParams.set("content", contentPath);
-        if (ref) url.searchParams.set("ref", ref);
+        if (ref) url.searchParams.set("expression", ref);
 
         const res = await fetchWithAuth(url.toString());
         const responseText = await res.text();
