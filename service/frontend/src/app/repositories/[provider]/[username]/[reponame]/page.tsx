@@ -7,7 +7,7 @@ import { GitBranch, Info, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, RepositoryCollaboratorNode } from "@/types/types";
+import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, ProviderRepositoryFileContentsMap, RepositoryCollaboratorNode, RepositoryFile } from "@/types/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
@@ -18,6 +18,7 @@ import {
   ContributingIcon,
   EyeIcon,
   FileIcon,
+  FolderCommitIcon,
   FolderIcon,
   ForkIcon,
   HistoryIcon,
@@ -35,6 +36,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
 import { JSX } from "react/jsx-runtime";
 import { MarkdownViewer } from "@/components/markdownviewer";
+import { decodeBase64, getInternalRepositoryPath, parseGitmodules } from "@/lib/utils";
 
 // Optional: import "highlight.js/styles/github.css"; // Style z.B. GitHub-Style
 
@@ -84,8 +86,9 @@ export default function RepositoryPage() {
   };
 
   const [repository, setRepository] = useState<OAuthRepository | null>(null);
-  const [repositorycontent, setRepositoryContent] =
-    useState<OAuthRepositoryContents | null>(null);
+  const [repositorycontent, setRepositoryContent] = useState<OAuthRepositoryContents | null>(null);
+  const [submodules, setSubmodules] = useState<Record<string, string>>({});
+  const [hasCommitEntry, setHasCommitEntry] = useState(false);
   const [contributors, setContributors] = useState<RepositoryCollaboratorNode[] | null>(null);
   const [totalContributors, setTotalContributors] = useState<number>(0);
   const [branchcommits, setBranchCommits] = useState<OAuthRepositoryBranchCommit | null>(null);
@@ -110,10 +113,10 @@ export default function RepositoryPage() {
 
 
   useEffect(() => {
-    if (!provider || !username || !reponame) return;
-
     setLoadingRepository(true);
     setLoadingContent(true);
+    if (!provider || !username || !reponame) return;
+
     setError(null);
 
     fetchWithAuth(
@@ -134,6 +137,7 @@ export default function RepositoryPage() {
 
         setRepository(repo);
         const db = repo.data.repository.defaultBranchRef.name;
+        setDefBranch(db)
         console.log("The default branch: ", db);
 
         return {
@@ -141,7 +145,7 @@ export default function RepositoryPage() {
           fetch: fetchWithAuth(
             `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
               username
-            )}&name=${encodeURIComponent(reponame)}&branch=${encodeURIComponent(
+            )}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(
               toQualifiedRef(db)
             )}`,
             { credentials: "include" }
@@ -243,13 +247,6 @@ export default function RepositoryPage() {
         filename: "README.md"
       }]
 
-  const activeFile = tabList.find((f) => `${f.category}-ov-file` === activeTab) ?? tabList[0];
-  const fileExt = activeFile.filename.toLowerCase().split(".").pop();
-  const safeDefBranch = defbranch ?? "main"
-  const fileHref = `${currentPath}/edit/${safeDefBranch}/${encodeURIComponent(activeFile.filename)}`;
-
-  type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
-
   useEffect(() => {
     const el = document.getElementById(activeTab);
     if (!el) return;
@@ -264,7 +261,40 @@ export default function RepositoryPage() {
     }
   }, [activeTab]);
 
-  if (loadingRepository || error || !repository)
+  useEffect(() => {
+    const hasCommitEntry = entries?.some((e) => e.type === "commit");
+    if (!hasCommitEntry || !defbranch) return;
+
+    const fetchGitmodules = async () => {
+      try {
+        const url = new URL("/api/oauth/repositorycontent", window.location.origin);
+        url.searchParams.set("provider", provider);
+        url.searchParams.set("owner", username);
+        url.searchParams.set("name", reponame);
+        url.searchParams.set("content", ".gitmodules");
+        url.searchParams.set("expression", defbranch);
+
+        const res = await fetchWithAuth(url.toString());
+        const responseText = await res.text();
+        console.log("📦 Rohdaten vom Backend (.gitmodules):", responseText);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${responseText}`);
+        const parsed: ProviderRepositoryFileContentsMap = JSON.parse(responseText);
+        const gitmodulesText = parsed[provider];
+        const decoded = decodeBase64(gitmodulesText.content)
+
+        const submodules = parseGitmodules(decoded);
+        setSubmodules(submodules);
+      } catch (err: unknown) {
+        console.error("❌ Fehler beim Laden von .gitmodules:", err);
+      }
+    };
+
+    fetchGitmodules();
+  }, [entries, provider, username, reponame, defbranch]);
+
+
+  if (loadingRepository || error || !repository || !defbranch)
     return (
       <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
         {/* Header */}
@@ -330,6 +360,13 @@ export default function RepositoryPage() {
       </div>
     );
 
+  const activeFile = tabList.find((f) => `${f.category}-ov-file` === activeTab) ?? tabList[0];
+  // const fileExt = activeFile.filename.toLowerCase().split(".").pop();
+  const fileHref = `${currentPath}/edit/${defbranch}/${encodeURIComponent(activeFile.filename)}`;
+
+  type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
+
+
   return (
     <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
       {/* Header */}
@@ -344,7 +381,13 @@ export default function RepositoryPage() {
             {repository.data.repository.name}
           </h1>
           <Badge variant="outline" className="text-xs rounded-full">
-            {repository.data.repository.isPrivate ? "private" : "public"}
+            {repository.data.repository.isArchived
+              ? repository.data.repository.isPrivate
+                ? "Private archive"
+                : "Public archive"
+              : repository.data.repository.isPrivate
+                ? "Private"
+                : "Public"}
           </Badge>
         </div>
         <div className="flex space-x-2">
@@ -394,6 +437,22 @@ export default function RepositoryPage() {
           </DropdownMenu>
         </div>
       </div>
+      {/* Fork origin info (second line) */}
+      {repository.data.repository.isFork && repository.data.repository.parent && (
+        <div className="ml-14 text-sm text-muted-foreground">
+          Forked from{" "}
+          <Link
+            href={getInternalRepositoryPath(
+              repository.data.repository.parent.url,
+              "repositories",
+              provider
+            )}
+            className="text-blue-600 hover:underline"
+          >
+            {repository.data.repository.parent.nameWithOwner}
+          </Link>
+        </div>
+      )}
 
       <Separator />
 
@@ -405,13 +464,13 @@ export default function RepositoryPage() {
             <div className="flex items-center space-x-4">
               <BranchTagSelector
                 selected={
-                  repository.data.repository.defaultBranchRef.name ?? "main"
+                  repository.data.repository.defaultBranchRef.name
                 }
                 onSelect={(type, name) => {
                   router.push(`/${type}/${encodeURIComponent(name)}`);
                 }}
                 defaultBranch={
-                  repository.data.repository.defaultBranchRef?.name ?? "main"
+                  repository.data.repository.defaultBranchRef?.name
                 }
                 branches={repository.data.repository.branches.nodes.map(
                   (b) => b.name
@@ -510,25 +569,54 @@ export default function RepositoryPage() {
               entries
                 .slice()
                 .sort((a, b) => {
-                  if (a.type === b.type) return 0;
-                  return a.type === "tree" ? -1 : 1;
+                  const priority = (type: string) =>
+                    type === "tree" || type === "commit" ? 0 : 1;
+
+                  const priA = priority(a.type);
+                  const priB = priority(b.type);
+
+                  if (priA !== priB) return priA - priB;
+                  return a.name.localeCompare(b.name);
                 })
                 .map((entry, index) => {
-                  const isDir = entry.type === "tree";
+                  const isTree = entry.type === "tree";
+                  const isCommit = entry.type === "commit";
+                  const hasSubmodule = isCommit && submodules?.[entry.name];
+                  const submodulePath = hasSubmodule
+                    ? getInternalRepositoryPath(
+                        submodules[entry.name].replace(/\.git$/, "") + `/tree/${entry.oid}`,
+                        "repositories",
+                        provider
+                      )
+                    : null;
 
-                  const href = `${currentPath}/${isDir ? "tree" : "blob"}/${safeDefBranch}/${encodeURIComponent(entry.name)}`;
-                  const Icon = isDir ? FolderIcon : FileIcon;
+                  const href = `${currentPath}/${isTree || isCommit ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
+                  const Icon = isCommit
+                    ? FolderCommitIcon
+                    : isTree
+                      ? FolderIcon
+                      : FileIcon;
 
+                  const Wrapper = hasSubmodule ? "a" : Link;
+                  const wrapperProps = hasSubmodule && submodulePath
+                    ? {
+                        href: submodulePath,
+                      }
+                    : {
+                        href,
+                      };
                   return (
-                    <Link
+                    <Wrapper
                       key={index}
-                      href={href}
+                      {...wrapperProps}
                       className="grid grid-cols-12 gap-2 p-2 text-sm hover:bg-accent cursor-pointer"
                     >
                       {/* Name + Icon */}
                       <div className="flex items-center col-span-4">
                         <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
-                        {entry.name}
+                        {isCommit
+                          ? `${entry.name} @ ${entry.oid.slice(0, 7)}`
+                          : entry.name}
                       </div>
 
                       {/* Commit-Message */}
@@ -540,7 +628,7 @@ export default function RepositoryPage() {
                       <div className="text-muted-foreground text-right col-span-2 whitespace-nowrap">
                         {formatRelativeTime(entry.committedDate)}
                       </div>
-                    </Link>
+                    </Wrapper>
                   );
                 })
             )}
@@ -593,7 +681,7 @@ export default function RepositoryPage() {
                 </div>
               </div>
               {/* show file content */}
-              <MarkdownViewer id={`${activeFile.category}-ov-file`} provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={safeDefBranch}></MarkdownViewer>
+              <MarkdownViewer id={`${activeFile.category}-ov-file`} provider={provider} owner={username} name={reponame} contentPath={activeFile.filename} ref={defbranch}></MarkdownViewer>
             </div>
 
 
@@ -767,14 +855,14 @@ export default function RepositoryPage() {
                     ) : null
                   )}
                 </div>
-
                 {/* +X Contributors */}
                 {totalContributors > 14 && (
                   <Link
                     href="/contributors"
                     className="block text-sm text-muted-foreground hover:underline pl-1"
                   >
-                    + {totalContributors - 14} contributors
+                    + {totalContributors - 14}{" "}
+                    {totalContributors - 14 === 1 ? "contributor" : "contributors"}
                   </Link>
                 )}
               </div>

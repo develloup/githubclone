@@ -1,34 +1,35 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"githubclone-backend/api"
 	"githubclone-backend/api/abstracted"
 	"githubclone-backend/db"
+	"githubclone-backend/restore"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
-
 	logFile, err := os.OpenFile("/var/log/githubclone/githubclone.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("error during opening/creation of log file: %v", err)
 	}
+	defer logFile.Close()
 
 	port := os.Getenv("BACKEND_PORT")
 	baseURL := os.Getenv("BACKEND_URL")
 
-	// Multi-Writer for stdout, stderr and file
 	multiWriter := io.MultiWriter(os.Stderr, logFile)
-
-	// Set the output of the log
 	log.SetOutput(multiWriter)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
@@ -39,13 +40,15 @@ func main() {
 	db.InitDB()
 	db.AutoMigrate()
 
-	r := gin.New()        // Create an engine with a middleware
-	r.Use(gin.Logger())   // Add a logger
-	r.Use(gin.Recovery()) // Add recovery
+	// Gin-Engine
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
 	if err := r.SetTrustedProxies(nil); err != nil {
 		log.Printf("Cannot set trusted proxies: %v", err)
 	}
 
+	// Routes
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	api.UserRoutes(r)
 	api.SessionRoutes(r)
@@ -53,19 +56,38 @@ func main() {
 	api.UserConnectionRoutes(r)
 	api.ConfigurationRoutes(r)
 	abstracted.SetupRoutes(r)
-	// frontend.Routes(r)
 
-	// React on shutting down via ^C
-	sigs := make(chan os.Signal, 1) // Catches CTRL+C
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+	// Configure HTTP-Server
+	srv := &http.Server{
+		Addr:    fmt.Sprintf("0.0.0.0:%s", port),
+		Handler: r,
+	}
 
+	// Restore values from database, so that the service is able to continue as if the server were never down
+	restore.InitRestore()
+
+	// Start server in go routine
 	go func() {
-		sig := <-sigs
-		log.Printf("Backend is shutting down: %v\n", sig)
-		os.Exit(0)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server startup error: %v", err)
+		}
 	}()
-
-	defer logFile.Close()
 	log.Printf("The backend is setup with port: %s. The frontend tries to reach the backend with this URL: %s", port, baseURL)
-	r.Run(fmt.Sprintf("0.0.0.0:%s", port))
+
+	// Catch signal for shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	sig := <-quit
+	log.Printf("Backend is shutting down: %v\n", sig)
+
+	// Graceful shutdown with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Optional: db.Close(), cache.Flush(), logger.Sync() etc.
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server cleanly shut down")
 }

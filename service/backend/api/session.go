@@ -3,10 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
+	"githubclone-backend/config"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -41,6 +44,7 @@ type OAuthProviderType struct {
 	url           string         // urls of the session for a provider
 	oauthconfig   *oauth2.Config // the oauth2 configuration values of the sessionf or a provider
 	connectionURL *string        // The connection URL to a ghes instance
+	connectionID  uint           // The primary key of the connection that is used
 }
 
 type OAuthConfig struct {
@@ -137,6 +141,72 @@ func getOAuth2Config(clientID, clientSecret string, serviceType OAuthProvider, g
 	return config, nil
 }
 
+func RestoreLogin(session models.Session) {
+	tx := db.DB.Begin() // Start of transaction
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var user models.User
+	if err := tx.First(&user, "id = ?", session.UserID).Error; err != nil {
+		tx.Delete(&models.Session{ID: session.ID}) // remove the session if user is not available
+		tx.Commit()
+		return
+	}
+
+	var userConnections []models.Connection
+	if err := db.DB.Model(&user).Association("Connections").Find(&userConnections); err != nil {
+		userConnections = []models.Connection{}
+	}
+
+	oauthConfigMutex.Lock()
+	sessionID := session.ID
+
+	sessionConfig[sessionID] = OAuthConfig{
+		user: map[string]string{
+			"id":       fmt.Sprintf("%d", user.ID),
+			"username": user.Username,
+			"email":    user.Email,
+		},
+		config: map[OAuthProvider]OAuthProviderType{},
+	}
+
+	for _, connection := range userConnections {
+		config, err := getOAuth2Config(connection.ClientID, connection.ClientSecret, OAuthProvider(connection.Type), connection.URL)
+		if err != nil {
+			oauthConfigMutex.Unlock()
+			return
+		}
+		sessionConfig[sessionID].config[OAuthProvider(connection.Type)] = OAuthProviderType{
+			token:         nil,
+			url:           fmt.Sprintf("%s/api/login/%s?state=%s", internBaseURL, connection.Type, sessionID),
+			oauthconfig:   config,
+			connectionURL: connection.URL,
+		}
+	}
+	// copy structure to provide an answer
+	loginURLs := make(map[string]string)
+	for key, value := range sessionConfig[sessionID].config {
+		loginURLs[string(key)] = value.url
+	}
+	oauthConfigMutex.Unlock()
+
+	// Extend session
+	timeout := 1
+	if t, err := config.GetConfiguration("session_timeout"); err != nil {
+		timeout, _ = strconv.Atoi(t) // one hour session timeout as a default
+	}
+	session.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Hour)
+	if err := tx.Save(&session).Error; err != nil {
+		tx.Rollback()
+		return
+	}
+	tx.Commit()
+	log.Printf("Session %s is restored", sessionID)
+}
+
 func Login(c *gin.Context) {
 	var request struct {
 		Identifier string `json:"identifier"`
@@ -159,8 +229,7 @@ func Login(c *gin.Context) {
 
 	var userConnections []models.Connection
 	if err := db.DB.Model(&user).Association("Connections").Find(&userConnections); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user connections"})
-		return
+		userConnections = []models.Connection{}
 	}
 
 	oauthConfigMutex.Lock()
@@ -187,6 +256,7 @@ func Login(c *gin.Context) {
 			url:           fmt.Sprintf("%s/api/login/%s?state=%s", internBaseURL, connection.Type, sessionID),
 			oauthconfig:   config,
 			connectionURL: connection.URL,
+			connectionID:  connection.ID,
 		}
 	}
 	// copy structure to provide an answer
@@ -195,6 +265,20 @@ func Login(c *gin.Context) {
 		loginURLs[string(key)] = value.url
 	}
 	oauthConfigMutex.Unlock()
+
+	timeout := 1
+	if t, err := config.GetConfiguration("session_timeout"); err != nil {
+		timeout, _ = strconv.Atoi(t) // one hour session timeout as a default
+	}
+	session := models.Session{
+		ID:        sessionID,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(time.Duration(timeout) * time.Hour),
+	}
+	if err := db.DB.Create(&session).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store session"})
+		return
+	}
 
 	// log.Printf("================== Login")
 	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
@@ -209,8 +293,8 @@ func Login(c *gin.Context) {
 
 func Logout(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID"})
+	if err != nil || sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No session ID"})
 		return
 	}
 
@@ -218,7 +302,9 @@ func Logout(c *gin.Context) {
 	delete(sessionConfig, sessionID)
 	oauthConfigMutex.Unlock()
 	c.SetCookie("session_id", "", -1, "/", "", false, true)
-
+	if err := db.DB.Delete(&models.Session{ID: sessionID}).Error; err != nil {
+		log.Printf("Could not delete session: %s", sessionID)
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
@@ -226,6 +312,7 @@ func LoginProvider(c *gin.Context) {
 	provider := c.Param("provider")
 	sessionID := c.Query("state")
 
+	// TODO: Look at the redirects, they seem to be not working
 	// log.Printf("================== LoginProvider")
 	// log.Printf("Provider:  %s", provider)
 	// log.Printf("SessionID: %s", sessionID)
@@ -255,37 +342,98 @@ func CallbackProvider(c *gin.Context) {
 		return
 	}
 
-	// log.Printf("================== CallbackProvider")
-	// log.Printf("Provider:  %s", provider)
-	// log.Printf("SessionID: %s", sessionID)
-
 	oauthConfigMutex.Lock()
-	config, exists := sessionConfig[sessionID].config[OAuthProvider(provider)]
-
-	// log.Printf("sessionConfig: %v", sessionConfig)
+	providerConfig, exists := sessionConfig[sessionID].config[OAuthProvider(provider)]
 
 	if !exists {
 		oauthConfigMutex.Unlock()
 		c.Redirect(http.StatusFound, "/login?error=Invalid provider")
 		return
 	}
-
-	token, err := config.oauthconfig.Exchange(context.Background(), code)
+	token, err := providerConfig.oauthconfig.Exchange(context.Background(), code)
 	if err != nil {
 		oauthConfigMutex.Unlock()
 		c.Redirect(http.StatusFound, "/login?error=Token exchange failed")
 		return
 	}
-
-	providerConfig := sessionConfig[sessionID].config[OAuthProvider(provider)]
 	providerConfig.token = token
 	sessionConfig[sessionID].config[OAuthProvider(provider)] = providerConfig
 	oauthConfigMutex.Unlock()
 
+	oauth2Session := models.OAuth2Session{
+		SessionID:    sessionID,
+		ConnectionID: providerConfig.connectionID,
+		AccessToken:  token.AccessToken,
+		LastSeenAt:   time.Now(),
+	}
 	// log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
+	log.Printf("AccessToken:  %s", token.AccessToken)
+	log.Printf("TokenType:    %s", token.TokenType)
+	if token.RefreshToken != "" {
+		log.Printf("Expiry:       %s", token.Expiry.Format(time.RFC3339))
+		log.Printf("Valid unitl:  %s", time.Until(token.Expiry).Round(time.Second))
+		log.Printf("RefreshToken: %s", token.RefreshToken)
+		oauth2Session.RefreshToken = token.RefreshToken
+		oauth2Session.ExpiresAt = &token.Expiry
+	} else {
+		log.Printf("Token does not expire.")
+	}
+	err = db.DB.Create(&oauth2Session).Error
+	if err != nil {
+		c.Redirect(http.StatusFound, "/login?error=Token cannot be stored.")
+		return
+	}
 
 	r := fmt.Sprintf("%s%s", frontendURL, "/")
 	c.Redirect(http.StatusSeeOther, r)
+}
+
+func RestoreProvider(oauth2session models.OAuth2Session) {
+	oauthConfigMutex.Lock()
+	defer oauthConfigMutex.Unlock()
+
+	providerType := OAuthProvider(oauth2session.Connection.Type)
+	providerConfig := sessionConfig[oauth2session.SessionID].config[providerType]
+
+	token := oauth2.Token{
+		AccessToken:  oauth2session.AccessToken,
+		RefreshToken: oauth2session.RefreshToken,
+	}
+	if oauth2session.ExpiresAt != nil {
+		token.Expiry = *oauth2session.ExpiresAt
+	}
+	if oauth2session.ExpiresAt != nil &&
+		oauth2session.ExpiresAt.Before(time.Now()) &&
+		oauth2session.RefreshToken != "" &&
+		providerConfig.oauthconfig != nil {
+		ctx := context.Background()
+		tokenSource := providerConfig.oauthconfig.TokenSource(ctx, &token)
+		newToken, err := tokenSource.Token()
+		if err != nil {
+			log.Printf("Renewal with refresh token failed: %v", err)
+			if err := db.DB.Delete(&oauth2session).Error; err != nil {
+				log.Printf("Could not remove oauth2session from db: %v", err)
+			}
+			return
+		}
+		token = *newToken
+		var expiresAtPtr *time.Time
+		if !newToken.Expiry.IsZero() {
+			exp := newToken.Expiry
+			expiresAtPtr = &exp
+		}
+
+		db.DB.Model(&oauth2session).Updates(models.OAuth2Session{
+			AccessToken:  newToken.AccessToken,
+			RefreshToken: newToken.RefreshToken,
+			ExpiresAt:    expiresAtPtr,
+			LastSeenAt:   time.Now(),
+		})
+	}
+
+	providerConfig.token = &token
+	sessionConfig[oauth2session.SessionID].config[providerType] = providerConfig
+	log.Printf("OAuth2Session %s restored", oauth2session.Connection.Type)
 }
 
 func GetOAuthStatus(c *gin.Context) {

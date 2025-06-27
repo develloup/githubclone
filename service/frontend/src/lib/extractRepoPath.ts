@@ -12,7 +12,8 @@ export function extractRepoPath(repoUrl: string): string | null {
 }
 
 export function toQualifiedRef(ref: string): string {
-  return ref.startsWith("refs/") ? ref : `refs/heads/${ref}`;
+  const prefix = "refs/heads/";
+  return ref.startsWith(prefix) ? ref.slice(prefix.length) : ref;
 }
 
 
