@@ -855,14 +855,14 @@ export default function RepositoryPage() {
                     ) : null
                   )}
                 </div>
-
                 {/* +X Contributors */}
                 {totalContributors > 14 && (
                   <Link
                     href="/contributors"
                     className="block text-sm text-muted-foreground hover:underline pl-1"
                   >
-                    + {totalContributors - 14} contributors
+                    + {totalContributors - 14}{" "}
+                    {totalContributors - 14 === 1 ? "contributor" : "contributors"}
                   </Link>
                 )}
               </div>
