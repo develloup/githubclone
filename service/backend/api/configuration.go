@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Konfigurationswert abrufen
+// Get Configuration value
 func GetConfig(c *gin.Context) {
 	key := c.Param("key")
 	value, err := config.GetConfiguration(key)
@@ -20,6 +20,7 @@ func GetConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"key": key, "value": value})
 }
 
+// Get multiple Configuration values
 func GetMultipleConfigs(c *gin.Context) {
 	var req struct {
 		Keys []string `json:"keys"`
@@ -49,6 +50,7 @@ func GetMultipleConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// Set a Configuration value
 func SetConfig(c *gin.Context) {
 	var req struct {
 		Key   string `json:"key"`

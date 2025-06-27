@@ -109,7 +109,7 @@ func GetOauthRepositoryContents(c *gin.Context) {
 		"expressioncontent": c.Query("expression"),
 	}
 
-	islog := true
+	islog := false
 
 	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, islog)
 	if err != nil {
