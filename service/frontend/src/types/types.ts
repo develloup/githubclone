@@ -268,4 +268,4 @@ export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageI
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };
-export type { RepositoryFile, ProviderRepositoryFileContentsMap };
+export type { RepositoryFile, ProviderRepositoryFileContentsMap, RepositoryLicenseInfo, RepositoryReleases, RepositoryDeployments, RepositoryLanguages };
