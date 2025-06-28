@@ -4,39 +4,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GitBranch, Info, Tag } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, ProviderRepositoryFileContentsMap, RepositoryCollaboratorNode, RepositoryFile } from "@/types/types";
+import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, ProviderRepositoryFileContentsMap, RepositoryCollaborators } from "@/types/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { toQualifiedRef, formatNumber } from "@/lib/extractRepoPath";
+import { toQualifiedRef } from "@/lib/extractRepoPath";
 import {
-  ActivityIcon,
   BulletListIcon,
   CodeOfConductIcon,
   ContributingIcon,
-  EyeIcon,
   FileIcon,
   FolderCommitIcon,
   FolderIcon,
-  ForkIcon,
   HistoryIcon,
   LicenseIcon,
   PencilIcon,
   ReadmeIcon,
   SecurityIcon,
-  StarIcon,
-  TagIcon,
 } from "@/components/Icons";
 import Link from "next/link";
 import { BranchTagSelector } from "@/components/BranchTagSelector";
 import { formatLicenseLabel, formatRelativeTime, formatWithCommas } from '../../../../../lib/format';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { detectStandardFilesFromEntries } from "@/lib/detectStandardFiles";
 import { JSX } from "react/jsx-runtime";
 import { MarkdownViewer } from "@/components/markdownviewer";
 import { decodeBase64, getInternalRepositoryPath, parseGitmodules } from "@/lib/utils";
+import { RepositoryHeader } from "@/components/RepositoryMain/RepositoryHeader";
+import { RepositoryRight } from "@/components/RepositoryMain/RepositoryRight";
 
 // Optional: import "highlight.js/styles/github.css"; // Style z.B. GitHub-Style
 
@@ -89,9 +84,8 @@ export default function RepositoryPage() {
   const [repositorycontent, setRepositoryContent] = useState<OAuthRepositoryContents | null>(null);
   const [submodules, setSubmodules] = useState<Record<string, string>>({});
   const [hasCommitEntry, setHasCommitEntry] = useState(false);
-  const [contributors, setContributors] = useState<RepositoryCollaboratorNode[] | null>(null);
-  const [totalContributors, setTotalContributors] = useState<number>(0);
-  const [branchcommits, setBranchCommits] = useState<OAuthRepositoryBranchCommit | null>(null);
+  const [contributors, setContributors] = useState<RepositoryCollaborators | null>(null);
+    const [branchcommits, setBranchCommits] = useState<OAuthRepositoryBranchCommit | null>(null);
   const [defbranch, setDefBranch] = useState<string | undefined>(undefined);
   const [loadingRepository, setLoadingRepository] = useState(true);
   const [loadingContent, setLoadingContent] = useState(true);
@@ -104,13 +98,6 @@ export default function RepositoryPage() {
     code_of_conduct: <CodeOfConductIcon className="w-4 h-4 text-muted-foreground" />,
     contributing: <ContributingIcon className="w-4 h-4 text-muted-foreground" />,
   }
-
-  const statBadge = (count: number) => (
-    <span className="ml-1 px-2 rounded-full bg-muted text-xs font-mono text-muted-foreground">
-      {count.toLocaleString()}
-    </span>
-  )
-
 
   useEffect(() => {
     setLoadingRepository(true);
@@ -167,12 +154,12 @@ export default function RepositoryPage() {
 
         setRepositoryContent(content);
 
-        return { 
+        return {
           db,
           fetch: fetchWithAuth(
             `/api/oauth/repositorycontributors?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}`,
             { credentials: "include" }
-          ) 
+          )
         };
       })
       .then(async ({ db, fetch }) => {
@@ -189,8 +176,7 @@ export default function RepositoryPage() {
         if (!contribs || !Array.isArray(contribs.nodes))
           throw new Error("Ungültige Contributor-Datenstruktur");
 
-        setContributors(contribs.nodes);
-        setTotalContributors(contribs.totalCount);
+        setContributors(contribs);
 
         return fetchWithAuth(
           `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(db))}`,
@@ -235,17 +221,17 @@ export default function RepositoryPage() {
 
   const tabList = detectedFiles.length > 0
     ? detectedFiles.map(({ category, filename }) => ({
-        key: `${category}-ov-file`,
-        label: filename, // oder category.toUpperCase()
-        category,
-        filename
-      }))
+      key: `${category}-ov-file`,
+      label: filename, // oder category.toUpperCase()
+      category,
+      filename
+    }))
     : [{
-        key: "readme-ov-file",
-        label: "README.md",
-        category: "readme",
-        filename: "README.md"
-      }]
+      key: "readme-ov-file",
+      label: "README.md",
+      category: "readme",
+      filename: "README.md"
+    }]
 
   useEffect(() => {
     const el = document.getElementById(activeTab);
@@ -370,89 +356,7 @@ export default function RepositoryPage() {
   return (
     <div className="max-w-[1080px] mx-auto p-6 space-y-6 mt-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <img
-            src={repository.data.repository.owner.avatarUrl}
-            className="h-10 w-10 rounded-full"
-            alt="Owner Avatar"
-          />
-          <h1 className="text-2xl font-bold">
-            {repository.data.repository.name}
-          </h1>
-          <Badge variant="outline" className="text-xs rounded-full">
-            {repository.data.repository.isArchived
-              ? repository.data.repository.isPrivate
-                ? "Private archive"
-                : "Public archive"
-              : repository.data.repository.isPrivate
-                ? "Private"
-                : "Public"}
-          </Badge>
-        </div>
-        <div className="flex space-x-2">
-          {/* Watch */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm">
-                <EyeIcon className="w-4 h-4 mr-1" />
-                Watch {statBadge(repository.data.repository.watchers.totalCount)}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>Not Watching</DropdownMenuItem>
-              <DropdownMenuItem>Watching</DropdownMenuItem>
-              <DropdownMenuItem>Custom Notification…</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Fork */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm">
-                <ForkIcon className="w-4 h-4 mr-1" />
-                Fork {statBadge(repository.data.repository.forkCount)}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>Fork this repo</DropdownMenuItem>
-              <DropdownMenuItem>Compare with fork</DropdownMenuItem>
-              <DropdownMenuItem>Open forks</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Star */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm">
-                <StarIcon className="w-4 h-4 mr-1 fill-current text-yellow-500" />
-                Star {statBadge(repository.data.repository.stargazerCount)}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>Starred</DropdownMenuItem>
-              <DropdownMenuItem>Unstar</DropdownMenuItem>
-              <DropdownMenuItem>Add to list…</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      {/* Fork origin info (second line) */}
-      {repository.data.repository.isFork && repository.data.repository.parent && (
-        <div className="ml-14 text-sm text-muted-foreground">
-          Forked from{" "}
-          <Link
-            href={getInternalRepositoryPath(
-              repository.data.repository.parent.url,
-              "repositories",
-              provider
-            )}
-            className="text-blue-600 hover:underline"
-          >
-            {repository.data.repository.parent.nameWithOwner}
-          </Link>
-        </div>
-      )}
+      <RepositoryHeader repository={repository.data.repository} provider={provider} />
 
       <Separator />
 
@@ -584,10 +488,10 @@ export default function RepositoryPage() {
                   const hasSubmodule = isCommit && submodules?.[entry.name];
                   const submodulePath = hasSubmodule
                     ? getInternalRepositoryPath(
-                        submodules[entry.name].replace(/\.git$/, "") + `/tree/${entry.oid}`,
-                        "repositories",
-                        provider
-                      )
+                      submodules[entry.name].replace(/\.git$/, "") + `/tree/${entry.oid}`,
+                      "repositories",
+                      provider
+                    )
                     : null;
 
                   const href = `${currentPath}/${isTree || isCommit ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`;
@@ -600,11 +504,11 @@ export default function RepositoryPage() {
                   const Wrapper = hasSubmodule ? "a" : Link;
                   const wrapperProps = hasSubmodule && submodulePath
                     ? {
-                        href: submodulePath,
-                      }
+                      href: submodulePath,
+                    }
                     : {
-                        href,
-                      };
+                      href,
+                    };
                   return (
                     <Wrapper
                       key={index}
@@ -652,11 +556,10 @@ export default function RepositoryPage() {
                       <Link
                         key={key}
                         href={`?tab=${key}#${key}`}
-                        className={`px-2 py-1 border-b-2 ${
-                          isActive
+                        className={`px-2 py-1 border-b-2 ${isActive
                             ? "border-primary text-primary font-semibold"
                             : "border-transparent hover:underline"
-                        }`}
+                          }`}
                       >
                         <span className="inline-flex items-center gap-1">
                           {iconMap[category as IconCategory]}
@@ -690,275 +593,7 @@ export default function RepositoryPage() {
 
         {/* Right Column */}
         <div className="w-[20%] space-y-4">
-          {/* About-Header */}
-          <div className="flex justify-between items-center text-sm font-medium">
-            <span>About</span>
-            <Info className="w-4 h-4 text-muted-foreground" />
-          </div>
-
-          {/* Description */}
-          <p className="text-sm text-muted-foreground leading-snug">
-            {repository.data.repository.description ??
-              "No description, website, or topics provided."}
-          </p>
-
-          <div className="space-y-2 pt-1 text-sm text-muted-foreground">
-            {detectedFiles.length > 0 && (
-              <>
-                {detectedFiles.map(({ category, filename }) => {
-                  const tabKey = `${category}-ov-file`;
-                  const licenseInfo = repository?.data?.repository?.licenseInfo;
-
-                  const label =
-                    category === "license"
-                      ? formatLicenseLabel(filename, licenseInfo?.name || licenseInfo?.key)
-                      : filename;
-
-                  return (
-                    <Link
-                      key={category}
-                      href={`?tab=${tabKey}#${tabKey}`}
-                      className="flex items-center gap-2 hover:underline"
-                    >
-                      {iconMap[category as keyof typeof iconMap]}
-                      {label}
-                    </Link>
-                  );
-                })}
-              </>
-            )}
-
-            <Link
-              href={`${currentPath}/activity`}
-              className="flex items-center gap-2 hover:underline text-primary"
-            >
-              <ActivityIcon className="w-4 h-4" />
-              Activity
-            </Link>
-
-            <Link
-              href={`${currentPath}/stargazer`}
-              className="flex items-center gap-2 hover:underline"
-            >
-              <StarIcon className="w-4 h-4 text-yellow-500" />
-              {formatNumber(repository.data.repository.stargazerCount)}{" "}
-              {repository.data.repository.stargazerCount === 1 ? "Star" : "Stars"}
-            </Link>
-
-            <Link
-              href={`${currentPath}/watchers`}
-              className="flex items-center gap-2 hover:underline"
-            >
-              <EyeIcon className="w-4 h-4" />
-              {formatNumber(repository.data.repository.watchers.totalCount)}{" "}
-              {repository.data.repository.watchers.totalCount === 1 ? "Watcher" : "Watchers"}
-            </Link>
-
-            <Link
-              href={`${currentPath}/forks`}
-              className="flex items-center gap-2 hover:underline"
-            >
-              <ForkIcon className="w-4 h-4" />
-              {formatNumber(repository.data.repository.forkCount)}{" "}
-              {repository.data.repository.forkCount === 1 ? "Fork" : "Forks"}
-            </Link>
-
-          </div>
-
-          <hr className="my-4 border-muted" />
-
-          {/* Releases */}
-          <div className="space-y-2 text-sm">
-            <h3 className="font-semibold flex items-center gap-2">
-              Releases
-              {repository.data.repository.releases.totalCount > 0 && (
-                <Badge variant="secondary">
-                  {repository.data.repository.releases.totalCount}
-                </Badge>
-              )}
-            </h3>
-
-            {repository.data.repository.releases.totalCount === 0 ? (
-              <>
-                <p className="text-muted-foreground">No releases published</p>
-                <Link
-                  href={`${currentPath}/releases/new`}
-                  className="text-primary hover:underline"
-                >
-                  Publish a new release
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href={`${currentPath}/releases/${repository.data.repository.releases.nodes[0].tagName}`}
-                  className="flex items-center gap-2 hover:underline text-primary"
-                >
-                  <TagIcon className="w-4 h-4" />
-                  {repository.data.repository.releases.nodes[0].name ??
-                    repository.data.repository.releases.nodes[0].tagName}
-                  {(repository.data.repository.releases.nodes[0].isDraft || repository.data.repository.releases.nodes[0].isLatest) && (
-                    <Badge variant="outline">
-                      {repository.data.repository.releases.nodes[0].isDraft ? "Draft" : "Latest"}
-                    </Badge>
-                  )}
-                </Link>
-                <p className="text-xs text-muted-foreground pl-6">
-                  {formatRelativeTime(
-                    repository.data.repository.releases.nodes[0].createdAt
-                  )}
-                </p>
-                {repository.data.repository.releases.totalCount > 1 && (
-                  <Link
-                    href={`${currentPath}/releases`}
-                    className="pl-6 block text-muted-foreground hover:underline"
-                  >
-                    + {repository.data.repository.releases.totalCount - 1}{" "}
-                    release
-                    {repository.data.repository.releases.totalCount - 1 > 1
-                      ? "s"
-                      : ""}
-                  </Link>
-                )}
-              </>
-            )}
-          </div>
-
-          {Array.isArray(contributors) && contributors.length > 0 && (
-            <>
-              <hr className="my-4 border-muted" />
-
-              <div className="space-y-2 text-sm">
-                <h3 className="font-semibold flex items-center gap-2">
-                  Contributors
-                  <Badge variant="secondary">
-                    {totalContributors}
-                  </Badge>
-                </h3>
-
-                {/* Avatars */}
-                <div className="flex flex-wrap gap-2">
-                  {contributors.slice(0, 14).map((user) =>
-                    user?.login && user?.avatarUrl && user?.htmlUrl ? (
-                      <Link
-                        key={user.login}
-                        href={user.htmlUrl}
-                        className="inline-block"
-                        title={user.login}
-                      >
-                        <img
-                          src={user.avatarUrl}
-                          alt={`Avatar of ${user.login}`}
-                          className="w-8 h-8 rounded-full ring-1 ring-muted"
-                        />
-                      </Link>
-                    ) : null
-                  )}
-                </div>
-                {/* +X Contributors */}
-                {totalContributors > 14 && (
-                  <Link
-                    href="/contributors"
-                    className="block text-sm text-muted-foreground hover:underline pl-1"
-                  >
-                    + {totalContributors - 14}{" "}
-                    {totalContributors - 14 === 1 ? "contributor" : "contributors"}
-                  </Link>
-                )}
-              </div>
-            </>
-          )}
-
-          {repository.data.repository.deployments.totalCount > 0 && (
-            <>
-              <hr className="my-4 border-muted" />
-
-              <div className="space-y-2 text-sm">
-                <h3 className="font-semibold flex items-center gap-2">
-                  Deployments
-                  <Badge variant="secondary">
-                    {repository.data.repository.deployments.totalCount}
-                  </Badge>
-                </h3>
-
-                <div className="pl-1 space-y-1">
-                  <p className="flex items-center gap-2">
-                    <span className="font-medium">
-                      {repository.data.repository.deployments.nodes[0].environment}
-                    </span>
-                    <span className="text-muted-foreground text-xs uppercase">
-                      {repository.data.repository.deployments.nodes[0].state}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatRelativeTime(
-                      repository.data.repository.deployments.nodes[0].createdAt
-                    )}
-                  </p>
-                </div>
-
-                {repository.data.repository.deployments.totalCount > 1 && (
-                  <Link
-                    href="/deployments"
-                    className="pl-1 block text-muted-foreground hover:underline"
-                  >
-                    + {repository.data.repository.deployments.totalCount - 1} deployments
-                  </Link>
-                )}
-              </div>
-            </>
-          )}
-
-          {repository.data.repository.languages.totalSize > 0 && (
-            <>
-              <hr className="my-4 border-muted" />
-
-              <div className="space-y-2 text-sm">
-                <h3 className="font-semibold flex items-center gap-2">
-                  Languages
-                  <Badge variant="secondary">
-                    {repository.data.repository.languages.edges.length}
-                  </Badge>
-                </h3>
-
-                <div className="w-full h-3 rounded overflow-hidden flex" role="progressbar" aria-label="language usage">
-                  {repository.data.repository.languages.edges.map(({ node, size }) => {
-                    const total = repository.data.repository.languages.totalSize;
-                    const percent = (size / total) * 100;
-                    return (
-                      <div
-                        key={node.name}
-                        title={`${node.name} – ${percent.toFixed(1)}%`}
-                        style={{
-                          width: `${percent}%`,
-                          backgroundColor: node.color ?? "#ccc",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-
-                <ul className="space-y-1 pl-1">
-                  {repository.data.repository.languages.edges.map(({ node, size }) => {
-                    const total = repository.data.repository.languages.totalSize;
-                    const percent = ((size / total) * 100).toFixed(1); // z. B. "12.4"
-                    return (
-                      <li key={node.name} className="flex items-center gap-2">
-                        <span
-                          className="inline-block w-2 h-2 rounded-full"
-                          style={{ backgroundColor: node.color ?? "#ccc" }}
-                        />
-                        <span className="text-muted-foreground">
-                          {node.name} ({percent}%)
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </>
-          )}
-
+          <RepositoryRight repository={repository.data.repository} contributors={contributors} detectedFiles={detectedFiles} currentPath={currentPath}/>
         </div>
       </div>
     </div>
