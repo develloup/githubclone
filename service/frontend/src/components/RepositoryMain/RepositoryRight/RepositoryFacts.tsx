@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { formatNumber } from "@/lib/extractRepoPath"
+import { formatNumber } from "@/lib/format"
 import { ActivityIcon, EyeIcon, ForkIcon, StarIcon } from "@/components/Icons"
 
 export type RepositoryFactsProps = {

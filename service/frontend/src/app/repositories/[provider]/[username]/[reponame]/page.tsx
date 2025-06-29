@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { OAuthRepository, OAuthRepositoryBranchCommit, OAuthRepositoryContents, ProviderRepositoryFileContentsMap, RepositoryCollaborators } from "@/types/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { toQualifiedRef } from "@/lib/extractRepoPath";
+import { toUnqualifiedRef } from "@/lib/utils";
 import { detectStandardFilesFromEntries, FileDetectionWithKey } from "@/lib/detectStandardFiles";
 import { decodeBase64, parseGitmodules } from "@/lib/utils";
 import { RepositoryHeader } from "@/components/RepositoryMain/RepositoryHeader";
@@ -83,7 +83,7 @@ export default function RepositoryPage() {
             `/api/oauth/repositorycontents?provider=${provider}&owner=${encodeURIComponent(
               username
             )}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(
-              toQualifiedRef(db)
+              toUnqualifiedRef(db)
             )}`,
             { credentials: "include" }
           )
@@ -129,7 +129,7 @@ export default function RepositoryPage() {
         setContributors(contribs);
 
         return fetchWithAuth(
-          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toQualifiedRef(db))}`,
+          `/api/oauth/repositorybranchcommit?provider=${provider}&owner=${encodeURIComponent(username)}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(toUnqualifiedRef(db))}`,
           { credentials: "include" }
         );
       })

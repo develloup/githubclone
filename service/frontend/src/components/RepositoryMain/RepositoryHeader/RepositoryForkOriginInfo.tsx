@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { getInternalRepositoryPath } from "@/lib/utils"
+import { getInternalPathFromExternalURL } from "@/lib/utils"
 
 export type RepositoryForkOriginInfoProps = {
     parent: {
@@ -19,7 +19,7 @@ export function RepositoryForkOriginInfo({
         <div className={className}>
             Forked from{" "}
             <Link
-                href={getInternalRepositoryPath(parent.url, "repositories", provider)}
+                href={getInternalPathFromExternalURL(parent.url, provider)}
                 className="text-blue-600 hover:underline"
             >
                 {parent.nameWithOwner}

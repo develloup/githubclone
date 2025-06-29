@@ -1,8 +1,9 @@
-import { HistoryIcon } from "lucide-react"
+
 import { formatRelativeTime, formatWithCommas } from "@/lib/format"
 import { JSX } from "react/jsx-runtime";
 import Link from "next/link";
 import { RepositoryCommitTarget } from "@/types/types"
+import { HistoryIcon } from "@/components/Icons";
 
 function formatCommitMessageWithLinks(message: string, basePath: string): JSX.Element {
     const parts = message.split(/(#\d+)/g);

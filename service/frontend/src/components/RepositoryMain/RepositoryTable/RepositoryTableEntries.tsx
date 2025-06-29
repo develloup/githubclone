@@ -2,7 +2,7 @@ import Link from "next/link"
 import { formatRelativeTime } from "@/lib/format"
 import { RepositoryEntry } from "@/types/types"
 import { FileIcon, FolderCommitIcon, FolderIcon } from "@/components/Icons";
-import { getInternalRepositoryPath } from "@/lib/utils"
+import { getInternalPathFromExternalURL } from "@/lib/utils"
 import { JSX } from "react/jsx-runtime";
 
 
@@ -60,9 +60,8 @@ export function RepositoryTableEntries({
                 const isCommit = entry.type === "commit"
                 const hasSubmodule = isCommit && submodules?.[entry.name]
                 const submodulePath = hasSubmodule
-                    ? getInternalRepositoryPath(
+                    ? getInternalPathFromExternalURL(
                         submodules[entry.name].replace(/\.git$/, "") + `/tree/${entry.oid}`,
-                        "repositories",
                         provider
                     )
                     : null
