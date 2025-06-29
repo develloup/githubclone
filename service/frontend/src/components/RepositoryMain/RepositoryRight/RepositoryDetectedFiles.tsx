@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { ReactNode } from "react"
 import { formatLicenseLabel } from "@/lib/format"
-import { CodeOfConductIcon, ContributingIcon, LicenseIcon, ReadmeIcon, SecurityIcon } from "@/components/Icons"
 import { RepositoryLicenseInfo } from "@/types/types"
+import { iconMap } from "../RepositoryTypes"
 
 export type RepositoryDetectedFilesProps = {
     files: { category: string; filename: string }[];
@@ -10,13 +10,6 @@ export type RepositoryDetectedFilesProps = {
     currentPath: string;
 }
 
-const iconMap = {
-    readme: <ReadmeIcon className="w-4 h-4 text-muted-foreground" />,
-    license: <LicenseIcon className="w-4 h-4 text-muted-foreground" />,
-    security: <SecurityIcon className="w-4 h-4 text-muted-foreground" />,
-    code_of_conduct: <CodeOfConductIcon className="w-4 h-4 text-muted-foreground" />,
-    contributing: <ContributingIcon className="w-4 h-4 text-muted-foreground" />,
-}
 
 export function RepositoryDetectedFiles({
     files,
