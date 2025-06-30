@@ -9,7 +9,8 @@ import { SearchField } from "./SearchField";
 import LeftMenu from "./LeftMenu";
 import RightMenu from "./RightMenu";
 import NavigationMenu from "./NavigationMenu";
-import { User, OAuthUser } from "@/types/types";
+import { OAuthUser } from "@/types/typesUser";
+import { User } from "@/types/typesUser";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 

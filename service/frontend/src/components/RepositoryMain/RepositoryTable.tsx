@@ -1,5 +1,5 @@
 import { RepositoryTableCommitInfo } from "./RepositoryTable/RepositoryTableCommitInfo"
-import { RepositoryCommitTarget, RepositoryEntry } from "@/types/types"
+import { RepositoryCommitTarget, RepositoryEntry } from "@/types/typesRepository"
 import { RepositoryTableEntries } from "./RepositoryTable/RepositoryTableEntries";
 
 export type RepositoryTableProps = {

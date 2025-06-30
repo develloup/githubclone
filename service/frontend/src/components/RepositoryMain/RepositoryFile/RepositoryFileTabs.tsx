@@ -4,7 +4,7 @@ import { formatLicenseLabel } from "@/lib/format"
 import { BulletListIcon, PencilIcon } from "@/components/Icons"
 import { iconMap } from "../RepositoryTypes"
 import {FileDetectionWithKey } from "@/lib/detectStandardFiles"
-import { RepositoryLicenseInfo } from "@/types/types"
+import { RepositoryLicenseInfo } from "@/types/typesRepository"
 
 export type RepositoryFileTabsProps = {
     tabList: FileDetectionWithKey[]

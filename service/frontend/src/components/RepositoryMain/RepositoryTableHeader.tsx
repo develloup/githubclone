@@ -1,4 +1,4 @@
-import { ExtendedRepository } from "@/types/types"
+import { ExtendedRepository } from "@/types/typesRepository"
 import { RepositoryTableSelector } from "./RepositoryTableHeader/RepositoryTableSelector"
 import { RepositoryTableControls } from "./RepositoryTableHeader/RepositoryTableControls"
 

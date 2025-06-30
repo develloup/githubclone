@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { RepositoryCollaborators } from "@/types/types"
+import { RepositoryCollaborators } from "@/types/typesRepository"
 export type Contributor = {
     login: string
     avatarUrl: string
@@ -8,7 +8,7 @@ export type Contributor = {
 }
 
 export type RepositoryContributorsProps = {
-    contributors: RepositoryCollaborators | null;
+    contributors: RepositoryCollaborators | undefined;
 }
 
 export function RepositoryContributorsSection({ contributors }: RepositoryContributorsProps) {

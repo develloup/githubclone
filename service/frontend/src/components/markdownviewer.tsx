@@ -1,5 +1,5 @@
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { ProviderRepositoryFileContentsMap, RepositoryFile } from "@/types/types";
+import { ProviderRepositoryFileContentsMap, RepositoryFile } from "@/types/typesRepository";
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm"

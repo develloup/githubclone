@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { formatRelativeTime } from "@/lib/format"
-import {RepositoryDeployments} from "@/types/types"
+import {RepositoryDeployments} from "@/types/typesRepository"
 
 export type RepositoryDeploymentsProps = {
     deployments: RepositoryDeployments;

@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { formatRelativeTime } from "@/lib/format"
-import { RepositoryEntry } from "@/types/types"
+import { RepositoryEntry } from "@/types/typesRepository"
 import { FileIcon, FolderCommitIcon, FolderIcon } from "@/components/Icons";
 import { getInternalPathFromExternalURL } from "@/lib/utils"
 import { JSX } from "react/jsx-runtime";

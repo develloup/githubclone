@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { MenuIcon, HomeIcon, IssuesIcon, PullRequestIcon, ProjectIcon, DiscussionIcon, MagnifierIcon, ArrowUpThinIcon } from "./Icons";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { OAuthRepositories, OAuthRepositoryNode } from "@/types/types";
+import { OAuthRepositories, OAuthRepositoryNode } from "@/types/typesRepository";
 import { extractRepoPath } from "@/lib/extractRepoPath";
 
 export default function LeftMenu() {

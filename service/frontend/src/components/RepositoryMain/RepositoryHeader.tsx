@@ -1,4 +1,4 @@
-import { ExtendedRepository } from "@/types/types"
+import { ExtendedRepository } from "@/types/typesRepository"
 import { RepositoryActions } from "./RepositoryHeader/RepositoryActions"
 import { RepositoryForkOriginInfo } from "./RepositoryHeader/RepositoryForkOriginInfo"
 import { RepositoryInfo } from "./RepositoryHeader/RepositoryInfo"

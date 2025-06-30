@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ReactNode } from "react"
 import { formatLicenseLabel } from "@/lib/format"
-import { RepositoryLicenseInfo } from "@/types/types"
+import { RepositoryLicenseInfo } from "@/types/typesRepository"
 import { iconMap } from "../RepositoryTypes"
 
 export type RepositoryDetectedFilesProps = {

@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { RepositoryReleases } from "@/types/types"
+import { RepositoryReleases } from "@/types/typesRepository"
 import { TagIcon } from "@/components/Icons";
 import { formatRelativeTime } from "@/lib/format";
 

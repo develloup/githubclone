@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge"
-import { RepositoryLanguages } from "@/types/types"
+import { RepositoryLanguages } from "@/types/typesRepository"
 
 export type RepositoryLanguagesProps = {
     languages: RepositoryLanguages;

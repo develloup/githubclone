@@ -3,7 +3,8 @@ import { Button } from "./ui/button"; // Button-Komponente
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"; // Falls benötigt
 import Image from "next/image";
 import { GistIcon, ProfileIcon, ProjectIcon, RepositoryIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, UserIcon } from "./Icons";
-import { OAuthUser, User } from "@/types/types";
+import { OAuthUser } from "@/types/typesUser";
+import { User } from "@/types/typesUser";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";

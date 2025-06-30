@@ -2,7 +2,7 @@
 import { formatRelativeTime, formatWithCommas } from "@/lib/format"
 import { JSX } from "react/jsx-runtime";
 import Link from "next/link";
-import { RepositoryCommitTarget } from "@/types/types"
+import { RepositoryCommitTarget } from "@/types/typesRepository"
 import { HistoryIcon } from "@/components/Icons";
 
 function formatCommitMessageWithLinks(message: string, basePath: string): JSX.Element {

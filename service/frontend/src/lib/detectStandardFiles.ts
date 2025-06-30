@@ -1,4 +1,4 @@
-import { RepositoryEntry } from "@/types/types";
+import { RepositoryEntry } from "@/types/typesRepository";
 
 
 type FileCategory =

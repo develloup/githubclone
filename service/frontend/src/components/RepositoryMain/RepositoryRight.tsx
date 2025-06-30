@@ -5,11 +5,11 @@ import { RepositoryDetectedFiles } from "./RepositoryRight/RepositoryDetectedFil
 import { RepositoryFacts } from "./RepositoryRight/RepositoryFacts"
 import { RepositoryLanguagesSection } from "./RepositoryRight/RepositoryLanguagesSection"
 import { RepositoryReleasesSection } from "./RepositoryRight/RepositoryReleasesSection"
-import { ExtendedRepository, RepositoryCollaborators } from "@/types/types"
+import { ExtendedRepository, RepositoryCollaborators } from "@/types/typesRepository"
 
 export type RepositoryRightProps = {
     repository: ExtendedRepository
-    contributors: RepositoryCollaborators | null;
+    contributors: RepositoryCollaborators | undefined;
     detectedFiles: { category: string; filename: string }[]
     currentPath: string
 }

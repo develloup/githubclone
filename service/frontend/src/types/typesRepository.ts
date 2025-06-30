@@ -1,26 +1,4 @@
 
-type User = {
-  username: string;
-  email: string;
-} | null;
-
-// The entries of a user
-type OAuthUser = {
-  data: {
-    viewer: {
-      login: string;       // User name
-      name: string;        // Full name
-      email: string;       // Public email (if available)
-      bio: string;         // Description / Biography
-      avatarUrl: string;   // Avatar picture URL
-      createdAt: string;   // Account creation date
-      company?: string;    // Company or Organization (optional)
-      location: string;    // User location
-      websiteUrl?: string; // Personal website (optional)
-    };
-  };
-};
-
 // The entries for a single repository
 type OAuthRepositoryNode = {
   name: string;
@@ -265,12 +243,8 @@ type ProviderRepositoryFileContentsMap = {
   [provider: string]: RepositoryFile
 };
 
-type IconCategory = "readme" | "license" | "security" | "code_of_conduct" | "contributing";
-
-
-
-export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
+export type { OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
-export type { OAuthRepositoryBranchCommit, IconCategory }
+export type { OAuthRepositoryBranchCommit }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode, RepositoryCommitTarget };
 export type { RepositoryFile, ProviderRepositoryFileContentsMap, RepositoryLicenseInfo, RepositoryReleases, RepositoryDeployments, RepositoryLanguages };
