@@ -31,13 +31,14 @@ export function useContributors(
       );
 
       const raw = await res.text();
-      if (!res.ok) throw new Error(`Fehler beim Laden der Contributors: ${raw}`);
+      console.log("Raw data from backend (Contributors): ", raw);
+      if (!res.ok) throw new Error(`Error during the loading of contributors: ${raw}`);
 
       const parsed: ProviderContributorMap = JSON.parse(raw);
       const contributors = parsed[provider];
 
       if (!contributors || !Array.isArray(contributors.nodes))
-        throw new Error("Ungültige Contributor-Datenstruktur");
+        throw new Error("Invalid contributor data structure");
 
       return contributors;
     },

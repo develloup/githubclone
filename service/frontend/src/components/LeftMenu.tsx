@@ -9,6 +9,7 @@ import { MenuIcon, HomeIcon, IssuesIcon, PullRequestIcon, ProjectIcon, Discussio
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { OAuthRepositories, OAuthRepositoryNode } from "@/types/typesRepository";
 import { extractRepoPath } from "@/lib/extractRepoPath";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 export default function LeftMenu() {
   const [leftOpen, setLeftOpen] = useState(false);
@@ -17,7 +18,7 @@ export default function LeftMenu() {
   const [repositories, setRepositories] = useState<OAuthRepositoryNode[]>([]);
 
   useEffect(() => {
-    fetch("/api/oauth/repositories", { method: "GET", credentials: "include" })
+    fetchWithAuth("/api/oauth/repositories", { method: "GET", credentials: "include" })
       .then(async (res) => {
         const responseText = await res.text();
         console.log("📦 Rohdaten vom Backend (Repositories):", responseText);

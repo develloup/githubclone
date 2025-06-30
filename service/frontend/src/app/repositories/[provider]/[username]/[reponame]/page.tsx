@@ -56,7 +56,7 @@ export default function RepositoryPage() {
     isLoading: loadingCommits,
   } = useBranchCommits(provider, username, reponame, branch);
 
-  const hasGitmodules = repositoryContent?.repository?.object?.entries?.some(
+  const hasGitmodules = repositoryContent?.data?.repository?.object?.entries?.some(
     (e) => e.name === ".gitmodules"
   );
 
@@ -79,7 +79,9 @@ export default function RepositoryPage() {
     }
   }, [gitmodulesRaw]);
 
-  const entries = repositoryContent?.repository?.object?.entries ?? [];
+  const entries = useMemo(() => {
+    return repositoryContent?.data?.repository?.object?.entries ?? [];
+  }, [repositoryContent]);
 
   const detectedFiles = useMemo(() => {
     if (entries.length === 0) return [];

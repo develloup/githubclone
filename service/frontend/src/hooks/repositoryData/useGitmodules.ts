@@ -20,23 +20,22 @@ export function useGitmodules(
   provider: string,
   owner: string,
   reponame: string,
-  branch?: string,
+  branch: string,
   enabled: boolean = false
 ) {
   return useQuery({
     queryKey: ["gitmodules", provider, owner, reponame, branch],
     queryFn: async () => {
       const res = await fetchWithAuth(
-        `/api/oauth/repositoryblob?provider=${provider}&owner=${encodeURIComponent(
-          owner
-        )}&name=${encodeURIComponent(reponame)}&expression=${encodeURIComponent(
-          `${branch}:.gitmodules`
+        `/api/oauth/repositorycontent?provider=${provider}&owner=${encodeURIComponent(owner
+        )}&name=${encodeURIComponent(reponame)}&content=$(encodeURIComponent(".gitmodules"))&expression=${encodeURIComponent(branch)}
         )}`,
         { credentials: "include" }
       );
 
       const raw = await res.text();
-      if (!res.ok) throw new Error(`Fehler beim Laden von .gitmodules: ${raw}`);
+      console.log("Raw data from backend (Repository content): ", raw);
+      if (!res.ok) throw new Error(`Error during the loading of .gitmodules: ${raw}`);
 
       const parsed: ProviderGitmodulesMap = JSON.parse(raw);
       return parsed[provider]?.text ?? null;

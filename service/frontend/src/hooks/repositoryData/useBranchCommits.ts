@@ -33,13 +33,14 @@ export function useBranchCommits(
       );
 
       const raw = await res.text();
-      if (!res.ok) throw new Error(`Fehler beim Commit-Load: ${raw}`);
+      console.log("Raw data from backend (Branchcommits):", raw)
+      if (!res.ok) throw new Error(`Error during the loading of commits: ${raw}`);
 
       const parsed: ProviderRepositoryBranchCommitMap = JSON.parse(raw);
       const branchData = parsed[provider];
 
       if (!branchData)
-        throw new Error(`Keine Commits für Provider ${provider} gefunden`);
+        throw new Error(`Not found any commits for orovider ${provider}`);
 
       return branchData;
     },
