@@ -1,16 +1,17 @@
 package cachable
 
 import (
-	"context"
 	"githubclone-backend/config"
+	"log"
 )
 
-func (f *CacheFacade) GetConfigValue(ctx context.Context, key string) (string, error) {
+func (f *CacheFacade) GetConfigValue(key string) (string, error) {
 	val, found, err := f.ConfigValueCache.Get(key)
 	if err != nil {
 		return "", err
 	}
 	if found {
+		log.Printf("GetConfigValue: %s, return %s", key, val.Value)
 		return val.Value, nil
 	}
 
@@ -25,7 +26,8 @@ func (f *CacheFacade) GetConfigValue(ctx context.Context, key string) (string, e
 	return value, nil
 }
 
-func (f *CacheFacade) SetConfigValue(ctx context.Context, key, value string) error {
+func (f *CacheFacade) SetConfigValue(key, value string) error {
+	log.Printf("SetConfigValue: %s = %s", key, value)
 	// Persist in DB
 	if err := config.SetConfiguration(key, value); err != nil {
 		return err

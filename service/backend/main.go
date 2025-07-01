@@ -86,7 +86,7 @@ func main() {
 
 	// Restore values from database, so that the service is able to continue as if the server were never down
 	// TODO: implement in cache
-	restore.InitRestore()
+	restore.InitRestore(facade)
 
 	// Start server in go routine
 	go func() {

@@ -2,13 +2,14 @@ package restore
 
 import (
 	"githubclone-backend/api"
+	"githubclone-backend/cachable"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
 	"log"
 	"time"
 )
 
-func RestoreSessions() error {
+func RestoreSessions(facade *cachable.CacheFacade) error {
 	var sessions []models.Session
 
 	if err := db.DB.
@@ -21,7 +22,7 @@ func RestoreSessions() error {
 	}
 	log.Printf("Sessions found: %d", len(sessions))
 	for _, sess := range sessions {
-		api.RestoreLogin(sess)
+		api.RestoreLogin(facade, sess)
 	}
 	return nil
 }
