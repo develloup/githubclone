@@ -6,6 +6,7 @@ import (
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
+	"githubclone-backend/cachable"
 	"githubclone-backend/utils"
 	"log"
 	"net/http"
@@ -367,6 +368,8 @@ func fetchFileViaHelper(endpoint string, token string, params map[string]interfa
 }
 
 func GetOAuthRepositoryContent(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+	log.Printf("Facade: %v", facade)
 	provider := c.Query("provider")
 	validParams := map[string]interface{}{
 		"owner": c.Query("owner"),
