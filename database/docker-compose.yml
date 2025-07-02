@@ -63,6 +63,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://user:password@postgres:5432/githubclone?sslmode=disable
+    depends_on:
+      - db
+
   redis:
     image: redis:7.2-alpine
     container_name: redis
@@ -77,6 +88,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    restart: always
+    ports:
+      - "9121:9121"
+    command:
+      - "--redis.addr=redis:6379"
+    depends_on:
+      - redis
 
   prometheus:
     image: prom/prometheus
@@ -101,6 +123,7 @@ services:
       - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor

@@ -4,7 +4,13 @@ global:
 scrape_configs:
   - job_name: 'backend'
     static_configs:
-      - targets: ['backend:8080']
+      - targets: ['backend:3000']
   - job_name: 'docker'
     static_configs:
       - targets: ['cadvisor:8080']
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres_exporter:9187']

@@ -288,8 +288,14 @@ func Login(c *gin.Context) {
 	}
 
 	// log.Printf("================== Login")
-	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
+	maxAge := int(time.Until(session.ExpiresAt).Seconds())
+	log.Printf("The cookie expires after %d seconds", maxAge)
+	c.SetCookie("session_id", sessionID, maxAge, "/", "", false, true)
+	expiresIn := time.Until(session.ExpiresAt)
 
+	days := int(expiresIn.Hours()) / 24
+	hours := int(expiresIn.Hours()) % 24
+	log.Printf("Session times out: %d day(s), %d hour(s),", days, hours)
 	// log.Printf("oauthConfigMap: %v", sessionConfig)
 
 	c.JSON(http.StatusOK, gin.H{
