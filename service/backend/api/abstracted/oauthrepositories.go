@@ -6,6 +6,7 @@ import (
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
+	"githubclone-backend/cachable"
 	"githubclone-backend/utils"
 	"log"
 	"net/http"
@@ -34,6 +35,8 @@ func GetOAuthRepositories(c *gin.Context) {
 		return
 	}
 
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+
 	rawParams := map[string]string{
 		"first":     c.DefaultQuery("first", strconv.Itoa(common.DefaultFirst)),
 		"last":      c.Query("last"),
@@ -59,21 +62,35 @@ func GetOAuthRepositories(c *gin.Context) {
 			endpoint := value.URL
 			token := value.Token
 			// log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
-			githubData, err := common.SendGraphQLQuery[github.GitHubRepositoriesOfViewer](
-				graphqlgithubprefix+endpoint+graphqlgithubpath,
-				github.GithubRepositoriesOfViewerQuery,
-				token,
-				validParams,
-				false,
-			)
-			// log.Printf("githubdata=%v, err=%v", githubData, err)
+			cacheKey := fmt.Sprintf("repos:%s:%s:%s:%s", sessionID, validParams["field"], validParams["direction"], validParams["after"])
+			githubData, found, err := facade.GitHubRepositoriesOfViewerCache.Get(cacheKey)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
-				return
+				log.Printf("cache read error: %v", err)
+			}
+
+			if !found || githubData == nil {
+				log.Printf("Make graphql request for GetOAuthRepositories")
+				githubData, err = common.SendGraphQLQuery[github.GitHubRepositoriesOfViewer](
+					graphqlgithubprefix+endpoint+graphqlgithubpath,
+					github.GithubRepositoriesOfViewerQuery,
+					token,
+					validParams,
+					false,
+				)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error":   "GraphQL request failed",
+						"details": err.Error(),
+					})
+					return
+				}
+
+				if err := facade.GitHubRepositoriesOfViewerCache.Set(cacheKey, *githubData); err != nil {
+					log.Printf("cache write error: %v", err)
+				}
 			}
 			// You're able to manipulate the data here or put it in the cache.
-			userdata[string(api.Github)] = githubData
-
+			userdata[string(key)] = githubData
 		case api.Gitlab:
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": key})
@@ -84,24 +101,50 @@ func GetOAuthRepositories(c *gin.Context) {
 }
 
 func GetOAuthRepository(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	provider := c.Query("provider")
-	validParams := map[string]interface{}{
-		"owner": c.Query("owner"),
-		"name":  c.Query("name"),
-	}
+	owner := c.Query("owner")
+	repo := c.Query("name")
 
-	GetOAuthCommonProvider[github.RepositoryNodeWithAttributes](c, provider, github.GithubRepositoryQuery, validParams, false)
+	validParams := map[string]interface{}{
+		"owner": owner,
+		"name":  repo,
+	}
+	cacheKey := fmt.Sprintf("repository:%s:%s:%s", provider, owner, repo)
+
+	GetOAuthCommonProvider[github.RepositoryNodeWithAttributes](
+		c,
+		provider,
+		github.GithubRepositoryQuery,
+		validParams,
+		facade.GitHubRepositoryNodeWithAttributesCache,
+		cacheKey,
+		false,
+	)
 }
 
 func GetOAuthRepositoryBranchCommit(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	provider := c.Query("provider")
+	owner := c.Query("owner")
+	repo := c.Query("name")
+	expression := c.Query("expression")
 	validParams := map[string]interface{}{
-		"owner":      c.Query("owner"),
-		"name":       c.Query("name"),
-		"expression": c.Query("expression"),
+		"owner":      owner,
+		"name":       repo,
+		"expression": expression,
 	}
 
-	GetOAuthCommonProvider[github.RepositoryBranchCommit](c, provider, github.GithubRepositoryBranchCommitQuery, validParams, false)
+	cacheKey := fmt.Sprintf("branchcommit:%s:%s:%s:%s", provider, owner, repo, expression)
+	GetOAuthCommonProvider[github.RepositoryBranchCommit](
+		c,
+		provider,
+		github.GithubRepositoryBranchCommitQuery,
+		validParams,
+		facade.GitHubRepositoryBranchCommitCache,
+		cacheKey,
+		false,
+	)
 }
 
 func fetchContributorsWithCount(
@@ -163,20 +206,30 @@ func fetchContributorsWithCount(
 
 func GetOAuthRepositoryContributors(c *gin.Context) {
 	provider := c.Query("provider")
+	owner := c.Query("owner")
+	name := c.Query("name")
+
+	cacheKey := fmt.Sprintf("contributors:%s:%s:%s", provider, owner, name)
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+
+	// Sonst → hol Daten und speichere
 	validParams := map[string]interface{}{
-		"owner": c.Query("owner"),
-		"name":  c.Query("name"),
+		"owner": owner,
+		"name":  name,
 	}
 
-	GetOAuthCommonProviderREST(c, provider, validParams, fetchContributorsWithCount, false)
+	GetOAuthCommonProviderREST[github.RepositoryContributor](
+		c,
+		provider,
+		validParams,
+		fetchContributorsWithCount,
+		facade.GitHubRepositoryContributorCache,
+		cacheKey,
+		false,
+	)
 }
 
-type GitHubFile struct {
-	Content string `json:"content"`
-	MIME    string `json:"mime"`
-}
-
-func fetchFileViaHelper(endpoint string, token string, params map[string]interface{}, islog bool) (*GitHubFile, error) {
+func fetchFileViaHelper(endpoint string, token string, params map[string]interface{}, islog bool) (*github.GitHubFile, error) {
 	owner, _ := params["owner"].(string)
 	name, _ := params["name"].(string)
 	path, _ := params["path"].(string)
@@ -191,7 +244,7 @@ func fetchFileViaHelper(endpoint string, token string, params map[string]interfa
 		log.Printf("contentPath=%s", contentPath)
 	}
 
-	result, err := common.SendRestAPIQuery[GitHubFile](endpoint, contentPath, token, islog)
+	result, err := common.SendRestAPIQuery[github.GitHubFile](endpoint, contentPath, token, islog)
 	if err != nil {
 		return nil, err
 	}
@@ -206,13 +259,21 @@ func fetchFileViaHelper(endpoint string, token string, params map[string]interfa
 
 func GetOAuthRepositoryContent(c *gin.Context) {
 	provider := c.Query("provider")
-	validParams := map[string]interface{}{
-		"owner": c.Query("owner"),
-		"name":  c.Query("name"),
-		"path":  c.Query("content"),
-		"ref":   c.Query("expression"),
-	}
+	owner := c.Query("owner")
+	name := c.Query("name")
+	path := c.Query("content")
+	ref := c.Query("expression")
 
-	GetOAuthCommonProviderREST(c, provider, validParams, fetchFileViaHelper, false)
+	cacheKey := fmt.Sprintf("content:%s:%s:%s:%s:%s", provider, owner, name, path, ref)
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+
+	// Sonst → hol Daten und speichere
+	validParams := map[string]interface{}{
+		"owner": owner,
+		"name":  name,
+		"path":  path,
+		"ref":   ref,
+	}
+	GetOAuthCommonProviderREST[github.GitHubFile](c, provider, validParams, fetchFileViaHelper, facade.GitHubFileCache, cacheKey, false)
 
 }

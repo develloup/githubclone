@@ -5,6 +5,11 @@ import (
 	"githubclone-backend/api/common"
 )
 
+type GitHubFile struct {
+	Content string `json:"content"`
+	MIME    string `json:"mime"`
+}
+
 type GitHubRepositoriesOfViewer struct {
 	Data struct {
 		Viewer struct {
@@ -362,49 +367,49 @@ var GithubRepositoryContentsQuery string = `query GetRepositoryContents(
   }
 `
 
-var GithubRepositoryBranches string = `query GetRepositoryBranches(
-  $owner: String!,
-  $name: String!
-  $first: Int,
-  $after: String,
-  $last: Int,
-  $before: String,
-) {
-  repository(owner: $owner, name: $name) {
-    refs(
-      refPrefix: "refs/heads/",
-      first: $first,
-      after: $after,
-      last: $last,
-      before: $before
-    ) {
-      totalCount
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-      nodes {
-        name
-        target {
-          ... on Commit {
-            committedDate
-            author {
-              user {
-                login
-              }
-            }
-          }
-        }
-      }
-    }
-    viewer {
-      login
-    }
-  }
-}
-`
+// var GithubRepositoryBranches string = `query GetRepositoryBranches(
+//   $owner: String!,
+//   $name: String!
+//   $first: Int,
+//   $after: String,
+//   $last: Int,
+//   $before: String,
+// ) {
+//   repository(owner: $owner, name: $name) {
+//     refs(
+//       refPrefix: "refs/heads/",
+//       first: $first,
+//       after: $after,
+//       last: $last,
+//       before: $before
+//     ) {
+//       totalCount
+//       pageInfo {
+//         hasNextPage
+//         hasPreviousPage
+//         startCursor
+//         endCursor
+//       }
+//       nodes {
+//         name
+//         target {
+//           ... on Commit {
+//             committedDate
+//             author {
+//               user {
+//                 login
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }
+//     viewer {
+//       login
+//     }
+//   }
+// }
+// `
 
 // The `expression` parameter in the GraphQL query refers to a Git reference name.
 // It can be one of the following:
