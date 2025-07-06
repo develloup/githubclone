@@ -21,7 +21,7 @@ func SendRestAPIQuery[T any](endpoint, path, token string, islog bool) (*RestAPI
 	url := strings.TrimRight(endpoint, "/") + "/" + strings.TrimLeft(path, "/")
 
 	if islog {
-		fmt.Printf("📡 GET %s\n", url)
+		fmt.Printf("GET %s\n", url)
 	}
 
 	req, _ := http.NewRequest("GET", url, nil)

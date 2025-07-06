@@ -1,7 +1,6 @@
 package github
 
 import (
-	"encoding/json"
 	"githubclone-backend/api/common"
 )
 
@@ -150,9 +149,9 @@ type RepositoryTree struct {
 		Repository struct {
 			Object struct {
 				Entries []struct {
-					Name string      `json:"name"`
-					Type string      `json:"type"` // blob, tree, etc.
-					Mode json.Number `json:"mode"`
+					Name string `json:"name"`
+					Type string `json:"type"` // blob, tree, etc.
+					Mode string `json:"mode"`
 				} `json:"entries"`
 			} `json:"object"`
 		} `json:"repository"`
@@ -164,12 +163,12 @@ type RepositoryTreeCommit struct {
 		Repository struct {
 			Object struct {
 				Entries []struct {
-					Name          string      `json:"name"`
-					Type          string      `json:"type"` // blob, tree, etc.
-					Mode          json.Number `json:"mode"`
-					Oid           string      `json:"oid"`
-					Message       string      `json:"message"`
-					CommittedDate string      `json:"committedDate"`
+					Name          string `json:"name"`
+					Type          string `json:"type"` // blob, tree, etc.
+					Mode          string `json:"mode"`
+					Oid           string `json:"oid"`
+					Message       string `json:"message"`
+					CommittedDate string `json:"committedDate"`
 				} `json:"entries"`
 			} `json:"object"`
 		} `json:"repository"`

@@ -18,10 +18,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: integrate the facade to support a cache for graphql data from github
-// facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
-// log.Printf("Facade: %v", facade)
-
 func GetOAuthRepositories(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
 	if err != nil {
@@ -101,6 +97,7 @@ func GetOAuthRepositories(c *gin.Context) {
 }
 
 func GetOAuthRepository(c *gin.Context) {
+	islog := false
 	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	provider := c.Query("provider")
 	owner := c.Query("owner")
@@ -112,14 +109,14 @@ func GetOAuthRepository(c *gin.Context) {
 	}
 	cacheKey := fmt.Sprintf("repository:%s:%s:%s", provider, owner, repo)
 
-	GetOAuthCommonProvider[github.RepositoryNodeWithAttributes](
+	GetOAuthCommonProvider(
 		c,
 		provider,
 		github.GithubRepositoryQuery,
 		validParams,
 		facade.GitHubRepositoryNodeWithAttributesCache,
 		cacheKey,
-		false,
+		islog,
 	)
 }
 
@@ -136,7 +133,7 @@ func GetOAuthRepositoryBranchCommit(c *gin.Context) {
 	}
 
 	cacheKey := fmt.Sprintf("branchcommit:%s:%s:%s:%s", provider, owner, repo, expression)
-	GetOAuthCommonProvider[github.RepositoryBranchCommit](
+	GetOAuthCommonProvider(
 		c,
 		provider,
 		github.GithubRepositoryBranchCommitQuery,
@@ -212,13 +209,12 @@ func GetOAuthRepositoryContributors(c *gin.Context) {
 	cacheKey := fmt.Sprintf("contributors:%s:%s:%s", provider, owner, name)
 	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 
-	// Sonst → hol Daten und speichere
 	validParams := map[string]interface{}{
 		"owner": owner,
 		"name":  name,
 	}
 
-	GetOAuthCommonProviderREST[github.RepositoryContributor](
+	GetOAuthCommonProviderREST(
 		c,
 		provider,
 		validParams,
@@ -274,6 +270,6 @@ func GetOAuthRepositoryContent(c *gin.Context) {
 		"path":  path,
 		"ref":   ref,
 	}
-	GetOAuthCommonProviderREST[github.GitHubFile](c, provider, validParams, fetchFileViaHelper, facade.GitHubFileCache, cacheKey, false)
+	GetOAuthCommonProviderREST(c, provider, validParams, fetchFileViaHelper, facade.GitHubFileCache, cacheKey, false)
 
 }

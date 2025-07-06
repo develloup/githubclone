@@ -35,12 +35,13 @@ export function RepositoryTableSelector({
             <div className="flex items-center text-sm">
                 <GitBranch className="w-4 h-4 mr-1" />
                 <span className="font-semibold mr-1">{branchCount}</span>
-                Branches
+                {branchCount === 1 ? "Branch" : "Branches"}
             </div>
+
             <div className="flex items-center text-sm">
                 <Tag className="w-4 h-4 mr-1" />
                 <span className="font-semibold mr-1">{tagCount}</span>
-                Tags
+                {tagCount === 1 ? "Tag" : "Tags"}
             </div>
         </div>
     )

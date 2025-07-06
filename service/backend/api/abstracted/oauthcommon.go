@@ -36,8 +36,11 @@ func GetOAuthCommonProvider[T any](c *gin.Context, provider string, gql string, 
 			if err != nil {
 				log.Printf("cache read error: %v", err)
 			}
+			if islog {
+				log.Printf("Cache: githubData: %v, found: %v, err: %v", githubData, found, err)
+			}
 			if !found || githubData == nil {
-				githubData, err := common.SendGraphQLQuery[T](
+				githubData, err = common.SendGraphQLQuery[T](
 					graphqlgithubprefix+endpoint+graphqlgithubpath,
 					gql,
 					token,
@@ -54,8 +57,14 @@ func GetOAuthCommonProvider[T any](c *gin.Context, provider string, gql string, 
 				if err := cache.Set(cacheKey, *githubData); err != nil {
 					log.Printf("cache write error: %v", err)
 				}
+				if islog {
+					log.Printf("Request: githubdata: %v", githubData)
+				}
 			}
 			// You're able to manipulate the data here or put it in the cache.
+			if islog {
+				log.Printf("Assign: %v", githubData)
+			}
 			userdata[string(api.Github)] = githubData
 			c.JSON(http.StatusOK, userdata)
 		case api.Gitlab:
@@ -176,4 +185,59 @@ func GetOAuthCommonProviderREST[T any](
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": provider})
 		return
 	}
+}
+
+func GetOAuthCommonProviderRESTIntern[T any](
+	c *gin.Context, provider string, validParams map[string]interface{},
+	fn func(endpoint, token string, params map[string]interface{}, islog bool) (*T, error),
+	cache *cache.TypedCache[T], cacheKey string,
+	islog bool) (*T, error) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		return nil, fmt.Errorf("missing session_id cookie: %w", err)
+	}
+	session, err := api.GetToken(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("token fetch failed: %w", err)
+	}
+
+	cachedData, found, err := cache.Get(cacheKey)
+	if islog && err == nil {
+		log.Printf("Cache hit for %s", cacheKey)
+	}
+	if found && cachedData != nil && err == nil {
+		return cachedData, nil
+	}
+
+	if value, ok := session[api.OAuthProvider(provider)]; ok {
+		switch api.OAuthProvider(provider) {
+		case api.GHES, api.Github:
+			endpoint := value.URL
+			token := value.Token
+			if islog {
+				log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
+			}
+			githubData, err := fn(
+				restapigithubprefix+endpoint+restapigithubpath,
+				token,
+				validParams,
+				islog,
+			)
+			if islog {
+				log.Printf("githubdata=%v, err=%v", githubData, err)
+			}
+			if err != nil {
+
+				return nil, fmt.Errorf("REST API request failed: %s", err)
+			}
+			cache.Set(cacheKey, *githubData)
+			// You're able to manipulate the data here or put it in the cache.
+			return githubData, nil
+
+		case api.Gitlab:
+			return nil, fmt.Errorf("provider %s currently not supported", provider)
+		}
+	}
+	return nil, fmt.Errorf("provider %s currently not supported", provider)
+
 }

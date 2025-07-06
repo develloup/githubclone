@@ -507,6 +507,8 @@ func GetOAuthURLs(c *gin.Context) {
 	c.JSON(http.StatusOK, loginURLs)
 }
 
+// TODO: create a security check with fingerprint verification, sliding ttl if activity
+// recognized, and security checks and avoidance of expiration if misuse detected
 func GetLoggedInUser(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
 	if err != nil {
