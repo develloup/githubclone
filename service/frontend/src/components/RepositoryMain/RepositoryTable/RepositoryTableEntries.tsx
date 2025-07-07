@@ -4,6 +4,7 @@ import { RepositoryEntry } from "@/types/typesRepository"
 import { FileIcon, FolderCommitIcon, FolderIcon } from "@/components/Icons";
 import { getInternalPathFromExternalURL } from "@/lib/utils"
 import { JSX } from "react/jsx-runtime";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 function formatCommitMessageWithLinks(message: string, basePath: string): JSX.Element {
@@ -85,11 +86,15 @@ export function RepositoryTableEntries({
                         </div>
 
                         <div className="text-muted-foreground col-span-6 whitespace-nowrap overflow-hidden text-ellipsis">
-                            {formatCommitMessageWithLinks(entry.message, currentPath)}
+                        {entry.message
+                            ? formatCommitMessageWithLinks(entry.message, currentPath)
+                            : <Skeleton className="h-4 w-[160px]" />}
                         </div>
 
                         <div className="text-muted-foreground text-right col-span-2 whitespace-nowrap">
-                            {formatRelativeTime(entry.committedDate)}
+                        {entry.committedDate
+                            ? formatRelativeTime(entry.committedDate)
+                            : <Skeleton className="h-4 w-[80px] ml-auto" />}
                         </div>
                     </Wrapper>
                 )
