@@ -8,7 +8,6 @@ import (
 	"githubclone-backend/cachable"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -70,9 +69,9 @@ func ConvertToRepositoryTree(contents []GithubContent) github.RepositoryTreeComm
 			Name:          item.Name,
 			Type:          gqlType,
 			Mode:          mode,
-			Oid:           "abc12345678", // Placeholders
-			Message:       "test",
-			CommittedDate: time.Now().Format("2006-01-02 15:04:05 MST"),
+			Oid:           "", // Placeholders
+			Message:       "",
+			CommittedDate: "",
 		}
 
 		tree.Data.Repository.Object.Entries = append(tree.Data.Repository.Object.Entries, entry)
