@@ -9,6 +9,7 @@ export type RepositoryHeaderProps = {
 }
 
 export function RepositoryHeader({ repository, provider }: RepositoryHeaderProps) {
+  console.log("RepositoryHeader: repository=", repository)
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between">
@@ -25,8 +26,8 @@ export function RepositoryHeader({ repository, provider }: RepositoryHeaderProps
         />
       </div>
 
-      {repository.isFork && repository.parent && (
-        <RepositoryForkOriginInfo parent={repository.parent} provider={provider} />
+      {repository.isFork && repository.Parent && (
+        <RepositoryForkOriginInfo parent={repository.Parent} provider={provider} />
       )}
     </div>
   )

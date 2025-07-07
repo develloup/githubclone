@@ -134,7 +134,7 @@ type ExtendedRepository = {
   isPrivate: boolean;
   isFork: boolean;
   isArchived:boolean;
-  parent?: {
+  Parent?: {
     nameWithOwner: string;
     url: string;
   } | null;
