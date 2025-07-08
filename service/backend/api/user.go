@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	"githubclone-backend/config"
+	"githubclone-backend/cachable"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
 	"net/http"
@@ -242,6 +242,7 @@ func DeleteUser(c *gin.Context) {
 }
 
 func SetInitialPassword(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	userID := c.Param("id")
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
@@ -275,12 +276,12 @@ func SetInitialPassword(c *gin.Context) {
 		user.PasswordHash = string(hashedPassword)
 		user.PasswordSet = false
 
-		passwordExpiryDaysStr, err := config.GetConfiguration("password_expiry_days")
+		passwordExpiryDaysStr, err := facade.GetConfigValue("password_expiry_days")
 		if err != nil {
 			return fmt.Errorf("failed to retrieve password expiry configuration")
 		}
 
-		noPasswordExpirationStr, err := config.GetConfiguration("password_never_expires")
+		noPasswordExpirationStr, err := facade.GetConfigValue("password_never_expires")
 		if err != nil {
 			return fmt.Errorf("failed to retrieve password expiration setting")
 		}
@@ -313,6 +314,7 @@ func SetInitialPassword(c *gin.Context) {
 }
 
 func UpdatePassword(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	userID := c.Param("id")
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
@@ -351,12 +353,12 @@ func UpdatePassword(c *gin.Context) {
 		}
 		user.PasswordHash = string(hashedPassword)
 
-		passwordExpiryDaysStr, err := config.GetConfiguration("password_expiry_days")
+		passwordExpiryDaysStr, err := facade.GetConfigValue("password_expiry_days")
 		if err != nil {
 			return fmt.Errorf("failed to retrieve password expiry configuration")
 		}
 
-		noPasswordExpirationStr, err := config.GetConfiguration("password_never_expires")
+		noPasswordExpirationStr, err := facade.GetConfigValue("password_never_expires")
 		if err != nil {
 			return fmt.Errorf("failed to retrieve password expiration setting")
 		}
@@ -462,4 +464,5 @@ func UserRoutes(r *gin.Engine) {
 	r.GET("/api/users/:id", GetUser)
 	r.GET("/api/users", GetAllUsers)
 	r.GET("/api/users/:id/connections", GetConnectionsForUser)
+	r.GET("/api/health", HealthCheck)
 }

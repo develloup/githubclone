@@ -1,10 +1,28 @@
 services:
+  frontend:
+    build: ../service/frontend
+    container_name: frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+      - BACKEND_URL=http://backend:${BACKEND_PORT}
+
   backend:
-    build: ../service
+    build: ../service/backend
     container_name: backend
+    ports:
+      - "3002:3000" # Public port to access backend for oauth2 authentication
     restart: always
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - .env
@@ -14,10 +32,16 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=githubclone
       - DB_PORT=5432
+      - REDIS_HOST=redis:6379
       - BACKEND_URL=${BACKEND_URL}    # Get value from .env
       - BACKEND_PORT=${BACKEND_PORT}  # Get the value from .env
-    ports:
-      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 15
+    expose:
+      - "3000"
     volumes:
       - backend_logs:/var/log/githubclone  # Persistent logging
 
@@ -38,6 +62,43 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://user:password@postgres:5432/githubclone?sslmode=disable
+    depends_on:
+      - db
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    restart: always
+    ports:
+      - "9121:9121"
+    command:
+      - "--redis.addr=redis:6379"
+    depends_on:
+      - redis
 
   prometheus:
     image: prom/prometheus
@@ -62,6 +123,7 @@ services:
       - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
@@ -80,3 +142,4 @@ volumes:
   grafana_data:
   prometheus_data:
   backend_logs:
+  redis-data:

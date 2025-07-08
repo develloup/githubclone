@@ -5,18 +5,18 @@ FROM golang:1.24 AS builder
 WORKDIR /app
 
 # Module kopieren und Abhängigkeiten installieren
-COPY backend/go.mod backend/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Quellcode kopieren und bauen
-COPY backend/ .
+COPY / .
 RUN go build -o server
 
 # Basic image for node.js (create fontend build)
-FROM node:20 AS frontend_builder
-WORKDIR /frontend
-COPY frontend ./
-RUN npm install && npm run build
+# FROM node:20 AS frontend_builder
+# WORKDIR /frontend
+# COPY frontend ./
+# RUN npm install && npm run build
 
 FROM golang:1.24
 WORKDIR /app
@@ -28,10 +28,10 @@ RUN mkdir -p /var/log/githubclone && chmod 777 /var/log/githubclone
 COPY --from=builder /app/server /app/server
 
 # Copy the frontend built in the previous step
-COPY --from=frontend_builder /frontend/out /app/static
+# COPY --from=frontend_builder /frontend/out /app/static
 
 # Expose the port for the gin server
-EXPOSE 8080
+EXPOSE 3000
 
 # Start the web application
 CMD ["/app/server"]
