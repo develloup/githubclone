@@ -102,11 +102,7 @@ export default function RepositoryPage() {
     isLoading: loadingContent,
     error: errorContent,
   } = useRepositoryContents(provider, username, reponame, branch);
-
-  if (errorContent || !repositoryContent?.data?.repository) {
-    notFound()
-  }
-
+                
   const {
     data: contributors,
     isLoading: loadingContributors,

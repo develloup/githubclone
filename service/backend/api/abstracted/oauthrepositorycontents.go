@@ -3,22 +3,33 @@ package abstracted
 import (
 	"fmt"
 	"githubclone-backend/api"
+	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
+	"githubclone-backend/cachable"
 	"log"
 	"net/http"
+	"net/url"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: integrate the facade to support a cache for graphql data from github
-// facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
-// log.Printf("Facade: %v", facade)
+const MAX_LIMIT = 40
 
-type commitInfo struct {
-	Oid           string
-	Message       string
-	CommittedDate string
+type GithubContent struct {
+	Name            string            `json:"name"`
+	Path            string            `json:"path"`
+	SHA             string            `json:"sha"`
+	Size            int               `json:"size"`
+	Type            string            `json:"type"` // "file", "dir", "symlink", "submodule"
+	URL             string            `json:"url"`
+	HTMLURL         string            `json:"html_url"`
+	GitURL          string            `json:"git_url"`
+	DownloadURL     string            `json:"download_url"`
+	SubmoduleGitURL string            `json:"submodule_git_url,omitempty"`
+	Links           map[string]string `json:"_links"`
 }
 
 func indentLines(lines []string, spaces int) string {
@@ -26,74 +37,133 @@ func indentLines(lines []string, spaces int) string {
 	return pad + strings.Join(lines, "\n"+pad)
 }
 
-func parseCommitHistoryResult(raw map[string]interface{}, aliasToPath map[string]string) map[string]commitInfo {
-	results := make(map[string]commitInfo)
+func sortContents(contents []GithubContent) {
+	sort.Slice(contents, func(i, j int) bool {
+		// "dir" und "submodule" should be handled in the same way and are sorted in front of other types
+		isPreferred := func(t string) bool {
+			return t == "dir" || t == "submodule"
+		}
 
-	// Deep access to JSON result
-	data, ok := raw["data"].(map[string]interface{})
-	if !ok {
-		return results
-	}
-	repo, ok := data["repository"].(map[string]interface{})
-	if !ok {
-		return results
-	}
-	ref, ok := repo["ref"].(map[string]interface{})
-	if !ok {
-		return results
-	}
-	target, ok := ref["target"].(map[string]interface{})
-	if !ok {
-		return results
-	}
+		inGroupI := isPreferred(contents[i].Type)
+		inGroupJ := isPreferred(contents[j].Type)
 
-	// Iterate over all aliases
-	for alias, path := range aliasToPath {
-		if entry, ok := target[alias].(map[string]interface{}); ok {
-			if nodes, ok := entry["nodes"].([]interface{}); ok && len(nodes) > 0 {
-				if node, ok := nodes[0].(map[string]interface{}); ok {
-					oid, _ := node["oid"].(string)
-					msg, _ := node["message"].(string)
-					date, _ := node["committedDate"].(string)
-					results[path] = commitInfo{
-						Oid:           oid,
-						Message:       msg,
-						CommittedDate: date,
-					}
+		if inGroupI != inGroupJ {
+			return inGroupI
+		}
+
+		// inside a group, sort against names
+		return contents[i].Name < contents[j].Name
+	})
+}
+
+func convertToRepositoryTree(owner, name string, contents []GithubContent) github.RepositoryTreeCommit {
+	var tree github.RepositoryTreeCommit
+
+	for i := range contents {
+		if contents[i].Size == 0 && contents[i].Type == "file" {
+			u, _ := url.Parse(contents[i].HTMLURL)
+			segments := strings.Split(strings.Trim(u.Path, "/"), "/")
+			if len(segments) >= 2 {
+				if owner != segments[0] || name != segments[1] {
+					contents[i].Type = "submodule"
+					// log.Printf("commit found: %s @ %s", contents[i].Name, contents[i].SHA)
 				}
 			}
 		}
 	}
+	sortContents(contents)
+	for _, item := range contents {
+		// log.Printf("item: %s, %s, %s, %d, %s, %s", item.Name, item.Path, item.SHA, item.Size, item.Type, item.HTMLURL)
+		var gqlType string
+		switch item.Type {
+		case "file":
+			gqlType = "blob"
+		case "dir":
+			gqlType = "tree"
+		case "symlink":
+			gqlType = "symlink"
+		case "submodule":
+			gqlType = "commit"
+		default:
+			gqlType = "blob"
+		}
 
-	return results
+		var mode string
+		switch item.Type {
+		case "file":
+			mode = "100644"
+		case "dir":
+			mode = "040000"
+		case "symlink":
+			mode = "120000"
+		case "commit":
+			mode = "160000"
+		default:
+			mode = "100644"
+		}
+
+		entry := struct {
+			Name          string `json:"name"`
+			Type          string `json:"type"`
+			Mode          string `json:"mode"`
+			Oid           string `json:"oid"`
+			Message       string `json:"message"`
+			CommittedDate string `json:"committedDate"`
+		}{
+			Name:          item.Name,
+			Type:          gqlType,
+			Mode:          mode,
+			Oid:           item.SHA,
+			Message:       "", // Placeholders
+			CommittedDate: "",
+		}
+
+		tree.Data.Repository.Object.Entries = append(tree.Data.Repository.Object.Entries, entry)
+	}
+
+	return tree
 }
 
-func buildCommitQueriesFromEntries(entries []string, owner, repo string, validParams map[string]interface{}, islog bool) ([]string, map[string]string) {
-	const maxPerQuery = 40
-	var queries []string
-	aliasToPath := make(map[string]string)
+func fetchRepositoryDirectory(endpoint string, token string, params map[string]interface{}, islog bool) (*github.RepositoryTreeCommit, error) {
+	owner, _ := params["owner"].(string)
+	name, _ := params["name"].(string)
+	path, _ := params["path"].(string)
+	ref, exists := params["ref"].(string)
 
-	for i := 0; i < len(entries); i += maxPerQuery {
-		end := i + maxPerQuery
-		if end > len(entries) {
-			end = len(entries)
-		}
-		chunk := entries[i:end]
+	repoDirPath := fmt.Sprintf("repos/%s/%s/contents/%s", owner, name, path)
+	if exists && ref != "" {
+		repoDirPath += fmt.Sprintf("?ref=%s", ref)
+	}
+	if islog {
+		log.Printf("repoDirPath=%s", repoDirPath)
+	}
 
-		var fields []string
-		for j, name := range chunk {
-			alias := fmt.Sprintf("f%d", i+j)
-			aliasToPath[alias] = name
-			fields = append(fields, fmt.Sprintf(`%s: history(first: 1, path: %q) {
-  nodes {
-    oid
-    message
-    committedDate
-  }
-}`, alias, name))
-		}
+	result, err := common.SendRestAPIQuery[[]GithubContent](endpoint, repoDirPath, token, islog)
+	if err != nil {
+		return nil, err
+	}
+	if islog {
+		log.Printf("#Entries: %d", (len(*result.Result)))
+		log.Printf("The raw data: %v", *result.Result)
+	}
+	tree := convertToRepositoryTree(owner, name, *result.Result)
+	return &tree, nil
+}
 
-		query := fmt.Sprintf(`
+func buildCommitQueryFromEntries(entries []github.RepositoryEntryTreeCommit, owner, repo string, validParams map[string]interface{}, islog bool) string {
+	var fields []string
+	for i := 0; i < len(entries); i++ {
+		alias := fmt.Sprintf("f%d", i)
+		fields = append(fields, fmt.Sprintf(`%s: history(first: 1, path: %q) {
+    nodes {
+        oid
+        message
+        committedDate
+    }
+}`, alias, entries[i].Name))
+	}
+
+	query := fmt.Sprintf(`
 query {
   repository(owner: %q, name: %q) {
     ref(qualifiedName: %q) {
@@ -105,78 +175,118 @@ query {
     }
   }
 }`, owner, repo, validParams["expressioncontent"], indentLines(fields, 10))
-		queries = append(queries, query)
-	}
+
 	if islog {
-		log.Printf("queries=%v,", queries)
-		log.Printf("aliasToPath=%v", aliasToPath)
+		log.Printf("query=%v,", query)
 	}
-	return queries, aliasToPath
+	return query
 }
 
-func mergeCommitsIntoTree(tree *github.RepositoryTreeCommit, commits map[string]commitInfo) {
-	entries := tree.Data.Repository.Object.Entries
-	for i, entry := range entries {
-		if commit, ok := commits[entry.Name]; ok {
-			tree.Data.Repository.Object.Entries[i].Oid = commit.Oid
-			tree.Data.Repository.Object.Entries[i].Message = commit.Message
-			tree.Data.Repository.Object.Entries[i].CommittedDate = commit.CommittedDate
+func indexOfEntry(slice []github.RepositoryEntryTreeCommit, name string) int {
+	for i, v := range slice {
+		if v.Name == name {
+			return i
 		}
+	}
+	return -1
+}
+
+func findCommitInformation(raw map[string]interface{}) map[string]interface{} {
+	data, ok := raw["data"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	repo, ok := data["repository"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	ref, ok := repo["ref"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	target, ok := ref["target"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return target
+}
+
+func mergeCommitInfoIntoEntries(entries []github.RepositoryEntryTreeCommit, target map[string]interface{}) {
+	for i := range entries {
+		alias := fmt.Sprintf("f%d", i)
+		entry, _ := target[alias].(map[string]interface{})
+		nodes, _ := entry["nodes"].([]interface{})
+		node, _ := nodes[0].(map[string]interface{})
+		entries[i].Oid = node["oid"].(string)
+		entries[i].Message = node["message"].(string)
+		entries[i].CommittedDate = node["committedDate"].(string)
 	}
 }
 
 func GetOauthRepositoryContents(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	provider := c.Query("provider")
+	owner := c.Query("owner")
+	repo := c.Query("name")
+	expression := c.Query("expression")
+
+	start := c.Query("start")
+	limit, err := strconv.Atoi(c.Query("limit"))
+	if err != nil || limit <= 0 {
+		limit = -1
+	}
+
+	partialRequest := start != "" && limit >= 0
+
 	validParams := map[string]interface{}{
-		"owner":             c.Query("owner"),
-		"name":              c.Query("name"),
-		"expression":        c.Query("expression") + ":",
-		"expressioncontent": c.Query("expression"),
+		"owner":             owner,
+		"name":              repo,
+		"expression":        expression + ":",
+		"expressioncontent": expression,
 	}
 
 	islog := false
+	cacheKey := fmt.Sprintf("branchcommit:%s:%s:%s:%s", provider, owner, repo, expression)
 
-	data, err := GetOAuthCommonProviderIntern[github.RepositoryTreeCommit](c, provider, github.GithubRepositoryContentsQuery, validParams, islog)
+	data, err, cached := GetOAuthCommonProviderRESTIntern(c, provider, validParams, fetchRepositoryDirectory, facade.GitHubRepositoryTreeCommit, cacheKey, islog)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	entries := data.Data.Repository.Object.Entries
-	names := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		names = append(names, entry.Name)
+	if islog {
+		log.Printf("err=%v, cached=%v", err, cached)
 	}
-
-	owner, _ := validParams["owner"].(string)
-	repo, _ := validParams["name"].(string)
-
-	queries, aliasToPath := buildCommitQueriesFromEntries(names, owner, repo, validParams, islog)
-	commitMap := make(map[string]commitInfo)
-
-	for _, query := range queries {
+	var userdata = make(map[string]interface{})
+	// If data was missing then just return the full entries without commit-information
+	nameindex := -1
+	if partialRequest {
+		nameindex = indexOfEntry(data.Data.Repository.Object.Entries, start)
+	}
+	if !cached || nameindex < 0 {
+		data.Partial = false
+		userdata[string(api.Github)] = data
+		c.JSON(http.StatusOK, userdata)
+	} else {
+		distance := len(data.Data.Repository.Object.Entries) - nameindex
+		if distance > limit {
+			distance = limit
+		}
+		if distance > MAX_LIMIT {
+			distance = MAX_LIMIT
+		}
+		query := buildCommitQueryFromEntries(data.Data.Repository.Object.Entries[nameindex:nameindex+distance], owner, repo, validParams, islog)
 		data1, err1 := GetOAuthCommonProviderIntern[map[string]interface{}](c, provider, query, validParams, islog)
 		if err1 != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err1.Error()})
 			return
 		}
-		chunk := parseCommitHistoryResult(*data1, aliasToPath)
-		if islog {
-			log.Printf("chunk=%v", chunk)
-		}
-		for k, v := range chunk {
-			commitMap[k] = v
-		}
+		target := findCommitInformation(*data1)
+		mergeCommitInfoIntoEntries(data.Data.Repository.Object.Entries[nameindex:nameindex+distance], target)
+		var partial github.RepositoryTreeCommit
+		partial.Partial = true
+		partial.Data.Repository.Object.Entries = data.Data.Repository.Object.Entries[nameindex : nameindex+distance]
+		userdata[string(api.Github)] = partial
+		facade.GitHubRepositoryTreeCommit.Set(cacheKey, *data)
+		c.JSON(http.StatusOK, userdata)
 	}
-	if islog {
-		log.Printf("data=%v", data)
-		log.Printf("commitMap=%v", commitMap)
-	}
-	mergeCommitsIntoTree(data, commitMap)
-	if islog {
-		log.Printf("mergeddata=%v", data)
-	}
-	var userdata = make(map[string]interface{})
-	userdata[string(api.Github)] = data
-	c.JSON(http.StatusOK, userdata)
 }
