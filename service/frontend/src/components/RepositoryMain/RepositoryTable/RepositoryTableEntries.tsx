@@ -46,17 +46,18 @@ export function RepositoryTableEntries({
     currentPath: string
 }) {
     if (!entries || entries.length === 0) return null
+    // console.log("RepositoryTableEntries:");
+    // console.log("submodules:  ", submodules);
+    // console.log("provider:    ", provider);
+    // console.log("defbranch:   ", defbranch);
+    // console.log("currentPath: ", currentPath);
+    // console.log("entries:     ", entries);
 
-    const sorted = [...entries].sort((a, b) => {
-        const priority = (type: string) => type === "tree" || type === "commit" ? 0 : 1
-        const priA = priority(a.type)
-        const priB = priority(b.type)
-        return priA !== priB ? priA - priB : a.name.localeCompare(b.name)
-    })
+
 
     return (
         <>
-            {sorted.map((entry, index) => {
+            {entries.map((entry, index) => {
                 const isTree = entry.type === "tree"
                 const isCommit = entry.type === "commit"
                 const hasSubmodule = isCommit && submodules?.[entry.name]

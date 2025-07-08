@@ -39,7 +39,7 @@ export function MarkdownViewer({
 
         const res = await fetchWithAuth(url.toString());
         const responseText = await res.text();
-        console.log("📦 Rohdaten vom Backend (FileContent):", responseText);
+        // console.log("Raw data from backend: ", responseText);
 
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${responseText}`);
         const parsed: ProviderRepositoryFileContentsMap = JSON.parse(responseText);
@@ -60,7 +60,7 @@ export function MarkdownViewer({
   if (error) {
     return (
       <div className="text-destructive">
-        ⚠️ Fehler beim Laden: <span className="font-mono">{error}</span>
+        Error during loading: <span className="font-mono">{error}</span>
       </div>
     );
   }
@@ -78,7 +78,7 @@ export function MarkdownViewer({
   if (!file.mime.startsWith("text/") && !file.mime.includes("markdown")) {
     return (
       <div className="text-red-500">
-        ⚠️ Nicht darstellbares Format: <code>{file.mime}</code>
+        Format cannot be shown: <code>{file.mime}</code>
       </div>
     );
   }

@@ -1,3 +1,4 @@
+import { RepositoryContents, RepositoryEntry } from "@/types/typesRepository";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -123,7 +124,8 @@ export function parseGitmodules(text: string): Record<string, string> {
     const [, , path, url] = match;
     result[path.trim()] = url.trim();
   }
-
+  console.log("parseGitmodules: ", result);
+  console.log("text: ", text);
   return result;
 }
 
@@ -180,3 +182,54 @@ export function toUnqualifiedRef(ref: string): string {
   return ref.startsWith(prefix) ? ref.slice(prefix.length) : ref;
 }
 
+/**
+ * Finds the name of the first entry missing commit metadata.
+ *
+ * Checks for missing `oid`, `message`, or `committedDate`,
+ * and returns the `name` of the first incomplete entry.
+ *
+ * @param entries - Flat array of RepositoryEntry items to scan
+ * @returns The name of the first incomplete entry, or `null` if all entries are complete
+ */
+export function findFirstIncompleteEntryName(entries: RepositoryEntry[]): string | null {
+  // console.log("findFirstIncompleteEntryName:", entries);
+  for (const entry of entries) {
+    if (!entry.oid || !entry.message || !entry.committedDate) {
+      // console.log("findFirstIncompleteEntryName:");
+      // console.log("name:    ", entry.name);
+      // console.log("oid:     ", entry.oid);
+      // console.log("message: ", entry.message);
+      // console.log("date:    ", entry.committedDate);
+      return entry.name
+    }
+  }
+  return null
+}
+
+/**
+ * Mutates base entries by inserting commit metadata from enriched entries.
+ *
+ * For each entry in `base`, it checks whether commit info is missing and
+ * replaces it with matching data from `enriched`, based on the `name` field.
+ *
+ * @param base - RepositoryEntry array to be modified in-place
+ * @param enriched - Array of RepositoryEntry items containing commit info
+ */
+export function mergeCommitMetaIntoEntriesMutating(
+  base: RepositoryEntry[],
+  enriched: RepositoryEntry[]
+): void {
+  const enrichedMap = new Map(enriched.map(entry => [entry.name, entry]))
+
+  for (const entry of base) {
+    if (
+      (!entry.oid || !entry.message || !entry.committedDate) &&
+      enrichedMap.has(entry.name)
+    ) {
+      const patch = enrichedMap.get(entry.name)!
+      entry.oid = patch.oid
+      entry.message = patch.message
+      entry.committedDate = patch.committedDate
+    }
+  }
+}

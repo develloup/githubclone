@@ -2,7 +2,7 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useQuery } from "@tanstack/react-query";
 
 type GitmodulesResponse = {
-  text: string;
+  content: string;
 };
 
 type ProviderGitmodulesMap = Record<string, GitmodulesResponse>;
@@ -23,22 +23,26 @@ export function useGitmodules(
   branch: string,
   enabled: boolean = false
 ) {
+  // console.log(`useGitmodules: ${provider}, ${owner}, ${reponame}, ${branch}, ${enabled}`)
   return useQuery({
     queryKey: ["gitmodules", provider, owner, reponame, branch],
     queryFn: async () => {
       const res = await fetchWithAuth(
         `/api/oauth/repositorycontent?provider=${provider}&owner=${encodeURIComponent(owner
-        )}&name=${encodeURIComponent(reponame)}&content=$(encodeURIComponent(".gitmodules"))&expression=${encodeURIComponent(branch)}
+        )}&name=${encodeURIComponent(reponame)}&content=${encodeURIComponent(".gitmodules")}&expression=${encodeURIComponent(
+          branch
         )}`,
         { credentials: "include" }
       );
 
       const raw = await res.text();
-      console.log("Raw data from backend (Repository content): ", raw);
+      // console.log("Raw data from backend (.gitmodules)): ", raw);
       if (!res.ok) throw new Error(`Error during the loading of .gitmodules: ${raw}`);
 
       const parsed: ProviderGitmodulesMap = JSON.parse(raw);
-      return parsed[provider]?.text ?? null;
+      // console.log("Provider:     ", provider);
+      // console.log("Return value: ", parsed[provider]?.content ?? null);
+      return parsed[provider]?.content ?? null;
     },
     enabled: !!branch && enabled,
     staleTime: 5 * 60 * 1000,

@@ -191,14 +191,14 @@ func GetOAuthCommonProviderRESTIntern[T any](
 	c *gin.Context, provider string, validParams map[string]interface{},
 	fn func(endpoint, token string, params map[string]interface{}, islog bool) (*T, error),
 	cache *cache.TypedCache[T], cacheKey string,
-	islog bool) (*T, error) {
+	islog bool) (*T, error, bool) {
 	sessionID, err := c.Cookie("session_id")
 	if err != nil {
-		return nil, fmt.Errorf("missing session_id cookie: %w", err)
+		return nil, fmt.Errorf("missing session_id cookie: %w", err), false
 	}
 	session, err := api.GetToken(sessionID)
 	if err != nil {
-		return nil, fmt.Errorf("token fetch failed: %w", err)
+		return nil, fmt.Errorf("token fetch failed: %w", err), false
 	}
 
 	cachedData, found, err := cache.Get(cacheKey)
@@ -206,7 +206,7 @@ func GetOAuthCommonProviderRESTIntern[T any](
 		log.Printf("Cache hit for %s", cacheKey)
 	}
 	if found && cachedData != nil && err == nil {
-		return cachedData, nil
+		return cachedData, nil, true
 	}
 
 	if value, ok := session[api.OAuthProvider(provider)]; ok {
@@ -228,16 +228,16 @@ func GetOAuthCommonProviderRESTIntern[T any](
 			}
 			if err != nil {
 
-				return nil, fmt.Errorf("REST API request failed: %s", err)
+				return nil, fmt.Errorf("REST API request failed: %s", err), false
 			}
 			cache.Set(cacheKey, *githubData)
 			// You're able to manipulate the data here or put it in the cache.
-			return githubData, nil
+			return githubData, nil, false
 
 		case api.Gitlab:
-			return nil, fmt.Errorf("provider %s currently not supported", provider)
+			return nil, fmt.Errorf("provider %s currently not supported", provider), false
 		}
 	}
-	return nil, fmt.Errorf("provider %s currently not supported", provider)
+	return nil, fmt.Errorf("provider %s currently not supported", provider), false
 
 }

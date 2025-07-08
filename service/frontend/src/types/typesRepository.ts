@@ -182,6 +182,7 @@ type RepositoryContents = {
 
 type OAuthRepositoryContents = {
   data: RepositoryContents
+
 };
 
 type RepositoryCommitTarget = {

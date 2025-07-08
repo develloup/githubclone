@@ -1,15 +1,9 @@
 "use client";
 
-import { useParams, useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-
-
-import {
-  detectStandardFilesFromEntries,
-  FileDetectionWithKey,
-} from "@/lib/detectStandardFiles";
-import { decodeBase64, parseGitmodules } from "@/lib/utils";
-
+import { useParams, useSearchParams, usePathname, useRouter, notFound } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { detectStandardFilesFromEntries, FileDetectionWithKey } from "@/lib/detectStandardFiles";
+import { decodeBase64, findFirstIncompleteEntryName, mergeCommitMetaIntoEntriesMutating, parseGitmodules } from "@/lib/utils";
 import { RepositoryHeader } from "@/components/RepositoryMain/RepositoryHeader";
 import { RepositoryRight } from "@/components/RepositoryMain/RepositoryRight";
 import { RepositoryTableHeader } from "@/components/RepositoryMain/RepositoryTableHeader";
@@ -22,6 +16,69 @@ import { useRepositoryContents } from "@/hooks/repositoryData/useRepositoryConte
 import { useContributors } from "@/hooks/repositoryData/useContributors";
 import { useBranchCommits } from "@/hooks/repositoryData/useBranchCommits";
 import { useGitmodules } from "@/hooks/repositoryData/useGitmodules";
+import { useRepositoryContentsPartial } from '@/hooks/repositoryData/useRepositoryContent';
+import { RepositoryEntry } from "@/types/typesRepository";
+
+
+function useRepositoryCommitLoader(
+  provider: string,
+  username: string,
+  reponame: string,
+  branch: string,
+  initialEntries: RepositoryEntry[],
+  chunkSize: number = 40
+) {
+  const [entries, setEntries] = useState(initialEntries)
+  const [startname, setStartname] = useState<string | undefined | null>()
+
+  console.log("startname: ", startname);
+
+  useEffect(() => {
+    if (!initialEntries || initialEntries.length === 0) return
+
+    setEntries(initialEntries)
+
+    const startname = findFirstIncompleteEntryName(initialEntries)
+    console.log("Initial startname set to:", startname)
+    setStartname(startname)
+  }, [initialEntries])
+
+  const { data, isFetching } = useRepositoryContentsPartial(
+    provider,
+    username,
+    reponame,
+    branch,
+    startname,
+    chunkSize
+  )
+
+  console.log("data: ", data);
+
+  useEffect(() => {
+    console.log("1data:  ", data);
+    console.log("1start: ", startname);
+    if (!data || !startname) return
+
+    const enriched = data.data.repository?.object?.entries ?? []
+
+    // Patch commit info into current entries
+    mergeCommitMetaIntoEntriesMutating(entries, enriched)
+
+    // Trigger re-render
+    setEntries([...entries])
+
+    // Recalculate missing commit info
+    const nextStart = findFirstIncompleteEntryName(entries)
+    console.log("next incomplete entry: ", nextStart);
+    setStartname(nextStart)
+  }, [data, entries, startname])
+
+  return {
+    entries,
+    isLoading: isFetching,
+    hasIncomplete: !!startname
+  }
+}
 
 export default function RepositoryPage() {
   const { provider, username, reponame } = useParams() as {
@@ -46,6 +103,10 @@ export default function RepositoryPage() {
     error: errorContent,
   } = useRepositoryContents(provider, username, reponame, branch);
 
+  if (errorContent || !repositoryContent?.data?.repository) {
+    notFound()
+  }
+
   const {
     data: contributors,
     isLoading: loadingContributors,
@@ -69,24 +130,25 @@ export default function RepositoryPage() {
   );
 
   const submodules = useMemo(() => {
+    // console.log("gitmodulesRaw: ", gitmodulesRaw);
     if (!gitmodulesRaw) return {};
     try {
       const decoded = decodeBase64(gitmodulesRaw);
       return parseGitmodules(decoded);
     } catch (err) {
-      console.warn("Fehler beim Parsen von .gitmodules:", err);
+      console.warn("Error during parsing of .gitmodules:", err);
       return {};
     }
   }, [gitmodulesRaw]);
 
-  const entries = useMemo(() => {
+  const initialEntries = useMemo(() => {
     return repositoryContent?.data?.repository?.object?.entries ?? [];
   }, [repositoryContent]);
 
   const detectedFiles = useMemo(() => {
-    if (entries.length === 0) return [];
-    return detectStandardFilesFromEntries(entries);
-  }, [entries]);
+    if (initialEntries.length === 0) return [];
+    return detectStandardFilesFromEntries(initialEntries);
+  }, [initialEntries]);
 
   const tabList: FileDetectionWithKey[] =
     detectedFiles.length > 0
@@ -124,6 +186,20 @@ export default function RepositoryPage() {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [activeTab]);
+
+
+  const {
+    entries,
+    isLoading: isEnriching,
+    hasIncomplete
+  } = useRepositoryCommitLoader(
+    provider,
+    username,
+    reponame,
+    branch!,
+    initialEntries,
+    40
+  )
 
   if (loadingRepo || errorRepo || !repository || !branch) {
     return (
@@ -176,24 +252,26 @@ export default function RepositoryPage() {
                 ? branchCommits.data.repository.ref.target
                 : undefined
             }
-            entries={entries}
+            entries={initialEntries}
             submodules={submodules}
             provider={provider}
             defbranch={branch}
             currentPath={currentPath}
           />
 
-          <RepositoryFile
-            tabList={tabList}
-            activeTab={activeTab}
-            activeFile={activeFile}
-            fileHref={fileHref}
-            licenseInfo={repository.data.repository.licenseInfo}
-            provider={provider}
-            username={username}
-            reponame={reponame}
-            defbranch={branch}
-          />
+          {Array.isArray(initialEntries) && initialEntries.length > 0 && (
+            <RepositoryFile
+              tabList={tabList}
+              activeTab={activeTab}
+              activeFile={activeFile}
+              fileHref={fileHref}
+              licenseInfo={repository.data.repository.licenseInfo}
+              provider={provider}
+              username={username}
+              reponame={reponame}
+              defbranch={branch}
+            />
+          )}
         </div>
 
         {/* Right Column */}

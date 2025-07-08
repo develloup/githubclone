@@ -60,10 +60,10 @@ export function RepositoryFileTabs({
                     <BulletListIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                     <div className="hidden group-hover:block absolute right-0 mt-2 bg-popover border rounded shadow-md z-10 p-2 text-sm">
                         <button className="block w-full text-left px-2 py-1 hover:bg-accent">
-                            Als Datei herunterladen
+                            Download as file
                         </button>
                         <button className="block w-full text-left px-2 py-1 hover:bg-accent">
-                            Als Raw anzeigen
+                            Show as raw
                         </button>
                     </div>
                 </div>

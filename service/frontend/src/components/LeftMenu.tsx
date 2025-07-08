@@ -21,7 +21,7 @@ export default function LeftMenu() {
     fetchWithAuth("/api/oauth/repositories", { method: "GET", credentials: "include" })
       .then(async (res) => {
         const responseText = await res.text();
-        console.log("📦 Rohdaten vom Backend (Repositories):", responseText);
+        // console.log("Raw data from backend (Repositories): ", responseText);
 
         if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
 
@@ -33,21 +33,21 @@ export default function LeftMenu() {
             const repos = repoData?.data?.viewer?.repositories?.nodes;
             const avatarUrl = repoData?.data?.viewer?.avatarUrl;
             if (repos && Array.isArray(repos)) {
-              console.log(`📁 Repos von '${provider}':`, repos);
+              // console.log(`Repositories of '${provider}':`, repos);
               const extended = repos.map((repo) => ({ ...repo, provider, avatarUrl }));
               allRepoNodes.push(...extended);
             } else {
-              console.warn(`⚠️ Keine Repos gefunden für Provider '${provider}'`);
+              console.warn(`Found no repositories for provider '${provider}'`);
             }
           } catch (err) {
-            console.error(`❌ Fehler beim Verarbeiten der Daten für '${provider}':`, err);
+            console.error(`Error during execution of data for the provider '${provider}':`, err);
           }
         });
 
         setRepositories(allRepoNodes);
       })
       .catch((err) =>
-        console.error("❌ Fehler beim Abrufen der Repository-Daten:", err)
+        console.error("Error during the request of repository data:", err)
       );
   }, []);
 
@@ -69,7 +69,7 @@ export default function LeftMenu() {
             <SheetDescription>The main menu to reach normal functionality.</SheetDescription>
         </VisuallyHidden>
         <div className="flex flex-col space-y-1 mt-1">
-            {/* 🔹 Wolf-Logo, linksbündig mit einer Leerzeile danach */}
+            {/* 🔹 Wolf-Logo, left side with a blank line */}
             <div className="flex justify-start my-3 pl-3">
                 <Image src="/wolf-logo.png" alt="Wolf Logo" width={40} height={40} unoptimized />
             </div>

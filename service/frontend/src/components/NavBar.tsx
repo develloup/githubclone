@@ -23,49 +23,49 @@ const Navbar: React.FC = () => {
   const [oauthuser, setOAuthUser] = useState<{ [key:string]: OAuthUser}>({});
 
 
-  // ✅ Funktion für OAuth-Status- und URLs-Laden
+  // Function for OAuth status and to load URL
   const fetchOAuthStatus = async () => {
-    console.log("🔹 Fetching OAuth status...");
+    // console.log("Fetching OAuth status...");
     const response = await fetch("/api/oauth-status", { credentials: "include" });
 
     if (response.ok) {
       const statusData = await response.json();
-      console.log("✅ OAuth status loaded:", statusData);
+      // console.log("OAuth status loaded:", statusData);
       setOauthStatus(statusData);
     } else {
-      console.log("❌ Failed to fetch OAuth status.");
+      console.log("Failed to fetch OAuth status.");
     }
   };
 
   const fetchOAuthUrls = async () => {
-    console.log("🔹 Fetching OAuth provider URLs...");
+    // console.log("Fetching OAuth provider URLs...");
     const response = await fetch("/api/oauth-urls", { credentials: "include" });
 
     if (response.ok) {
       const urls = await response.json();
-      console.log("✅ OAuth URLs loaded:", urls);
+      // console.log("OAuth URLs loaded:", urls);
       setOauthUrls(urls);
       localStorage.setItem("oauthUrls", JSON.stringify(urls));
     } else {
-      console.log("❌ Failed to fetch OAuth URLs.");
+      console.log("Failed to fetch OAuth URLs.");
     }
   };
 
   useEffect(() => {
     const fetchUser = async () => {
-      console.log("🔹 Fetching user data...");
+      // console.log("Fetching user data...");
       const response = await fetchWithAuth("/api/loggedinuser", { credentials: "include" });
 
       if (response.ok) {
         const userData = await response.json();
-        console.log("✅ User data loaded:", userData);
+        // console.log("User data loaded:", userData);
         setUser(userData);
 
-        // ✅ Direkt nach Login OAuth-Daten abrufen
+        // After login request OAuth data
         fetchOAuthStatus();
         fetchOAuthUrls();
       } else {
-        console.log("❌ No user logged in.");
+        console.log("No user logged in.");
         setUser(null);
       }
     };
@@ -74,14 +74,14 @@ const Navbar: React.FC = () => {
   }, [pathname]);
 
   useEffect(() => {
-    console.log("🔹 Checking stored OAuth URLs...");
+    // console.log("Checking stored OAuth URLs...");
     const storedOauthUrls = localStorage.getItem("oauthUrls");
 
     if (storedOauthUrls) {
-      console.log("✅ Loaded OAuth URLs from localStorage:", storedOauthUrls);
+      // console.log("Loaded OAuth URLs from localStorage:", storedOauthUrls);
       setOauthUrls(JSON.parse(storedOauthUrls));
     } else {
-      console.log("❌ No OAuth URLs found in localStorage.");
+      // console.log("No OAuth URLs found in localStorage.");
       fetchOAuthUrls();
     }
   }, []);
@@ -92,28 +92,28 @@ const Navbar: React.FC = () => {
     fetchWithAuth("/api/oauth/loggedinuser", { method: "GET", credentials: "include" })
       .then(async (res) => {
         const responseText = await res.text();
-        console.log("🔍 Rohdaten vom Backend:", responseText); // Log zur Überprüfung
+        // console.log("Raw data from backend:", responseText);
 
         if (!res.ok) throw new Error(`HTTP-Fehler ${res.status}: ${responseText}`);
 
-        const parsedResponse: { [key: string]: OAuthUser } = JSON.parse(responseText); // API-Daten parsen
+        const parsedResponse: { [key: string]: OAuthUser } = JSON.parse(responseText); // Parse API data
 
-        // 🔄 **Alle Provider durchlaufen, um OAuthUser zu speichern**
+        // Run through all provider to save OAuthUser
         const updatedUsers: { [key: string]: OAuthUser } = { ...oauthuser };
         Object.entries(parsedResponse).forEach(([provider, userData]) => {
           if (userData?.data?.viewer) {
-            updatedUsers[provider] = userData; // Speichert den OAuthUser unter dem Provider-Namen
+            updatedUsers[provider] = userData; // Saves the OAuthUser under the provider name
           }
         });
 
-        console.log("✅ Aktualisierte OAuthUser-Map:", updatedUsers);
+        // console.log("Updated OAuthUser map", updatedUsers);
         setOAuthUser(updatedUsers);
       })
-      .catch((err) => console.error("❌ Fehler beim Abrufen der User-Daten:", err));
+      .catch((err) => console.error("Error during request of user data: ", err));
   }, [oauthStatus]);
 
   const handleLogout = async () => {
-    console.log("🔹 Logging out...");
+    // console.log("Logging out...");
     await fetch("/api/logout", { method: "POST", credentials: "include" });
 
     document.cookie = "session_id=; Max-Age=0";
@@ -121,7 +121,7 @@ const Navbar: React.FC = () => {
     setUser(null);
     setOauthStatus({});
 
-    console.log("✅ Logout completed. Redirecting to login...");
+    // console.log("Logout completed. Redirecting to login...");
     router.push("/login");
   };
 
@@ -129,12 +129,12 @@ const Navbar: React.FC = () => {
     console.log(`🔹 Attempting OAuth login for provider: ${provider}`);
 
     if (oauthUrls && oauthUrls[provider]) {
-      console.log("✅ Redirecting to OAuth login URL:", oauthUrls[provider]);
-      console.log("Provider:  ", provider)
-      console.log("oauthUrls: ", oauthUrls)
+      // console.log("Redirecting to OAuth login URL:", oauthUrls[provider]);
+      // console.log("Provider:  ", provider)
+      // console.log("oauthUrls: ", oauthUrls)
       window.location.href = oauthUrls[provider];
     } else {
-      console.log("❌ No OAuth URL found for provider:", provider);
+      console.log("No OAuth URL found for provider:", provider);
     }
   };
 
@@ -143,7 +143,7 @@ const Navbar: React.FC = () => {
       <nav className="flex items-center justify-between p-4 py-2 text-sm">
         {/* Left side: hamburger menu as a sheet */}
         <LeftMenu/>
-        {/* 🔹 Logo & Nutzername */}
+        {/* 🔹 Logo & username */}
         <div className="flex items-center gap-6 ml-4">
           <Image src="/wolf-logo.png" alt="Wolf Logo" width={32} height={32} unoptimized />
           <span className="text-lg font-bold">WolfApp</span>

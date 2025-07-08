@@ -27,16 +27,16 @@ export function RepositoryFile({
     reponame,
     defbranch
 }: RepositoryFileProps) {
-    console.log("RepositoryFile")
-    console.log("tabList:     ", tabList);
-    console.log("activeTab:   ", activeTab);
-    console.log("activeFile:  ", activeFile);
-    console.log("fileHref:    ", fileHref);
-    console.log("licenseInfo: ", licenseInfo);
-    console.log("provider:    ", provider);
-    console.log("username:    ", username);
-    console.log("reponame:    ", reponame);
-    console.log("defbranch:   ", defbranch);
+    // console.log("RepositoryFile")
+    // console.log("tabList:     ", tabList);
+    // console.log("activeTab:   ", activeTab);
+    // console.log("activeFile:  ", activeFile);
+    // console.log("fileHref:    ", fileHref);
+    // console.log("licenseInfo: ", licenseInfo);
+    // console.log("provider:    ", provider);
+    // console.log("username:    ", username);
+    // console.log("reponame:    ", reponame);
+    // console.log("defbranch:   ", defbranch);
 
     return (
         <div className="border rounded-md overflow-hidden">

@@ -53,6 +53,7 @@ func (c *TypedCache[T]) buildKey(key string) string {
 
 // Get lädt ein Objekt vom Typ T aus dem Cache
 func (c *TypedCache[T]) Get(key string) (*T, bool, error) {
+	// return nil, false, nil
 	var val T
 	fullKey := c.buildKey(key)
 	found, err := c.backend.Get(fullKey, &val)

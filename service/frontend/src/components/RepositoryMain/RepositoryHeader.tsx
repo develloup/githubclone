@@ -9,7 +9,7 @@ export type RepositoryHeaderProps = {
 }
 
 export function RepositoryHeader({ repository, provider }: RepositoryHeaderProps) {
-  console.log("RepositoryHeader: repository=", repository)
+  // console.log("RepositoryHeader: repository=", repository)
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between">
