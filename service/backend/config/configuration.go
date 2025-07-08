@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
+	"log"
 )
 
 var AllowedKeys = map[string]string{
@@ -14,6 +15,7 @@ var AllowedKeys = map[string]string{
 }
 
 func SetConfiguration(key, value string) error {
+	log.Printf("SetConfiguration: %s = %s", key, value)
 	if _, exists := AllowedKeys[key]; !exists {
 		return fmt.Errorf("invalid configuration key: %s", key)
 	}
@@ -34,6 +36,7 @@ func GetConfiguration(key string) (string, error) {
 
 	var config models.Configuration
 	if err := db.DB.First(&config, "key = ?", key).Error; err == nil {
+		log.Printf("GetConfiguration: %s, return %s", key, config.Value)
 		return config.Value, nil
 	}
 	return AllowedKeys[key], nil

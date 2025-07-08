@@ -9,17 +9,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type HybridCache struct {
+type MultiLevelCache struct {
 	ram   *ristretto.Cache
 	redis *redis.Client
 	ctx   context.Context
 	ttl   time.Duration
 }
 
-func NewHybridCache(redisAddr string, ttl time.Duration) (*HybridCache, error) {
+func NewMultiLevelCache(redisAddr string, ttl time.Duration) (*MultiLevelCache, error) {
 	ramCache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e4,
-		MaxCost:     1 << 25, // 32MB
+		MaxCost:     1 << 29, // 512MB
 		BufferItems: 64,
 	})
 	if err != nil {
@@ -30,7 +30,7 @@ func NewHybridCache(redisAddr string, ttl time.Duration) (*HybridCache, error) {
 		Addr: redisAddr,
 	})
 
-	return &HybridCache{
+	return &MultiLevelCache{
 		ram:   ramCache,
 		redis: redisClient,
 		ctx:   context.Background(),
@@ -38,7 +38,11 @@ func NewHybridCache(redisAddr string, ttl time.Duration) (*HybridCache, error) {
 	}, nil
 }
 
-func (c *HybridCache) Get(key string, dest interface{}) (bool, error) {
+func (c *MultiLevelCache) Close() error {
+	return c.redis.Close()
+}
+
+func (c *MultiLevelCache) Get(key string, dest interface{}) (bool, error) {
 	// 1. RAM
 	if val, found := c.ram.Get(key); found {
 		bytes, ok := val.([]byte)
@@ -61,13 +65,13 @@ func (c *HybridCache) Get(key string, dest interface{}) (bool, error) {
 	return true, json.Unmarshal(val, dest)
 }
 
-func (c *HybridCache) Set(key string, val interface{}, persist bool) error {
+func (c *MultiLevelCache) Set(key string, val interface{}, persist bool) error {
 	bytes, err := json.Marshal(val)
 	if err != nil {
 		return err
 	}
 
-	// Immer RAM
+	// Always RAM
 	c.ram.Set(key, bytes, int64(len(bytes)))
 
 	// Optional Redis

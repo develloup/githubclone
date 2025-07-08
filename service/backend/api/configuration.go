@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"githubclone-backend/config"
+	"githubclone-backend/cachable"
 	"net/http"
 	"strings"
 
@@ -11,8 +11,9 @@ import (
 
 // Get Configuration value
 func GetConfig(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	key := c.Param("key")
-	value, err := config.GetConfiguration(key)
+	value, err := facade.GetConfigValue(key)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -22,6 +23,8 @@ func GetConfig(c *gin.Context) {
 
 // Get multiple Configuration values
 func GetMultipleConfigs(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+
 	var req struct {
 		Keys []string `json:"keys"`
 	}
@@ -35,7 +38,7 @@ func GetMultipleConfigs(c *gin.Context) {
 	var errors []string
 
 	for _, key := range req.Keys {
-		value, err := config.GetConfiguration(key)
+		value, err := facade.GetConfigValue(key)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("error at key '%s': %s", key, err.Error()))
 			response[key] = "error"
@@ -52,6 +55,8 @@ func GetMultipleConfigs(c *gin.Context) {
 
 // Set a Configuration value
 func SetConfig(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+
 	var req struct {
 		Key   string `json:"key"`
 		Value string `json:"value"`
@@ -61,7 +66,7 @@ func SetConfig(c *gin.Context) {
 		return
 	}
 
-	if err := config.SetConfiguration(req.Key, req.Value); err != nil {
+	if err := facade.SetConfigValue(req.Key, req.Value); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

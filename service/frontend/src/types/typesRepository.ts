@@ -1,26 +1,4 @@
 
-type User = {
-  username: string;
-  email: string;
-} | null;
-
-// The entries of a user
-type OAuthUser = {
-  data: {
-    viewer: {
-      login: string;       // User name
-      name: string;        // Full name
-      email: string;       // Public email (if available)
-      bio: string;         // Description / Biography
-      avatarUrl: string;   // Avatar picture URL
-      createdAt: string;   // Account creation date
-      company?: string;    // Company or Organization (optional)
-      location: string;    // User location
-      websiteUrl?: string; // Personal website (optional)
-    };
-  };
-};
-
 // The entries for a single repository
 type OAuthRepositoryNode = {
   name: string;
@@ -156,7 +134,7 @@ type ExtendedRepository = {
   isPrivate: boolean;
   isFork: boolean;
   isArchived:boolean;
-  parent?: {
+  Parent?: {
     nameWithOwner: string;
     url: string;
   } | null;
@@ -204,47 +182,50 @@ type RepositoryContents = {
 
 type OAuthRepositoryContents = {
   data: RepositoryContents
+
+};
+
+type RepositoryCommitTarget = {
+  oid: string
+  committedDate: string
+  messageHeadline: string
+  author: {
+    name: string
+    email: string
+    user: {
+      login: string
+      avatarUrl: string
+      url: string
+    } | null
+  }
+  signature: {
+    isValid: boolean
+    payload: string
+    signature: string
+    signer: {
+      name: string
+      email: string
+    } | null
+  } | null
+  checkSuites: {
+    totalCount: number
+    nodes: Array<{
+      status: string
+      conclusion: string
+      app: {
+        name: string
+      }
+    }>
+  }
+  history: {
+    totalCount: number
+  }
 };
 
 type RepositoryBranchCommit = {
   repository: {
     ref: {
-      target: {
-        oid: string
-        committedDate: string
-        messageHeadline: string
-        author: {
-          name: string
-          email: string
-          user: {
-            login: string
-            avatarUrl: string
-            url: string
-          } | null
-        }
-        signature: {
-          isValid: boolean
-          payload: string
-          signature: string
-          signer: {
-            name: string
-            email: string
-          } | null
-        } | null
-        checkSuites: {
-          totalCount: number
-          nodes: Array<{
-            status: string
-            conclusion: string
-            app: {
-              name: string
-            }
-          }>
-        }
-        history: {
-          totalCount: number
-        }
-      }
+      target: RepositoryCommitTarget;
     }
   }
 };
@@ -263,9 +244,8 @@ type ProviderRepositoryFileContentsMap = {
   [provider: string]: RepositoryFile
 };
 
-
-export type {User, OAuthUser, OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
+export type { OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
 export type { OAuthRepositoryBranchCommit }
-export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode };
-export type { RepositoryFile, ProviderRepositoryFileContentsMap };
+export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode, RepositoryCommitTarget };
+export type { RepositoryFile, ProviderRepositoryFileContentsMap, RepositoryLicenseInfo, RepositoryReleases, RepositoryDeployments, RepositoryLanguages };

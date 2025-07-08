@@ -1,4 +1,4 @@
-import { RepositoryEntry } from "@/types/types";
+import { RepositoryEntry } from "@/types/typesRepository";
 
 
 type FileCategory =
@@ -8,7 +8,14 @@ type FileCategory =
   | "code_of_conduct"
   | "contributing";
 
-type FileDetection = {
+export type FileDetection = {
+  category: FileCategory;
+  filename: string;
+};
+
+export type FileDetectionWithKey = {
+  key: string;
+  label: string;
   category: FileCategory;
   filename: string;
 };

@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
-	"githubclone-backend/config"
+	"githubclone-backend/cachable"
 	"githubclone-backend/db"
 	"githubclone-backend/models"
 	"log"
@@ -141,7 +141,8 @@ func getOAuth2Config(clientID, clientSecret string, serviceType OAuthProvider, g
 	return config, nil
 }
 
-func RestoreLogin(session models.Session) {
+func RestoreLogin(facade *cachable.CacheFacade, session models.Session) {
+
 	tx := db.DB.Begin() // Start of transaction
 	defer func() {
 		if r := recover(); r != nil {
@@ -195,10 +196,11 @@ func RestoreLogin(session models.Session) {
 
 	// Extend session
 	timeout := 1
-	if t, err := config.GetConfiguration("session_timeout"); err != nil {
+	if t, err := facade.GetConfigValue("session_timeout"); err == nil {
 		timeout, _ = strconv.Atoi(t) // one hour session timeout as a default
 	}
 	session.ExpiresAt = time.Now().Add(time.Duration(timeout) * time.Hour)
+	log.Printf("Session expires at: %v, timeout: %d", session.ExpiresAt, timeout)
 	if err := tx.Save(&session).Error; err != nil {
 		tx.Rollback()
 		return
@@ -208,10 +210,13 @@ func RestoreLogin(session models.Session) {
 }
 
 func Login(c *gin.Context) {
+	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+
 	var request struct {
 		Identifier string `json:"identifier"`
 		Password   string `json:"password"`
 	}
+
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
@@ -267,7 +272,7 @@ func Login(c *gin.Context) {
 	oauthConfigMutex.Unlock()
 
 	timeout := 1
-	if t, err := config.GetConfiguration("session_timeout"); err != nil {
+	if t, err := facade.GetConfigValue("session_timeout"); err == nil {
 		timeout, _ = strconv.Atoi(t) // one hour session timeout as a default
 	}
 	session := models.Session{
@@ -275,14 +280,22 @@ func Login(c *gin.Context) {
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(time.Duration(timeout) * time.Hour),
 	}
+	log.Printf("Session expires at: %v, timeout is %d", session.ExpiresAt, timeout)
+
 	if err := db.DB.Create(&session).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store session"})
 		return
 	}
 
 	// log.Printf("================== Login")
-	c.SetCookie("session_id", sessionID, 3600, "/", "", false, true)
+	maxAge := int(time.Until(session.ExpiresAt).Seconds())
+	log.Printf("The cookie expires after %d seconds", maxAge)
+	c.SetCookie("session_id", sessionID, maxAge, "/", "", false, true)
+	expiresIn := time.Until(session.ExpiresAt)
 
+	days := int(expiresIn.Hours()) / 24
+	hours := int(expiresIn.Hours()) % 24
+	log.Printf("Session times out: %d day(s), %d hour(s),", days, hours)
 	// log.Printf("oauthConfigMap: %v", sessionConfig)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -367,16 +380,16 @@ func CallbackProvider(c *gin.Context) {
 		LastSeenAt:   time.Now(),
 	}
 	// log.Printf("Update sessionTokens[%s][%s] with %s", sessionID, provider, token.AccessToken)
-	log.Printf("AccessToken:  %s", token.AccessToken)
-	log.Printf("TokenType:    %s", token.TokenType)
+	// log.Printf("AccessToken:  %s", token.AccessToken)
+	// log.Printf("TokenType:    %s", token.TokenType)
 	if token.RefreshToken != "" {
-		log.Printf("Expiry:       %s", token.Expiry.Format(time.RFC3339))
-		log.Printf("Valid unitl:  %s", time.Until(token.Expiry).Round(time.Second))
-		log.Printf("RefreshToken: %s", token.RefreshToken)
+		// log.Printf("Expiry:       %s", token.Expiry.Format(time.RFC3339))
+		// log.Printf("Valid unitl:  %s", time.Until(token.Expiry).Round(time.Second))
+		// log.Printf("RefreshToken: %s", token.RefreshToken)
 		oauth2Session.RefreshToken = token.RefreshToken
 		oauth2Session.ExpiresAt = &token.Expiry
 	} else {
-		log.Printf("Token does not expire.")
+		// log.Printf("Token does not expire.")
 	}
 	err = db.DB.Create(&oauth2Session).Error
 	if err != nil {
@@ -494,6 +507,8 @@ func GetOAuthURLs(c *gin.Context) {
 	c.JSON(http.StatusOK, loginURLs)
 }
 
+// TODO: create a security check with fingerprint verification, sliding ttl if activity
+// recognized, and security checks and avoidance of expiration if misuse detected
 func GetLoggedInUser(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
 	if err != nil {

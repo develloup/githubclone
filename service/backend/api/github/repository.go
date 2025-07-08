@@ -1,9 +1,13 @@
 package github
 
 import (
-	"encoding/json"
 	"githubclone-backend/api/common"
 )
+
+type GitHubFile struct {
+	Content string `json:"content"`
+	MIME    string `json:"mime"`
+}
 
 type GitHubRepositoriesOfViewer struct {
 	Data struct {
@@ -145,30 +149,33 @@ type RepositoryTree struct {
 		Repository struct {
 			Object struct {
 				Entries []struct {
-					Name string      `json:"name"`
-					Type string      `json:"type"` // blob, tree, etc.
-					Mode json.Number `json:"mode"`
+					Name string `json:"name"`
+					Type string `json:"type"` // blob, tree, etc.
+					Mode string `json:"mode"`
 				} `json:"entries"`
 			} `json:"object"`
 		} `json:"repository"`
 	} `json:"data"`
 }
 
+type RepositoryEntryTreeCommit struct {
+	Name          string `json:"name"`
+	Type          string `json:"type"` // blob, tree, etc.
+	Mode          string `json:"mode"`
+	Oid           string `json:"oid"`
+	Message       string `json:"message"`
+	CommittedDate string `json:"committedDate"`
+}
+
 type RepositoryTreeCommit struct {
 	Data struct {
 		Repository struct {
 			Object struct {
-				Entries []struct {
-					Name          string      `json:"name"`
-					Type          string      `json:"type"` // blob, tree, etc.
-					Mode          json.Number `json:"mode"`
-					Oid           string      `json:"oid"`
-					Message       string      `json:"message"`
-					CommittedDate string      `json:"committedDate"`
-				} `json:"entries"`
+				Entries []RepositoryEntryTreeCommit `json:"entries"`
 			} `json:"object"`
 		} `json:"repository"`
 	} `json:"data"`
+	Partial bool `json:"partial"`
 }
 
 type RepositoryBranchCommit struct {
@@ -362,49 +369,49 @@ var GithubRepositoryContentsQuery string = `query GetRepositoryContents(
   }
 `
 
-var GithubRepositoryBranches string = `query GetRepositoryBranches(
-  $owner: String!,
-  $name: String!
-  $first: Int,
-  $after: String,
-  $last: Int,
-  $before: String,
-) {
-  repository(owner: $owner, name: $name) {
-    refs(
-      refPrefix: "refs/heads/",
-      first: $first,
-      after: $after,
-      last: $last,
-      before: $before
-    ) {
-      totalCount
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-      nodes {
-        name
-        target {
-          ... on Commit {
-            committedDate
-            author {
-              user {
-                login
-              }
-            }
-          }
-        }
-      }
-    }
-    viewer {
-      login
-    }
-  }
-}
-`
+// var GithubRepositoryBranches string = `query GetRepositoryBranches(
+//   $owner: String!,
+//   $name: String!
+//   $first: Int,
+//   $after: String,
+//   $last: Int,
+//   $before: String,
+// ) {
+//   repository(owner: $owner, name: $name) {
+//     refs(
+//       refPrefix: "refs/heads/",
+//       first: $first,
+//       after: $after,
+//       last: $last,
+//       before: $before
+//     ) {
+//       totalCount
+//       pageInfo {
+//         hasNextPage
+//         hasPreviousPage
+//         startCursor
+//         endCursor
+//       }
+//       nodes {
+//         name
+//         target {
+//           ... on Commit {
+//             committedDate
+//             author {
+//               user {
+//                 login
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }
+//     viewer {
+//       login
+//     }
+//   }
+// }
+// `
 
 // The `expression` parameter in the GraphQL query refers to a Git reference name.
 // It can be one of the following:

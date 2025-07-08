@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"githubclone-backend/api"
 	"githubclone-backend/api/abstracted"
+	"githubclone-backend/cachable"
+	"githubclone-backend/cache"
 	"githubclone-backend/db"
 	"githubclone-backend/restore"
 	"io"
@@ -19,6 +21,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+func CacheMiddleware(facade *cachable.CacheFacade) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("cacheFacade", facade)
+		c.Next()
+	}
+}
+
 func main() {
 	logFile, err := os.OpenFile("/var/log/githubclone/githubclone.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -28,6 +37,8 @@ func main() {
 
 	port := os.Getenv("BACKEND_PORT")
 	baseURL := os.Getenv("BACKEND_URL")
+
+	redisAddr := os.Getenv("REDIS_HOST")
 
 	multiWriter := io.MultiWriter(os.Stderr, logFile)
 	log.SetOutput(multiWriter)
@@ -40,6 +51,13 @@ func main() {
 	db.InitDB()
 	db.AutoMigrate()
 
+	ctx := context.Background()
+	mlc, err := cache.NewMultiLevelCache(redisAddr, time.Minute)
+	if err != nil {
+		log.Fatalf("Cache init failed: %v", err)
+	}
+	facade := cachable.NewCacheFacade(ctx, mlc)
+
 	// Gin-Engine
 	r := gin.New()
 	r.Use(gin.Logger())
@@ -47,6 +65,9 @@ func main() {
 	if err := r.SetTrustedProxies(nil); err != nil {
 		log.Printf("Cannot set trusted proxies: %v", err)
 	}
+
+	// Set up middleware for all routines which come after this setup
+	r.Use(CacheMiddleware(facade))
 
 	// Routes
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
@@ -64,7 +85,8 @@ func main() {
 	}
 
 	// Restore values from database, so that the service is able to continue as if the server were never down
-	restore.InitRestore()
+	// TODO: implement in cache
+	restore.InitRestore(facade)
 
 	// Start server in go routine
 	go func() {
@@ -80,6 +102,9 @@ func main() {
 	sig := <-quit
 	log.Printf("Backend is shutting down: %v\n", sig)
 
+	if err := mlc.Close(); err != nil {
+		log.Printf("Error during redis-shutdown: %v", err)
+	}
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

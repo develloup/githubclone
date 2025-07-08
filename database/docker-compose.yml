@@ -22,6 +22,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -30,6 +32,7 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=githubclone
       - DB_PORT=5432
+      - REDIS_HOST=redis:6379
       - BACKEND_URL=${BACKEND_URL}    # Get value from .env
       - BACKEND_PORT=${BACKEND_PORT}  # Get the value from .env
     healthcheck:
@@ -60,6 +63,43 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    container_name: postgres_exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://user:password@postgres:5432/githubclone?sslmode=disable
+    depends_on:
+      - db
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis_exporter
+    restart: always
+    ports:
+      - "9121:9121"
+    command:
+      - "--redis.addr=redis:6379"
+    depends_on:
+      - redis
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -83,6 +123,7 @@ services:
       - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
@@ -101,3 +142,4 @@ volumes:
   grafana_data:
   prometheus_data:
   backend_logs:
+  redis-data:

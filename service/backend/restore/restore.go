@@ -1,11 +1,14 @@
 package restore
 
-import "log"
+import (
+	"githubclone-backend/cachable"
+	"log"
+)
 
-func InitRestore() {
+func InitRestore(facade *cachable.CacheFacade) {
 	log.Println("Starting restore operation...")
 
-	if err := RestoreSessions(); err != nil {
+	if err := RestoreSessions(facade); err != nil {
 		log.Printf("Error restoring sessions: %v", err)
 	}
 	if err := RestoreOAuth2Sessions(); err != nil {
