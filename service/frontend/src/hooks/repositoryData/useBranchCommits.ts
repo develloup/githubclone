@@ -33,7 +33,7 @@ export function useBranchCommits(
       );
 
       const raw = await res.text();
-      console.log("Raw data from backend (Branchcommits):", raw)
+      // console.log("Raw data from backend (Branchcommits):", raw)
       if (!res.ok) throw new Error(`Error during the loading of commits: ${raw}`);
 
       const parsed: ProviderRepositoryBranchCommitMap = JSON.parse(raw);

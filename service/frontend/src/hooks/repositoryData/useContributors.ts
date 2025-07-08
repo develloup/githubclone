@@ -31,7 +31,7 @@ export function useContributors(
       );
 
       const raw = await res.text();
-      console.log("Raw data from backend (Contributors): ", raw);
+      // console.log("Raw data from backend (Contributors): ", raw);
       if (!res.ok) throw new Error(`Error during the loading of contributors: ${raw}`);
 
       const parsed: ProviderContributorMap = JSON.parse(raw);
