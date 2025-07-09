@@ -1,4 +1,4 @@
-import { EyeIcon, ForkIcon, StarIcon } from "../../Icons"
+import { EyeIcon, ForkIcon, StarIcon } from "@/components/Icons"
 import { RepositoryAction } from "./RepositoryAction"
 
 

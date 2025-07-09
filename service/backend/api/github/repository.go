@@ -29,9 +29,10 @@ type RepositoryNode struct {
 	IsPrivate   bool   `json:"isPrivate"`
 	IsFork      bool   `json:"isFork"`
 	Parent      *struct {
-		NameWithOwner string `json:"nameWithOwner"`
-		URL           string `json:"url"`
-	}
+		NameWithOwner    string                  `json:"nameWithOwner"`
+		URL              string                  `json:"url"`
+		DefaultBranchRef RepositoryDefaultBranch `json:"defaultBranchRef"`
+	} `json:"parent"`
 	CreatedAt      string `json:"createdAt"`
 	UpdatedAt      string `json:"updatedAt"`
 	PushedAt       string `json:"pushedAt"`
@@ -276,6 +277,9 @@ var GithubRepositoryQuery string = `query GetRepository(
     parent {
       nameWithOwner
       url
+      defaultBranchRef {
+        name
+      }
     }
     createdAt
     updatedAt

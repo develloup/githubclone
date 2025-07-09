@@ -263,7 +263,6 @@ func GetOAuthRepositoryContent(c *gin.Context) {
 	cacheKey := fmt.Sprintf("content:%s:%s:%s:%s:%s", provider, owner, name, path, ref)
 	facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 
-	// Sonst → hol Daten und speichere
 	validParams := map[string]interface{}{
 		"owner": owner,
 		"name":  name,

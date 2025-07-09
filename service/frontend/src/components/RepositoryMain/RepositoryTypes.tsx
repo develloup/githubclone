@@ -1,7 +1,4 @@
-import { CodeOfConductIcon, ContributingIcon, LicenseIcon, ReadmeIcon, SecurityIcon } from "../Icons";
-
-
-
+import { CodeOfConductIcon, ContributingIcon, LicenseIcon, ReadmeIcon, SecurityIcon } from "@/components/Icons";
 
 const iconMap = {
     readme: <ReadmeIcon className="w-4 h-4 text-muted-foreground" />,

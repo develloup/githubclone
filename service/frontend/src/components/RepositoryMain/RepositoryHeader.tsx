@@ -26,8 +26,8 @@ export function RepositoryHeader({ repository, provider }: RepositoryHeaderProps
         />
       </div>
 
-      {repository.isFork && repository.Parent && (
-        <RepositoryForkOriginInfo parent={repository.Parent} provider={provider} />
+      {repository.isFork && repository.parent && (
+        <RepositoryForkOriginInfo parent={repository.parent} provider={provider} />
       )}
     </div>
   )

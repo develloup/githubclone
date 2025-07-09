@@ -61,13 +61,13 @@ export function useRepositoryContentsPartial(
   startname: string | null | undefined,
   maxcount: number
 ) {
-  console.log("useRepositoryContentsPartial:");
-  console.log("provider:   ", provider);
-  console.log("username:   ", username);
-  console.log("reponame:   ", reponame);
-  console.log("expression: ", expression);
-  console.log("startname:  ", startname);
-  console.log("maxcount:   ", maxcount);
+  // console.log("useRepositoryContentsPartial:");
+  // console.log("provider:   ", provider);
+  // console.log("username:   ", username);
+  // console.log("reponame:   ", reponame);
+  // console.log("expression: ", expression);
+  // console.log("startname:  ", startname);
+  // console.log("maxcount:   ", maxcount);
 
   return useQuery({
     queryKey: ["repositorycontentspartial", provider, username, reponame, expression, startname, maxcount],
@@ -86,7 +86,7 @@ export function useRepositoryContentsPartial(
       );
 
       const raw = await res.text();
-      console.log("Raw data from backend (Repository contents partial): ", raw);
+      // console.log("Raw data from backend (Repository contents partial): ", raw);
       if (!res.ok) throw new Error(`Error during the loading of contents: ${raw}`);
 
       const parsed: ProviderRepositoryContentMap = JSON.parse(raw);
@@ -94,7 +94,7 @@ export function useRepositoryContentsPartial(
 
       if (!content)
         throw new Error(`Not found any contents for provider ${provider}`);
-      console.log("Parsed data from repository contents partial: ", content);
+      // console.log("Parsed data from repository contents partial: ", content);
       return content;
     },
     enabled: typeof expression === "string" &&

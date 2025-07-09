@@ -20,7 +20,7 @@ export function useGitmodules(
   provider: string,
   owner: string,
   reponame: string,
-  branch: string,
+  branch: string | undefined,
   enabled: boolean = false
 ) {
   // console.log(`useGitmodules: ${provider}, ${owner}, ${reponame}, ${branch}, ${enabled}`)
@@ -30,7 +30,7 @@ export function useGitmodules(
       const res = await fetchWithAuth(
         `/api/oauth/repositorycontent?provider=${provider}&owner=${encodeURIComponent(owner
         )}&name=${encodeURIComponent(reponame)}&content=${encodeURIComponent(".gitmodules")}&expression=${encodeURIComponent(
-          branch
+          branch!
         )}`,
         { credentials: "include" }
       );

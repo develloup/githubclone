@@ -81,12 +81,12 @@ export function RepositoryTableEntries({
                         {...wrapperProps}
                         className="grid grid-cols-12 gap-2 p-2 text-sm hover:bg-accent cursor-pointer"
                     >
-                        <div className="flex items-center col-span-4">
+                        <div className="flex items-center col-span-5">
                             <Icon className="w-4 h-4 mr-2 text-muted-foreground" />
                             {isCommit ? `${entry.name} @ ${entry.oid.slice(0, 7)}` : entry.name}
                         </div>
 
-                        <div className="text-muted-foreground col-span-6 whitespace-nowrap overflow-hidden text-ellipsis">
+                        <div className="text-muted-foreground col-span-5 whitespace-nowrap overflow-hidden text-ellipsis">
                         {entry.message
                             ? formatCommitMessageWithLinks(entry.message, currentPath)
                             : <Skeleton className="h-4 w-[160px]" />}

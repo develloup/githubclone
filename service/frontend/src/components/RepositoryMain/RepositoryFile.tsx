@@ -1,5 +1,5 @@
 import { RepositoryLicenseInfo } from "@/types/typesRepository"
-import { MarkdownViewer } from "../markdownviewer"
+import { MarkdownViewer } from "@/components/markdownviewer"
 import { RepositoryFileTabs } from "./RepositoryFile/RepositoryFileTabs"
 import { FileDetectionWithKey, FileDetection } from "@/lib/detectStandardFiles"
 

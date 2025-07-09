@@ -127,6 +127,12 @@ type RepositoryDefaultBranchRef = {
   name: string;
 };
 
+type RepositoryParent = {
+    nameWithOwner: string;
+    url: string;
+    defaultBranchRef: RepositoryDefaultBranchRef;
+}
+
 type ExtendedRepository = {
   name: string;
   description: string;
@@ -134,10 +140,7 @@ type ExtendedRepository = {
   isPrivate: boolean;
   isFork: boolean;
   isArchived:boolean;
-  Parent?: {
-    nameWithOwner: string;
-    url: string;
-  } | null;
+  parent?: RepositoryParent | null;
   createdAt: string;
   updatedAt: string;
   pushedAt: string;
@@ -246,6 +249,6 @@ type ProviderRepositoryFileContentsMap = {
 
 export type { OAuthRepositories, OAuthRepositoryNode, OAuthPageInfo };
 export type { ExtendedRepository, RepositoryOwner, RepositoryEntry, RepositoryLanguage, RepositoryLanguageEdge, RepositoryDefaultBranchRef, OAuthRepository };
-export type { OAuthRepositoryBranchCommit }
+export type { OAuthRepositoryBranchCommit, RepositoryParent }
 export type { RepositoryContents, OAuthRepositoryContents, RepositoryCollaborators, RepositoryCollaboratorNode, RepositoryCommitTarget };
 export type { RepositoryFile, ProviderRepositoryFileContentsMap, RepositoryLicenseInfo, RepositoryReleases, RepositoryDeployments, RepositoryLanguages };

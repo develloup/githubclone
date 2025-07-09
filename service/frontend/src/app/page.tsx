@@ -7,7 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { RepositoryIcon } from "@/components/Icons";
 import { MoreHorizontal } from "lucide-react";
 
-const username = "wolfgang";
+const username = "develloup";
 const repositories = [
   { name: "Repo 1", href: "/repo1" },
   { name: "Repo 2", href: "/repo2" },

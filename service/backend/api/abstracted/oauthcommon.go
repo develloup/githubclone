@@ -139,15 +139,17 @@ func GetOAuthCommonProviderREST[T any](
 		return
 	}
 
-	cachedData, found, err := cache.Get(cacheKey)
-	if islog && err == nil {
-		log.Printf("Cache hit for %s", cacheKey)
-	}
-	if found && cachedData != nil && err == nil {
-		userdata := make(map[string]interface{})
-		userdata[string(api.OAuthProvider(provider))] = cachedData
-		c.JSON(http.StatusOK, userdata)
-		return
+	if cacheKey != "" {
+		cachedData, found, err := cache.Get(cacheKey)
+		if islog && err == nil {
+			log.Printf("Cache hit for %s", cacheKey)
+		}
+		if found && cachedData != nil && err == nil {
+			userdata := make(map[string]interface{})
+			userdata[string(api.OAuthProvider(provider))] = cachedData
+			c.JSON(http.StatusOK, userdata)
+			return
+		}
 	}
 
 	if value, ok := session[api.OAuthProvider(provider)]; ok {
@@ -172,7 +174,9 @@ func GetOAuthCommonProviderREST[T any](
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "REST API request failed", "details": err.Error()})
 				return
 			}
-			cache.Set(cacheKey, *githubData)
+			if cache != nil {
+				cache.Set(cacheKey, *githubData)
+			}
 			// You're able to manipulate the data here or put it in the cache.
 			userdata[string(api.Github)] = githubData
 			c.JSON(http.StatusOK, userdata)
@@ -201,12 +205,14 @@ func GetOAuthCommonProviderRESTIntern[T any](
 		return nil, fmt.Errorf("token fetch failed: %w", err), false
 	}
 
-	cachedData, found, err := cache.Get(cacheKey)
-	if islog && err == nil {
-		log.Printf("Cache hit for %s", cacheKey)
-	}
-	if found && cachedData != nil && err == nil {
-		return cachedData, nil, true
+	if cacheKey != "" {
+		cachedData, found, err := cache.Get(cacheKey)
+		if islog && err == nil {
+			log.Printf("Cache hit for %s", cacheKey)
+		}
+		if found && cachedData != nil && err == nil {
+			return cachedData, nil, true
+		}
 	}
 
 	if value, ok := session[api.OAuthProvider(provider)]; ok {
@@ -230,7 +236,9 @@ func GetOAuthCommonProviderRESTIntern[T any](
 
 				return nil, fmt.Errorf("REST API request failed: %s", err), false
 			}
-			cache.Set(cacheKey, *githubData)
+			if cache != nil {
+				cache.Set(cacheKey, *githubData)
+			}
 			// You're able to manipulate the data here or put it in the cache.
 			return githubData, nil, false
 

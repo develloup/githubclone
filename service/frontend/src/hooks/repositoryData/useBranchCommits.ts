@@ -40,7 +40,7 @@ export function useBranchCommits(
       const branchData = parsed[provider];
 
       if (!branchData)
-        throw new Error(`Not found any commits for orovider ${provider}`);
+        throw new Error(`Not found any commits for provider ${provider}`);
 
       return branchData;
     },

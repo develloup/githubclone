@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ReactNode } from "react"
 import { formatLicenseLabel } from "@/lib/format"
 import { RepositoryLicenseInfo } from "@/types/typesRepository"
-import { iconMap } from "../RepositoryTypes"
+import { iconMap } from "@/components/RepositoryMain/RepositoryTypes"
 
 export type RepositoryDetectedFilesProps = {
     files: { category: string; filename: string }[];
