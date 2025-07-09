@@ -40,16 +40,18 @@ All services are defined in `database/docker-compose.yml` and orchestrated via D
 
 ### Build the services
 
+To build all services in parallel:
+
 ```bash
 docker compose -f database/docker-compose.yml build --parallel
 ```
 
 ## Build and Launch
 
-To build all services in parallel:
+To build all services in parallel and then start the whole system up:
 
 ```bash
-docker compose -f database/docker-compose.yml build --parallel; docker compose -f database/docker-compose.yml up
+docker compose -f database/docker-compose.yml build --parallel && docker compose -f database/docker-compose.yml up
 ```
 
 This will start all components defined in the Docker Compose configuration, including the frontend, backend, database, cache, monitoring stack, and exporters.

@@ -1,5 +1,7 @@
 import { NextConfig } from "next";
+import withBundleAnalyzer from '@next/bundle-analyzer'
 
+const isAnalyze = process.env.ANALYZE === 'true';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: false, // Resolves problems with URLs
@@ -23,4 +25,7 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default nextConfig;
+
+export default isAnalyze ? withBundleAnalyzer({ enabled: true })(nextConfig) : nextConfig;
+
+// export default nextConfig;
