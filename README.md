@@ -38,18 +38,18 @@ The system consists of a React + TypeScript frontend and a Go-based backend. It 
 
 All services are defined in `database/docker-compose.yml` and orchestrated via Docker Compose.
 
-## Build and Launch
-
-To build all services in parallel:
+### Build the services
 
 ```bash
 docker compose -f database/docker-compose.yml build --parallel
 ```
 
-### Build the services
+## Build and Launch
+
+To build all services in parallel:
 
 ```bash
-docker compose -f database/docker-compose.yml build --parallel
+docker compose -f database/docker-compose.yml build --parallel; docker compose -f database/docker-compose.yml up
 ```
 
 This will start all components defined in the Docker Compose configuration, including the frontend, backend, database, cache, monitoring stack, and exporters.
