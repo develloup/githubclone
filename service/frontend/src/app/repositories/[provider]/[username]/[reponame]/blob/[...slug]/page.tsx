@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepoitoryBlobPage() {
+export default function RepositoryBlobPage() {
     const { provider, username, reponame, slug } = useParams() as {
         provider: string;
         username: string;

@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepoitoryPullsPage() {
+export default function RepositoryPullsPage() {
     const { provider, username, reponame } = useParams() as {
         provider: string;
         username: string;

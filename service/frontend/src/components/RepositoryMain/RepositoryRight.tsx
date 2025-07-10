@@ -23,22 +23,24 @@ export function RepositoryRight({
     return (
         <section className="space-y-6">
             <RepositoryAbout description={repository.description} />
-            <RepositoryDetectedFiles
-                files={detectedFiles}
-                licenseInfo={repository.licenseInfo}
-                currentPath={currentPath}
-            />
-            <RepositoryFacts
-                currentPath={currentPath}
-                stargazers={repository.stargazerCount}
-                watchers={repository.watchers.totalCount}
-                forks={repository.forkCount}
-            />
+            <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
+                <RepositoryDetectedFiles
+                    files={detectedFiles}
+                    licenseInfo={repository.licenseInfo}
+                    currentPath={currentPath}
+                />
+                <RepositoryFacts
+                    currentPath={currentPath}
+                    stargazers={repository.stargazerCount}
+                    watchers={repository.watchers.totalCount}
+                    forks={repository.forkCount}
+                />
+            </div>
             <RepositoryReleasesSection
                 releases={repository.releases}
                 currentPath={currentPath}
             />
-            <RepositoryContributorsSection contributors={contributors}/>
+            <RepositoryContributorsSection contributors={contributors} />
             <RepositoryDeploymentsSection deployments={repository.deployments} />
             <RepositoryLanguagesSection languages={repository.languages} />
         </section>

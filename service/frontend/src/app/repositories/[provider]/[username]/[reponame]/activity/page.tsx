@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepositoryBranchesAllPage() {
+export default function RepositoryActivityPage() {
     const { provider, username, reponame } = useParams() as {
         provider: string;
         username: string;
@@ -11,7 +11,7 @@ export default function RepositoryBranchesAllPage() {
 
     return (
         <div className="p-6 space-y-4 bg-muted rounded border">
-            <h2 className="text-xl font-bold">Branches All Page</h2>
+            <h2 className="text-xl font-bold">Activity Page</h2>
 
             <ul className="text-sm list-disc pl-5">
                 <li><strong>Provider:</strong> {provider}</li>

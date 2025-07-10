@@ -16,7 +16,7 @@ export function RepositoryFacts({
     forks
 }: RepositoryFactsProps) {
     return (
-        <div className="space-y-2 pt-1 text-sm text-muted-foreground">
+        <>
             <Link
                 href={`${currentPath}/activity`}
                 className="flex items-center gap-2 hover:underline text-primary"
@@ -48,6 +48,6 @@ export function RepositoryFacts({
                 <ForkIcon className="w-4 h-4" />
                 {formatNumber(forks)} {forks === 1 ? "Fork" : "Forks"}
             </Link>
-        </div>
+        </>
     )
 }

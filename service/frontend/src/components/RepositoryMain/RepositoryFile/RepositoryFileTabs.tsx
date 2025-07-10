@@ -5,6 +5,9 @@ import { BulletListIcon, PencilIcon } from "@/components/Icons"
 import { iconMap } from "../RepositoryTypes"
 import {FileDetectionWithKey } from "@/lib/detectStandardFiles"
 import { RepositoryLicenseInfo } from "@/types/typesRepository"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 
 export type RepositoryFileTabsProps = {
     tabList: FileDetectionWithKey[]
@@ -15,7 +18,7 @@ export type RepositoryFileTabsProps = {
 
 export function RepositoryFileTabs({
     tabList,
-    activeTab,
+    activeTab: initialTab,
     licenseInfo,
     fileHref
 }: RepositoryFileTabsProps) {
@@ -24,7 +27,8 @@ export function RepositoryFileTabs({
     // console.log("activeTab:   ", activeTab);
     // console.log("licenseInfo: ", licenseInfo);
     // console.log("fileHref:    ", fileHref);
-
+    const [activeTab, setActiveTab] = useState(initialTab ?? "readme-ov-file");
+    const router = useRouter();
     return (
         <div className="flex justify-between items-center bg-muted px-4 py-2 border-b">
             <div className="flex gap-3 flex-wrap text-sm">
@@ -35,9 +39,13 @@ export function RepositoryFileTabs({
                         : filename
 
                     return (
-                        <Link
+                        <Button
                             key={key}
-                            href={`?tab=${key}#${key}`}
+                            variant={isActive ? "default": "ghost"}
+                            onClick={() => {
+                                setActiveTab(key);
+                                router.replace(`?tab=${key}#${key}`, { scroll: false });
+                            }}
                             className={`px-2 py-1 border-b-2 ${isActive
                                 ? "border-primary text-primary font-semibold"
                                 : "border-transparent hover:underline"
@@ -47,7 +55,7 @@ export function RepositoryFileTabs({
                                 {iconMap[category]}
                                 {label}
                             </span>
-                        </Link>
+                        </Button>
                     )
                 })}
             </div>

@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepoitoryBranchesStalePage() {
+export default function RepositoryBranchesStalePage() {
     const { provider, username, reponame } = useParams() as {
         provider: string;
         username: string;

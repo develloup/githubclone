@@ -1,8 +1,9 @@
-import Link from "next/link"
 import { ReactNode } from "react"
 import { formatLicenseLabel } from "@/lib/format"
 import { RepositoryLicenseInfo } from "@/types/typesRepository"
 import { iconMap } from "@/components/RepositoryMain/RepositoryTypes"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 export type RepositoryDetectedFilesProps = {
     files: { category: string; filename: string }[];
@@ -16,10 +17,11 @@ export function RepositoryDetectedFiles({
     licenseInfo,
     currentPath
 }: RepositoryDetectedFilesProps) {
+    const router = useRouter();
     if (!files || files.length === 0) return null
 
     return (
-        <div className="space-y-2 pt-1 text-sm text-muted-foreground">
+        <>
             {files.map(({ category, filename }) => {
                 const tabKey = `${category}-ov-file`
 
@@ -31,16 +33,21 @@ export function RepositoryDetectedFiles({
                 const icon: ReactNode = iconMap[category as keyof typeof iconMap] ?? null
 
                 return (
-                    <Link
+                    <Button
                         key={category}
-                        href={`?tab=${tabKey}#${tabKey}`}
-                        className="flex items-center gap-2 hover:underline"
+                        variant="ghost"
+                        onClick={() => {
+                            router.replace(`?tab=${tabKey}#${tabKey}`, { scroll: false });
+                        }}
+                        className="px-0 py-0 h-auto text-muted-foreground hover:underline font-normal"
                     >
-                        {icon}
-                        {label}
-                    </Link>
+                        <span className="inline-flex items-center gap-2">
+                            {icon}
+                            {label}
+                        </span>
+                    </Button>
                 )
             })}
-        </div>
+        </>
     )
 }

@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepoitoryTagsPage() {
+export default function RepositoryTagsPage() {
     const { provider, username, reponame, tagid } = useParams() as {
         provider: string;
         username: string;
