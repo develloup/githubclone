@@ -8,7 +8,7 @@ import (
 )
 
 // Backend URL
-const BaseURL = "http://localhost:8080"
+const BaseURL = "http://localhost:3002"
 
 // GET request to the backend
 func GetRequest(endpoint string) (*http.Response, error) {

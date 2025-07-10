@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RepositoryCommitInfo } from "@/components/RepositoryMain/RepositoryCommitInfo";
 import { useRepositoryViewLogic } from "@/hooks/repositoryData/useRepositoryViewLogic";
+import { useDetectedFiles } from "@/hooks/repositoryData/useDetectedFiles";
 
 export default function RepositoryPage() {
   const { provider, username, reponame } = useParams() as {
@@ -23,7 +24,6 @@ export default function RepositoryPage() {
   const currentPath = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-
 
   const {
     repository,
@@ -44,55 +44,18 @@ export default function RepositoryPage() {
     reponame
   });
 
-
-  const activeTab = searchParams.get("tab") ?? "readme-ov-file";
-
-  const detectedFiles = useMemo(() => {
-    if (initialEntries.length === 0) return [];
-    return detectStandardFilesFromEntries(initialEntries);
-  }, [initialEntries]);
-
-  const tabList: FileDetectionWithKey[] =
-    detectedFiles.length > 0
-      ? detectedFiles.map(({ category, filename }) => ({
-        key: `${category}-ov-file`,
-        label: filename,
-        category,
-        filename,
-      }))
-      : [
-        {
-          key: "readme-ov-file",
-          label: "README.md",
-          category: "readme",
-          filename: "README.md",
-        },
-      ];
-
-  const activeFile =
-    tabList.find((f) => f.key === activeTab) ?? tabList[0];
-  const fileHref = `${currentPath}/edit/${branch}/${encodeURIComponent(
-    activeFile.filename
-  )}`;
-
-  useEffect(() => {
-    const el = document.getElementById(activeTab);
-    if (!el) return;
-
-    const rect = el.getBoundingClientRect();
-    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-
-    const threshold = 0.8; // mindestens 80 % sichtbar
-    const elementHeight = rect.height;
-
-    const visibleHeight = Math.min(rect.bottom, windowHeight) - Math.max(rect.top, 0);
-    const visibilityRatio = visibleHeight / elementHeight;
-
-    if (visibilityRatio < threshold) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [activeTab]);
-
+  const {
+    activeTab,
+    tabList,
+    activeFile,
+    fileHref,
+    detectedFiles,
+  } = useDetectedFiles({
+    branch,
+    initialEntries,
+    currentPath,
+    searchParams
+  });
 
   if (loadingRepo || errorRepo || !repository || !branch) {
     return (

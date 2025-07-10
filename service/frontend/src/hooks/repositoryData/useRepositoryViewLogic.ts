@@ -8,7 +8,7 @@ import { useGitmodules } from "./useGitmodules";
 import { useCommitCompare } from "../commitData/useCommitCompare";
 import { useRepositoryCommitLoader } from "./useRepositoryCommitLoader";
 
-type RepoLogicConfig = {
+type RepositoryLogicConfig = {
     provider: string;
     username: string;
     reponame: string;
@@ -22,7 +22,7 @@ export function useRepositoryViewLogic({
     reponame,
     branch: inputBranch,
     path = "",
-}: RepoLogicConfig) {
+}: RepositoryLogicConfig) {
     const { data: repository, isLoading: loadingRepo, error: errorRepo } =
         useRepository(provider, username, reponame);
 
