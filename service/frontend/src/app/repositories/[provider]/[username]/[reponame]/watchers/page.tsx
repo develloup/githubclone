@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepoitoryWatchersPage() {
+export default function RepositoryWatchersPage() {
     const { provider, username, reponame } = useParams() as {
         provider: string;
         username: string;
