@@ -1,9 +1,8 @@
 "use client";
 
 import { useParams, useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { detectStandardFilesFromEntries, FileDetectionWithKey } from "@/lib/detectStandardFiles";
-import { decodeBase64, findFirstIncompleteEntryName, mergeCommitMetaIntoEntriesMutating, parseGitmodules } from "@/lib/utils";
 import { RepositoryHeader } from "@/components/RepositoryMain/RepositoryHeader";
 import { RepositoryRight } from "@/components/RepositoryMain/RepositoryRight";
 import { RepositoryTableHeader } from "@/components/RepositoryMain/RepositoryTableHeader";
@@ -11,76 +10,8 @@ import { RepositoryTable } from "@/components/RepositoryMain/RepositoryTable";
 import { RepositoryFile } from "@/components/RepositoryMain/RepositoryFile";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRepository } from "@/hooks/repositoryData/useRepository";
-import { useRepositoryContents } from "@/hooks/repositoryData/useRepositoryContent";
-import { useContributors } from "@/hooks/repositoryData/useContributors";
-import { useBranchCommits } from "@/hooks/repositoryData/useBranchCommits";
-import { useGitmodules } from "@/hooks/repositoryData/useGitmodules";
-import { useRepositoryContentsPartial } from '@/hooks/repositoryData/useRepositoryContent';
-import { RepositoryEntry } from "@/types/typesRepository";
-import { useCommitCompare } from "@/hooks/commitData/useCommitCompare";
 import { RepositoryCommitInfo } from "@/components/RepositoryMain/RepositoryCommitInfo";
-
-
-function useRepositoryCommitLoader(
-  provider: string,
-  username: string,
-  reponame: string,
-  branch: string,
-  initialEntries: RepositoryEntry[],
-  chunkSize: number = 40
-) {
-  const [entries, setEntries] = useState(initialEntries)
-  const [startname, setStartname] = useState<string | undefined | null>()
-
-  // console.log("startname: ", startname);
-
-  useEffect(() => {
-    if (!initialEntries || initialEntries.length === 0) return
-
-    setEntries(initialEntries)
-
-    const startname = findFirstIncompleteEntryName(initialEntries)
-    console.log("Initial startname set to:", startname)
-    setStartname(startname)
-  }, [initialEntries])
-
-  const { data, isFetching } = useRepositoryContentsPartial(
-    provider,
-    username,
-    reponame,
-    branch,
-    startname,
-    chunkSize
-  )
-
-  // console.log("data: ", data);
-
-  useEffect(() => {
-    console.log("1data:  ", data);
-    console.log("1start: ", startname);
-    if (!data || !startname) return
-
-    const enriched = data.data.repository?.object?.entries ?? []
-
-    // Patch commit info into current entries
-    mergeCommitMetaIntoEntriesMutating(entries, enriched)
-
-    // Trigger re-render
-    setEntries([...entries])
-
-    // Recalculate missing commit info
-    const nextStart = findFirstIncompleteEntryName(entries)
-    console.log("next incomplete entry: ", nextStart);
-    setStartname(nextStart)
-  }, [data, entries, startname])
-
-  return {
-    entries,
-    isLoading: isFetching,
-    hasIncomplete: !!startname
-  }
-}
+import { useRepositoryViewLogic } from "@/hooks/repositoryData/useRepositoryViewLogic";
 
 export default function RepositoryPage() {
   const { provider, username, reponame } = useParams() as {
@@ -92,71 +23,29 @@ export default function RepositoryPage() {
   const currentPath = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") ?? "readme-ov-file";
 
-  const { data: repository, isLoading: loadingRepo, error: errorRepo } =
-    useRepository(provider, username, reponame);
-
-  const branch = repository?.data.repository.defaultBranchRef.name;
 
   const {
-    data: repositoryContent,
-    isLoading: loadingContent,
-    error: errorContent,
-  } = useRepositoryContents(provider, username, reponame, branch);
-
-  const {
-    data: contributors,
-    isLoading: loadingContributors,
-  } = useContributors(provider, username, reponame, !!branch);
-
-  const {
-    data: branchCommits,
-    isLoading: loadingCommits,
-  } = useBranchCommits(provider, username, reponame, branch);
-
-  const hasGitmodules = repositoryContent?.data?.repository?.object?.entries?.some(
-    (e) => e.name === ".gitmodules"
-  );
-
-  const { data: gitmodulesRaw } = useGitmodules(
-    provider,
-    username,
-    reponame,
+    repository,
+    initialEntries,
     branch,
-    hasGitmodules
-  );
-
-  const hasFork = !!(repository?.data?.repository?.isFork && !!repository?.data.repository?.parent);
-  const [parentOwner, parentRepo] = repository?.data?.repository?.parent?.nameWithOwner?.split("/") ?? ["", ""];
-  const parentBranch = repository?.data?.repository?.parent?.defaultBranchRef?.name ?? "";
-
-  const { data: forkContent } = useCommitCompare(
-    provider,
+    loadingRepo,
+    errorRepo,
     parentOwner,
     parentRepo,
     parentBranch,
+    submodules,
+    contributors,
+    forkContent,
+    branchCommits,
+  } = useRepositoryViewLogic({
+    provider,
     username,
-    reponame,
-    branch ?? "",
-    hasFork
-  )
+    reponame
+  });
 
-  const submodules = useMemo(() => {
-    // console.log("gitmodulesRaw: ", gitmodulesRaw);
-    if (!gitmodulesRaw) return {};
-    try {
-      const decoded = decodeBase64(gitmodulesRaw);
-      return parseGitmodules(decoded);
-    } catch (err) {
-      console.warn("Error during parsing of .gitmodules:", err);
-      return {};
-    }
-  }, [gitmodulesRaw]);
 
-  const initialEntries = useMemo(() => {
-    return repositoryContent?.data?.repository?.object?.entries ?? [];
-  }, [repositoryContent]);
+  const activeTab = searchParams.get("tab") ?? "readme-ov-file";
 
   const detectedFiles = useMemo(() => {
     if (initialEntries.length === 0) return [];
@@ -204,18 +93,6 @@ export default function RepositoryPage() {
     }
   }, [activeTab]);
 
-  const {
-    entries,
-    isLoading: isEnriching,
-    hasIncomplete
-  } = useRepositoryCommitLoader(
-    provider,
-    username,
-    reponame,
-    branch!,
-    initialEntries,
-    40
-  )
 
   if (loadingRepo || errorRepo || !repository || !branch) {
     return (

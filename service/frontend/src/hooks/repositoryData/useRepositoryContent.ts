@@ -19,7 +19,8 @@ export function useRepositoryContents(
   provider: string,
   username: string,
   reponame: string,
-  expression: string | undefined
+  expression: string | undefined,
+  path = ""
 ) {
   return useQuery({
     queryKey: ["repositorycontents", provider, username, reponame, expression],
