@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 
-export default function RepositoryTreePage() {
+export default function RepositoryEditFilePage() {
     const { provider, username, reponame, slug } = useParams() as {
         provider: string;
         username: string;
@@ -12,7 +12,7 @@ export default function RepositoryTreePage() {
 
     return (
         <div className="p-6 space-y-4 bg-muted rounded border">
-            <h2 className="text-xl font-bold">Tree-Page</h2>
+            <h2 className="text-xl font-bold">Edit File Page</h2>
 
             <ul className="text-sm list-disc pl-5">
                 <li><strong>Provider:</strong> {provider}</li>

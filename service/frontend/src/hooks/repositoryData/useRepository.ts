@@ -28,7 +28,7 @@ export function useRepository(provider: string, owner: string, name: string) {
       const raw = await res.text();
 
       // Optional: log raw response for debugging
-      console.log("Raw data from backend (Repository): ", raw);
+      // console.log("Raw data from backend (Repository): ", raw);
 
       // Throw error if the backend response indicates failure
       if (!res.ok) throw new Error(raw);

@@ -45,7 +45,7 @@ export function useRepositoryContents(
 
       if (!content)
         throw new Error(`Not found any contents for provider ${provider}`);
-      console.log("Parsed data from repository contents: ", content);
+      // console.log("Parsed data from repository contents: ", content);
       return content;
     },
     enabled: !!expression, // Activate query only, if there is an expression available

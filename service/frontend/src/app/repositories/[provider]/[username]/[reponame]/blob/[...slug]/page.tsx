@@ -18,11 +18,11 @@ export default function RepositoryBlobPage() {
                 <li><strong>Provider:</strong> {provider}</li>
                 <li><strong>Username:</strong> {username}</li>
                 <li><strong>Repository:</strong> {reponame}</li>
-                <li><strong>Slug-Länge:</strong> {slug?.length ?? 0}</li>
+                <li><strong>Slug length:</strong> {slug?.length ?? 0}</li>
             </ul>
 
             <div className="mt-4">
-                <h3 className="text-sm font-semibold mb-1">📁 Slug-Segmente:</h3>
+                <h3 className="text-sm font-semibold mb-1">Slug segments:</h3>
                 <ol className="list-decimal pl-5 text-sm space-y-1">
                     {slug?.map((segment, index) => (
                         <li key={index}><code>{segment}</code></li>

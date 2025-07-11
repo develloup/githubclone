@@ -22,7 +22,7 @@ export function useRepositoryCommitLoader(
         setEntries(initialEntries)
 
         const startname = findFirstIncompleteEntryName(initialEntries)
-        console.log("Initial startname set to:", startname)
+        // console.log("Initial startname set to:", startname)
         setStartname(startname)
     }, [initialEntries])
 
@@ -38,8 +38,6 @@ export function useRepositoryCommitLoader(
     // console.log("data: ", data);
 
     useEffect(() => {
-        console.log("1data:  ", data);
-        console.log("1start: ", startname);
         if (!data || !startname) return
 
         const enriched = data.data.repository?.object?.entries ?? []
@@ -52,7 +50,7 @@ export function useRepositoryCommitLoader(
 
         // Recalculate missing commit info
         const nextStart = findFirstIncompleteEntryName(entries)
-        console.log("next incomplete entry: ", nextStart);
+        // console.log("next incomplete entry: ", nextStart);
         setStartname(nextStart)
     }, [data, entries, startname])
 

@@ -18,7 +18,9 @@ export function RepositoryReleasesSection({ releases, currentPath }: RepositoryR
     return (
         <div className="space-y-2 text-sm">
             <h3 className="font-semibold flex items-center gap-2">
-                Releases
+                <Link href={`${currentPath}/releases`} className="hover:underline text-foreground">
+                    Releases
+                </Link>
                 {releases.totalCount > 0 && (
                     <Badge variant="secondary">{releases.totalCount}</Badge>
                 )}
@@ -37,7 +39,7 @@ export function RepositoryReleasesSection({ releases, currentPath }: RepositoryR
             ) : (
                 <>
                     <Link
-                        href={`${currentPath}/releases/${latest.tagName}`}
+                        href={`${currentPath}/releases/tag/${latest.tagName}`}
                         className="flex items-center gap-2 hover:underline text-primary"
                     >
                         <TagIcon className="w-4 h-4" />

@@ -59,7 +59,7 @@ export default function RepositoryPage() {
 
   if (loadingRepo || errorRepo || !repository || !branch) {
     return (
-      <div className="max-w-[1280px] mx-auto p-6 space-y-6 mt-8">
+      <div className="max-w-[1280px] mx-auto p-6 space-y-6 mt-12">
         {/* Skeleton for header and table */}
         <div className="flex items-center justify-between">
           <Skeleton className="h-10 w-10 rounded-full" />
@@ -81,11 +81,12 @@ export default function RepositoryPage() {
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto p-6 space-y-6 mt-8">
+    <div className="max-w-[1280px] mx-auto p-6 space-y-6 mt-12">
       {/* Header */}
       <RepositoryHeader
         repository={repository.data.repository}
         provider={provider}
+        currentPath={currentPath}
       />
 
       <Separator />

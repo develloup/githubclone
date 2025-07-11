@@ -1,5 +1,6 @@
 import { GitBranch, Tag } from "lucide-react"
 import { BranchTagSelector } from "@/components/BranchTagSelector"
+import Link from "next/link"
 
 export type RepositoryTableSelectorProps = {
     selected: string
@@ -32,17 +33,22 @@ export function RepositoryTableSelector({
                 tags={tags}
                 curPath={currentPath}
             />
-            <div className="flex items-center text-sm">
+            <Link
+                href={`${currentPath}/branches`}
+                className="flex items-center hover:text-foreground hover:underline"
+            >
                 <GitBranch className="w-4 h-4 mr-1" />
                 <span className="font-semibold mr-1">{branchCount}</span>
                 {branchCount === 1 ? "Branch" : "Branches"}
-            </div>
-
-            <div className="flex items-center text-sm">
+            </Link>
+            <Link
+                href={`${currentPath}/tags`}
+                className="flex items-center hover:text-foreground hover:underline"
+            >
                 <Tag className="w-4 h-4 mr-1" />
                 <span className="font-semibold mr-1">{tagCount}</span>
                 {tagCount === 1 ? "Tag" : "Tags"}
-            </div>
+            </Link>
         </div>
     )
 }

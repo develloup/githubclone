@@ -86,6 +86,39 @@ const CheckIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const ChevronDownIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    fill="none"
+    viewBox="0 -0.5 17 17"
+    className={className}
+  >
+    <path
+      d="M10.106 12.69c-0.581 0.58-1.522 0.58-2.104 0L1.561 6.246c-0.582-0.581-0.839-2.103 1-2.103h12.988c1.901 0 1.582 1.521 1 2.103l-6.443 6.444z"
+      fill="#434343"
+    />
+  </svg>
+);
+
+const ChevronRightIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 20 20"
+    fill="none"
+    className={className}
+  >
+    <path
+      d="M15.795 11.272l-8 5c-0.99907 0.6244-2.295-0.0938-2.295-1.272v-10c0-1.1782 1.2959-1.8964 2.295-1.272l8 5c0.94 0.5875 0.94 1.9565 0 2.544z"
+      fill="#000"
+    />
+  </svg>
+);
+
+
 const ClockIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
     <path d="M12 8v4l2 2m7-2c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"
@@ -133,6 +166,27 @@ const ContributingIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
+const DeleteIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <g
+      stroke="#000"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    >
+      <path d="M4 7h16" />
+      <path d="M6 10L7.701 19.358c.173 0.951.996 1.642 1.963 1.642h4.667c.967 0 1.796-.691 1.969-1.642L18 10" />
+      <path d="M9 5c0-1.104.895-2 2-2h2c1.105 0 2 .896 2 2v2H9V5z" />
+    </g>
+  </svg>
+);
 
 const DiscussionIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -153,6 +207,23 @@ const DiscussionIcon = ({ className = "", width = 24, height = 24 }) => (
 const DropDownIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 24 24" fill="none" className={className}>
     <path d="M11.808 14.77L8.0936 10.3126C7.65938 9.79159 8.02988 9.0005 8.70815 9.0005H15.2921C15.9703 9.0005 16.3409 9.79159 15.9067 10.3126L12.1923 14.77C12.0923 14.89 11.9081 14.89 11.808 14.77Z" fill="currentColor" />
+  </svg>
+);
+
+const EllipsisIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <g fill="#000">
+      <path d="M12 13.75c0.9665 0 1.75-0.7835 1.75-1.75s-0.7835-1.75-1.75-1.75-1.75 0.7835-1.75 1.75 0.7835 1.75 1.75 1.75z" />
+      <path d="M19 13.75c0.9665 0 1.75-0.7835 1.75-1.75s-0.7835-1.75-1.75-1.75-1.75 0.7835-1.75 1.75 0.7835 1.75 1.75 1.75z" />
+      <path d="M5 13.75c0.9665 0 1.75-0.7835 1.75-1.75s-0.7835-1.75-1.75-1.75-1.75 0.7835-1.75 1.75 0.7835 1.75 1.75 1.75z" />
+    </g>
   </svg>
 );
 
@@ -677,6 +748,6 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, BulletListIcon, CheckIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, DiscussionIcon, DropDownIcon, EyeIcon, FileIcon, FolderCommitIcon, FolderIcon};
+export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, BulletListIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, DeleteIcon, DiscussionIcon, DropDownIcon, EllipsisIcon, EyeIcon, FileIcon, FolderCommitIcon, FolderIcon};
 export { ForkIcon, GistIcon, HistoryIcon, HomeIcon, IssuesIcon, LetterIcon, LicenseIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon };
 export { NotificationIcon, OverviewIcon, PencilIcon, PullRequestIcon, ProfileIcon, ProjectIcon, ReadmeIcon, RepositoryIcon, SecurityIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };

@@ -6,15 +6,17 @@ import { RepositoryInfo } from "./RepositoryHeader/RepositoryInfo"
 export type RepositoryHeaderProps = {
   repository: ExtendedRepository;
   provider: string;
+  currentPath: string
 }
 
-export function RepositoryHeader({ repository, provider }: RepositoryHeaderProps) {
+export function RepositoryHeader({ repository, provider, currentPath }: RepositoryHeaderProps) {
   // console.log("RepositoryHeader: repository=", repository)
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between">
         <RepositoryInfo
           name={repository.name}
+          currentPath={currentPath}
           owner={repository.owner}
           isPrivate={repository.isPrivate}
           isArchived={repository.isArchived}

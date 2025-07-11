@@ -19,7 +19,7 @@ export function RepositoryFacts({
         <>
             <Link
                 href={`${currentPath}/activity`}
-                className="flex items-center gap-2 hover:underline text-primary"
+                className="flex items-center gap-2 hover:underline"
             >
                 <ActivityIcon className="w-4 h-4" />
                 Activity
@@ -29,7 +29,7 @@ export function RepositoryFacts({
                 href={`${currentPath}/stargazer`}
                 className="flex items-center gap-2 hover:underline"
             >
-                <StarIcon className="w-4 h-4 text-yellow-500" />
+                <StarIcon className="w-4 h-4" />
                 {formatNumber(stargazers)} {stargazers === 1 ? "Star" : "Stars"}
             </Link>
 

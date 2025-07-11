@@ -233,3 +233,39 @@ export function mergeCommitMetaIntoEntriesMutating(
     }
   }
 }
+
+/**
+ * Takes a current path like "/repositories/releases" and returns
+ * a new path by replacing the last segment with a new one.
+ *
+ * @param path - The existing full path
+ * @param next - The new segment to append (replacing the last one)
+ * @returns A new path with the last segment replaced
+ */
+export function buildPathFromParent(path: string, next: string) {
+  return `${getParentPath(path)}/${next}`;
+}
+
+/**
+ * Returns the parent path by removing the last segment.
+ *
+ * Example:
+ *  "/repositories/releases" => "/repositories"
+ *  "/orgs/acme/repos/my-repo" => "/orgs/acme/repos"
+ *
+ * @param path - Full path as a string
+ * @returns Parent path without the last segment
+ */
+export function getParentPath(path: string): string {
+  // Remove trailing slash (if present)
+  const trimmedPath = path.replace(/\/$/, "");
+
+  // Split path into segments
+  const segments = trimmedPath.split("/");
+
+  // Remove the last segment
+  const parentSegments = segments.slice(0, -1);
+
+  // Join back into a string
+  return parentSegments.join("/");
+}
