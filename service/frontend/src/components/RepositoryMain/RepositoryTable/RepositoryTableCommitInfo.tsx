@@ -1,42 +1,20 @@
 
 import { formatRelativeTime, formatWithCommas } from "@/lib/format"
-import { JSX } from "react/jsx-runtime";
 import Link from "next/link";
 import { RepositoryCommitTarget } from "@/types/typesRepository"
 import { HistoryIcon } from "@/components/Icons";
+import { formatCommitMessageWithLinks } from "@/lib/formatCommit";
 
-function formatCommitMessageWithLinks(message: string, basePath: string): JSX.Element {
-    const parts = message.split(/(#\d+)/g);
-
-    return (
-        <>
-            {parts.map((part, index) => {
-                const match = part.match(/^#(\d+)$/);
-                if (match) {
-                    const prNumber = match[1];
-                    return (
-                        <Link
-                            key={index}
-                            href={`${basePath}/pull/${prNumber}`}
-                            className="text-primary underline hover:no-underline"
-                        >
-                            #{prNumber}
-                        </Link>
-                    );
-                }
-                return <span key={index}>{part}</span>;
-            })}
-        </>
-    );
-}
 
 
 export function RepositoryTableCommitInfo({
     commit,
-    currentPath
+    currentPath,
+    branch
 }: {
     commit: RepositoryCommitTarget | undefined
     currentPath: string
+    branch: string
 }) {
     if (!commit?.oid) return <div className="h-5 bg-muted p-2" />
 
@@ -66,7 +44,7 @@ export function RepositoryTableCommitInfo({
                 </span>
             </div>
             <div className="flex-1 truncate" title={commit.messageHeadline}>
-                {formatCommitMessageWithLinks(commit.messageHeadline, currentPath)}
+                {formatCommitMessageWithLinks(commit.messageHeadline, currentPath, commit.oid)}
             </div>
             <div className="hidden sm:block text-muted-foreground">
                 {signatureValid ? "🔏 valid" : commit.signature ? "⚠️ invalid" : null}
@@ -75,13 +53,21 @@ export function RepositoryTableCommitInfo({
                 {getStatusSymbol(check?.status, check?.conclusion)}
             </div>
             <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap text-xs font-mono">
-                <span className="text-primary-600">{commit.oid.slice(0, 8)}</span>
+                <Link
+                    href={`${currentPath}/commits/${commit.oid}`}
+                    className="text-primary hover:underline"
+                >
+                    {commit.oid.slice(0, 8)}
+                </Link>
                 <span>•</span>
                 <span>{formatRelativeTime(commit.committedDate)}</span>
-                <span className="flex items-center gap-1 text-gray-400">
+                <Link
+                    href={`${currentPath}/commits/${branch}`}
+                    className="flex items-center gap-1 text-gray-400 hover:text-primary hover:underline"
+                >
                     <HistoryIcon className="w-4 h-4" />
                     {formatWithCommas(commit.history.totalCount)}
-                </span>
+                </Link>
             </div>
         </div>
     )

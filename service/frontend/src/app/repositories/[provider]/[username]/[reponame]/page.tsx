@@ -120,7 +120,7 @@ export default function RepositoryPage() {
             entries={initialEntries}
             submodules={submodules}
             provider={provider}
-            defbranch={branch}
+            branch={branch}
             currentPath={currentPath}
           />
 

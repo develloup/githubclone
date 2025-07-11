@@ -7,7 +7,7 @@ export type RepositoryTableProps = {
     entries: RepositoryEntry[] | undefined;
     submodules?: Record<string, string>
     provider: string
-    defbranch: string
+    branch: string
     currentPath: string
 }
 
@@ -16,7 +16,7 @@ export function RepositoryTable({
     entries,
     submodules,
     provider,
-    defbranch,
+    branch,
     currentPath
 }: RepositoryTableProps) {
     return (
@@ -24,13 +24,14 @@ export function RepositoryTable({
             <RepositoryTableCommitInfo
                 commit={commit}
                 currentPath={currentPath}
+                branch={branch}
             />
             <RepositoryTableEntries
                 entries={entries}
                 submodules={submodules}
                 provider={provider}
                 currentPath={currentPath}
-                defbranch={defbranch}
+                branch={branch}
             />
         </div>
     )

@@ -3,46 +3,21 @@ import { formatRelativeTime } from "@/lib/format"
 import { RepositoryEntry } from "@/types/typesRepository"
 import { FileIcon, FolderCommitIcon, FolderIcon } from "@/components/Icons";
 import { getInternalPathFromExternalURL } from "@/lib/utils"
-import { JSX } from "react/jsx-runtime";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCommitMessageWithLinks } from "@/lib/formatCommit";
 
-
-function formatCommitMessageWithLinks(message: string, basePath: string): JSX.Element {
-    const parts = message.split(/(#\d+)/g); // Erhalte Text und Matches getrennt
-
-    return (
-        <>
-            {parts.map((part, index) => {
-                const match = part.match(/^#(\d+)$/);
-                if (match) {
-                    const prNumber = match[1];
-                    return (
-                        <Link
-                            key={index}
-                            href={`${basePath}/pull/${prNumber}`}
-                            className="text-primary underline hover:no-underline"
-                        >
-                            #{prNumber}
-                        </Link>
-                    );
-                }
-                return <span key={index}>{part}</span>;
-            })}
-        </>
-    );
-}
 
 export function RepositoryTableEntries({
     entries,
     submodules,
     provider,
-    defbranch,
+    branch,
     currentPath
 }: {
     entries: RepositoryEntry[] | undefined;
     submodules?: Record<string, string>
     provider: string
-    defbranch: string
+    branch: string
     currentPath: string
 }) {
     if (!entries || entries.length === 0) return null
@@ -52,8 +27,6 @@ export function RepositoryTableEntries({
     // console.log("defbranch:   ", defbranch);
     // console.log("currentPath: ", currentPath);
     // console.log("entries:     ", entries);
-
-
 
     return (
         <>
@@ -68,7 +41,7 @@ export function RepositoryTableEntries({
                     )
                     : null
 
-                const href = `${currentPath}/${isTree || isCommit ? "tree" : "blob"}/${defbranch}/${encodeURIComponent(entry.name)}`
+                const href = `${currentPath}/${isTree || isCommit ? "tree" : "blob"}/${branch}/${encodeURIComponent(entry.name)}`
                 const Icon = isCommit ? FolderCommitIcon : isTree ? FolderIcon : FileIcon
                 const Wrapper = hasSubmodule ? "a" : Link
                 const wrapperProps = hasSubmodule && submodulePath
@@ -88,7 +61,7 @@ export function RepositoryTableEntries({
 
                         <div className="text-muted-foreground col-span-5 whitespace-nowrap overflow-hidden text-ellipsis">
                         {entry.message
-                            ? formatCommitMessageWithLinks(entry.message, currentPath)
+                            ? formatCommitMessageWithLinks(entry.message, currentPath, entry.oid)
                             : <Skeleton className="h-4 w-[160px]" />}
                         </div>
 
