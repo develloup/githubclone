@@ -22,22 +22,28 @@ type GitHubRepositoriesOfViewer struct {
 }
 
 type RepositoryNode struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	URL         string `json:"url"`
-	IsArchived  bool   `json:"isArchived"`
-	IsPrivate   bool   `json:"isPrivate"`
-	IsFork      bool   `json:"isFork"`
-	Parent      *struct {
+	CreatedAt              string `json:"createdAt"`
+	Description            string `json:"description"`
+	ForkCount              int    `json:"forkCount"`
+	HasDiscussionsEnabled  bool   `json:"hasDiscussionsEnabled"`
+	HasIssuesEnabled       bool   `json:"hasIssuesEnabled"`
+	HasProjectsEnabled     bool   `json:"hasProjectsEnabled"`
+	HasSponsorshipsEnabled bool   `json:"hasSponsorshipsEnabled"`
+	HasWikiEnabled         bool   `json:"hasWikiEnabled"`
+	IsArchived             bool   `json:"isArchived"`
+	IsPrivate              bool   `json:"isPrivate"`
+	IsFork                 bool   `json:"isFork"`
+	HomepageURL            string `json:"homepageUrl"`
+	Name                   string `json:"name"`
+	Parent                 *struct {
 		NameWithOwner    string                  `json:"nameWithOwner"`
 		URL              string                  `json:"url"`
 		DefaultBranchRef RepositoryDefaultBranch `json:"defaultBranchRef"`
 	} `json:"parent"`
-	CreatedAt      string `json:"createdAt"`
-	UpdatedAt      string `json:"updatedAt"`
 	PushedAt       string `json:"pushedAt"`
 	StargazerCount int    `json:"stargazerCount"`
-	ForkCount      int    `json:"forkCount"`
+	UpdatedAt      string `json:"updatedAt"`
+	URL            string `json:"url"`
 }
 
 type RepositoryOwner struct {
@@ -271,9 +277,16 @@ var GithubRepositoryQuery string = `query GetRepository(
     name
     description
     url
+    hasDiscussionsEnabled
+    hasIssuesEnabled
+    hasProjectsEnabled
+    hasSponsorshipsEnabled
+    hasWikiEnabled
+    homepageUrl
     isArchived
     isPrivate
     isFork
+    homepageUrl
     parent {
       nameWithOwner
       url

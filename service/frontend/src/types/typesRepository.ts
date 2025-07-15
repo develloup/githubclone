@@ -4,6 +4,11 @@ type OAuthRepositoryNode = {
   name: string;
   description: string;
   url: string;
+  hasDiscussionsEnabled: boolean;
+  hasIssuesEnabled: boolean;
+  hasProjectsEnabled: boolean;
+  hasSponsorshipsEnabled: boolean;
+  hasWikiEnabled: boolean;
   isArchived: boolean;
   isPrivate: boolean;
   isFork: boolean;
@@ -134,26 +139,32 @@ type RepositoryParent = {
 }
 
 type ExtendedRepository = {
-  name: string;
+  branches: RepositoryBranches;
+  createdAt: string;
+  defaultBranchRef: RepositoryDefaultBranchRef;
+  deployments: RepositoryDeployments;
   description: string;
-  url: string;
+  forkCount: number;
   isPrivate: boolean;
   isFork: boolean;
   isArchived:boolean;
+  hasDiscussionsEnabled: boolean;
+  hasIssuesEnabled: boolean;
+  hasProjectsEnabled: boolean;
+  hasSponsorshipsEnabled: boolean;
+  hasWikiEnabled: boolean;
+  homepageUrl: string;
+  languages: RepositoryLanguages;
+  licenseInfo: RepositoryLicenseInfo | null;
+  name: string;
+  owner: RepositoryOwner;
   parent?: RepositoryParent | null;
-  createdAt: string;
   updatedAt: string;
   pushedAt: string;
-  stargazerCount: number;
-  forkCount: number;
-  owner: RepositoryOwner;
-  languages: RepositoryLanguages;
-  defaultBranchRef: RepositoryDefaultBranchRef;
-  branches: RepositoryBranches;
   tags: RepositoryTags;
+  stargazerCount: number;
   releases: RepositoryReleases;
-  deployments: RepositoryDeployments;
-  licenseInfo: RepositoryLicenseInfo | null;
+  url: string;
   watchers: RepositoryWatchers;
 };
 

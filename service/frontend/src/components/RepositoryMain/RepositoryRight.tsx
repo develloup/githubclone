@@ -22,7 +22,7 @@ export function RepositoryRight({
 }: RepositoryRightProps) {
     return (
         <section className="space-y-6">
-            <RepositoryAbout description={repository.description} />
+            <RepositoryAbout description={repository.description} homepageUrl={repository.homepageUrl} />
             <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
                 <RepositoryDetectedFiles
                     files={detectedFiles}
