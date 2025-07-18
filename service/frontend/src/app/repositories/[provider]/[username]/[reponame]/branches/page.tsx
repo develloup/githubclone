@@ -12,73 +12,33 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { DeleteIcon, EllipsisIcon } from "@/components/Icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-type BranchInfo = {
-    name: string;
-    updated: string;
-    checkStatus: string;
-    behindAhead: string;
-    pr: string | null;
-};
-
-const defaultBranches: BranchInfo[] = [
-    {
-        name: "main",
-        updated: "2 hours ago",
-        checkStatus: "✔️ Passed",
-        behindAhead: "—",
-        pr: "Open PR #42",
-    },
-];
-
-const yourBranches: BranchInfo[] = [
-    {
-        name: "feature/login-ui",
-        updated: "4 days ago",
-        checkStatus: "⏳ Pending",
-        behindAhead: "2 behind / 1 ahead",
-        pr: null,
-    },
-    {
-        name: "bugfix/missing-avatar",
-        updated: "1 hour ago",
-        checkStatus: "❌ Failed",
-        behindAhead: "0 / 3",
-        pr: "Draft PR #51",
-    },
-];
-
-const activeBranches: BranchInfo[] = [
-    {
-        name: "refactor/auth-module",
-        updated: "6 hours ago",
-        checkStatus: "✔️ Passed",
-        behindAhead: "1 / 5",
-        pr: "Merged PR #39",
-    },
-    {
-        name: "hotfix/server-error",
-        updated: "1 day ago",
-        checkStatus: "✔️ Passed",
-        behindAhead: "—",
-        pr: null,
-    },
-    {
-        name: "chore/docs-cleanup",
-        updated: "3 days ago",
-        checkStatus: "⏳ Skipped",
-        behindAhead: "0 / 0",
-        pr: null,
-    },
-];
+import { useRepositoryBranchLogic } from "@/hooks/branchData/useRepositoryBranchLogic";
+import { RepositoryBranchNode } from "@/types/typesBranch";
+import { formatRelativeTime } from "@/lib/format";
 
 export default function BranchesPage() {
     const [searchTerm, setSearchTerm] = useState("");
+    const { provider, username, reponame } = useParams() as {
+        provider: string;
+        username: string;
+        reponame: string;
+    };
+
     const currentPath = usePathname();
+    // const router = useRouter();
+
+    const {
+        branches
+    } = useRepositoryBranchLogic({
+        provider,
+        username,
+        reponame
+    })
+
+    const branchTable = branches?.data?.repository?.refs?.nodes ?? [];
 
     return (
         <div className="max-w-[1340px] mx-auto px-4 py-6 space-y-6 mt-12">
@@ -135,32 +95,32 @@ export default function BranchesPage() {
             {/* 📁 Default */}
             <section>
                 <h2 className="text-sm font-semibold mt-4 mb-2">Default</h2>
-                <BranchTable branches={defaultBranches} />
+                <BranchTable branches={branchTable} />
             </section>
 
             {/* 📁 Yours */}
             <section>
                 <h2 className="text-sm font-semibold mt-6 mb-2">Your branches</h2>
-                <BranchTable branches={yourBranches} />
+                <BranchTable branches={branchTable} />
             </section>
 
             {/* 📁 Active */}
             <section>
                 <h2 className="text-sm font-semibold mt-6 mb-2">Active branches</h2>
-                <BranchTable branches={activeBranches} />
+                <BranchTable branches={branchTable} />
             </section>
         </div>
     );
 }
 
-function BranchTable({ branches }: { branches: BranchInfo[] }) {
+function BranchTable({ branches }: { branches: RepositoryBranchNode[] }) {
     if (!branches || branches.length === 0) {
         return <p className="text-muted-foreground">No branches found.</p>;
     }
 
     return (
         <div className="rounded-lg border overflow-hidden text-sm">
-            {/* 🧠 Header */}
+            {/* Header */}
             <div className="grid [grid-template-columns:50%_15%_11%_11%_9%_4%] bg-muted text-muted-foreground px-3 py-2 text-xs font-semibold">
                 <div>Branch</div>
                 <div>Updated</div>
@@ -170,21 +130,21 @@ function BranchTable({ branches }: { branches: BranchInfo[] }) {
                 <div className="text-right"></div>
             </div>
 
-            {/* 📦 Zeilen */}
+            {/* Rows */}
             {branches.map((branch, idx) => (
                 <div key={idx} className="grid [grid-template-columns:50%_15%_11%_11%_9%_4%] px-3 py-2 border-b last:border-b-0 items-center text-xs    ">
                     <div>{branch.name}</div>
-                    <div>{branch.updated}</div>
-                    <div>{branch.checkStatus}</div>
-                    <div>{branch.behindAhead}</div>
-                    <div>{branch.pr ?? "—"}</div>
+                    <div>{formatRelativeTime(branch.target.committedDate)}</div>
+                    <div>{branch.target.checkSuites.nodes[0]?.status ?? ""}</div>
+                    <div>behind 8</div>
+                    <div>{branch.target.associatedPullRequests.totalCount}</div>
                     <div className="flex items-center justify-end gap-[2px]">
                         {/* Delete-Button */}
                         <Button variant="ghost" size="icon">
                             <DeleteIcon className="w-auto min-w-0" />
                         </Button>
 
-                        {/* Menü mit Ellipsis */}
+                        {/* Menu with ellipsis */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">

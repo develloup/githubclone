@@ -32,12 +32,16 @@ func GetOAuthCommonProvider[T any](c *gin.Context, provider string, gql string, 
 			if islog {
 				log.Printf("endpoint=%s, token=%s", value.URL, value.Token)
 			}
-			githubData, found, err := cache.Get(cacheKey)
-			if err != nil {
-				log.Printf("cache read error: %v", err)
-			}
-			if islog {
-				log.Printf("Cache: githubData: %v, found: %v, err: %v", githubData, found, err)
+			githubData := (*T)(nil)
+			found := false
+			if cacheKey != "" && cache != nil {
+				githubData, found, err = cache.Get(cacheKey)
+				if err != nil {
+					log.Printf("cache read error: %v", err)
+				}
+				if islog {
+					log.Printf("Cache: githubData: %v, found: %v, err: %v", githubData, found, err)
+				}
 			}
 			if !found || githubData == nil {
 				githubData, err = common.SendGraphQLQuery[T](
@@ -54,8 +58,10 @@ func GetOAuthCommonProvider[T any](c *gin.Context, provider string, gql string, 
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "GraphQL request failed", "details": err.Error()})
 					return
 				}
-				if err := cache.Set(cacheKey, *githubData); err != nil {
-					log.Printf("cache write error: %v", err)
+				if cacheKey != "" && cache != nil {
+					if err := cache.Set(cacheKey, *githubData); err != nil {
+						log.Printf("cache write error: %v", err)
+					}
 				}
 				if islog {
 					log.Printf("Request: githubdata: %v", githubData)
@@ -139,7 +145,7 @@ func GetOAuthCommonProviderREST[T any](
 		return
 	}
 
-	if cacheKey != "" {
+	if cacheKey != "" && cache != nil {
 		cachedData, found, err := cache.Get(cacheKey)
 		if islog && err == nil {
 			log.Printf("Cache hit for %s", cacheKey)
@@ -174,7 +180,7 @@ func GetOAuthCommonProviderREST[T any](
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "REST API request failed", "details": err.Error()})
 				return
 			}
-			if cache != nil {
+			if cacheKey != "" && cache != nil {
 				cache.Set(cacheKey, *githubData)
 			}
 			// You're able to manipulate the data here or put it in the cache.

@@ -25,6 +25,9 @@ const restapigitlabpath = "/api/v4"
 const restapighesprefix = "https://"
 const restapighespath = "/api/v3"
 
+const githuburl = "https://github.com"
+const gitlaburl = "https://gitlab.com"
+
 func convertGitLabToGitHub(gitlabUser gitlab.GitLabUser) github.GitHubUser {
 	return github.GitHubUser{
 		Data: struct {

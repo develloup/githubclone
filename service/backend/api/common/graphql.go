@@ -99,7 +99,7 @@ func SendGraphQLQuery[T any](endpoint, query, token string, variables map[string
 	// Read answer
 	body, err := io.ReadAll(resp.Body)
 	if islog {
-		log.Printf("body=%s", ASCIIToStringFromBytes(body))
+		log.Printf("Body=%s", ASCIIToStringFromBytes(body))
 	}
 	if err != nil {
 		return nil, err

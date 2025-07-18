@@ -1,8 +1,6 @@
 "use client";
 
 import { useParams, useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { detectStandardFilesFromEntries, FileDetectionWithKey } from "@/lib/detectStandardFiles";
 import { RepositoryHeader } from "@/components/RepositoryMain/RepositoryHeader";
 import { RepositoryRight } from "@/components/RepositoryMain/RepositoryRight";
 import { RepositoryTableHeader } from "@/components/RepositoryMain/RepositoryTableHeader";

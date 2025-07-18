@@ -42,7 +42,7 @@ export function useCommitCompare(
       );
 
       const raw = await res.text();
-      console.log("Raw data from backend (CommitsCompare):", raw);
+      // console.log("Raw data from backend (CommitsCompare):", raw);
       if (!res.ok) throw new Error(`Error during the loading of commits compare: ${raw}`);
 
       const parsed: ProviderForkComparisonMap = JSON.parse(raw);

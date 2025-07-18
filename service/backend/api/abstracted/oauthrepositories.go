@@ -7,6 +7,7 @@ import (
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
 	"githubclone-backend/cachable"
+	"githubclone-backend/gitcache"
 	"githubclone-backend/utils"
 	"log"
 	"net/http"
@@ -118,6 +119,8 @@ func GetOAuthRepository(c *gin.Context) {
 		cacheKey,
 		islog,
 	)
+	endpoint := fmt.Sprintf("%s/%s/%s", githuburl, owner, repo)
+	gitcache.TriggerClone(endpoint)
 }
 
 func GetOAuthRepositoryBranchCommit(c *gin.Context) {

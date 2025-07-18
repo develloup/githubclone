@@ -52,7 +52,7 @@ func SendRestAPIQuery[T any](endpoint, path, token string, islog bool) (*RestAPI
 	var payload T
 	if err := json.Unmarshal(body, &payload); err != nil {
 		if islog {
-			log.Printf("Body=%v", body)
+			log.Printf("Body=%v", ASCIIToStringFromBytes(body))
 		}
 		return nil, fmt.Errorf("unmarshaling failed: %w", err)
 	}

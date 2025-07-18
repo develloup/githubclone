@@ -33,8 +33,9 @@ services:
       - DB_NAME=githubclone
       - DB_PORT=5432
       - REDIS_HOST=redis:6379
-      - BACKEND_URL=${BACKEND_URL}    # Get value from .env
-      - BACKEND_PORT=${BACKEND_PORT}  # Get the value from .env
+      - BACKEND_URL=${BACKEND_URL}     # Get value from .env
+      - BACKEND_PORT=${BACKEND_PORT}   # Get the value from .env
+      - GIT_CACHE_DIR=${GIT_CACHE_DIR} # Get the root path of the git cache
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
       interval: 5s
@@ -43,7 +44,8 @@ services:
     expose:
       - "3000"
     volumes:
-      - backend_logs:/var/log/githubclone  # Persistent logging
+      - backend_logs:/var/log/githubclone      # Persistent logging
+      - gitcache:/var/lib/githubclone/gitcache # The git cache for branch and latest commit
 
   db:
     image: postgres:latest
@@ -143,3 +145,4 @@ volumes:
   prometheus_data:
   backend_logs:
   redis-data:
+  gitcache:
