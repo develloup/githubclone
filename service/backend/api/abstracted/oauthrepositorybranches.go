@@ -1,10 +1,11 @@
 package abstracted
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
-	"sort"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -14,8 +15,6 @@ import (
 	"githubclone-backend/gitcache"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 type BranchInfo struct {
@@ -24,51 +23,57 @@ type BranchInfo struct {
 	CommitDate time.Time `json:"date"`
 }
 
+func parseGitDate(dateStr string) (time.Time, error) {
+	// Format 1: RFC3339 → "2022-08-01T15:54:13+00:00"
+	if t, err := time.Parse(time.RFC3339, dateStr); err == nil {
+		return t, nil
+	}
+
+	// Format 2: Git format with blanks "2022-08-01 15:54:13 +0000"
+	const gitFormat = "2006-01-02 15:04:05 -0700"
+	return time.Parse(gitFormat, dateStr)
+}
+
 func getSortedBranches(repoPath string, islog bool) ([]BranchInfo, error) {
-	repo, err := git.PlainOpen(repoPath)
+	cmd := exec.Command("git", "-C", repoPath,
+		"for-each-ref", "refs/remotes/origin/",
+		"--sort=-committerdate",
+		"--format=%(refname:short) %(objectname) %(committerdate:iso8601)")
+
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open repo: %w", err)
+		return nil, fmt.Errorf("git command failed: %w", err)
 	}
 
-	refs, err := repo.References()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list refs: %w", err)
-	}
-
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	var branches []BranchInfo
 
-	err = refs.ForEach(func(ref *plumbing.Reference) error {
-		if !ref.Name().IsRemote() || !strings.HasPrefix(ref.Name().String(), "refs/remotes/origin/") {
-			return nil
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.SplitN(line, " ", 3)
+		if len(parts) < 3 {
+			continue
 		}
 		if islog {
-			log.Printf("foreach: %v", ref)
+			log.Printf("line: %s", line)
 		}
-		commit, err := repo.CommitObject(ref.Hash())
+		commitTime, err := parseGitDate(parts[2])
 		if err != nil {
-			return nil
+			if islog {
+				log.Printf("error: %v", err)
+			}
+			continue
 		}
-
+		if islog {
+			log.Printf("%s, %s, %v", parts[0], parts[1], commitTime)
+		}
 		branches = append(branches, BranchInfo{
-			Name:       ref.Name().Short(),
-			CommitHash: commit.Hash.String(),
-			CommitDate: commit.Committer.When,
+			Name:       parts[0],
+			CommitHash: parts[1],
+			CommitDate: commitTime,
 		})
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
 
-	sort.Slice(branches, func(i, j int) bool {
-		return branches[i].CommitDate.After(branches[j].CommitDate)
-	})
-
-	if islog {
-		log.Printf("branches: %v", branches)
-	}
 	return branches, nil
 }
 
@@ -138,7 +143,7 @@ func paginateBranches(branches []BranchInfo, page int) []BranchInfo {
 }
 
 func GetOAuthRepositoryBranches(c *gin.Context) {
-	islog := true
+	islog := false
 	// facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	provider := c.Query("provider")
 	owner := c.Query("owner")
@@ -158,6 +163,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 
 	// repoID := gitcache.SanitizeRepoID(repoURL)
 	status := gitcache.GetStatus(repoURL)
+	// log.Printf("gitcache: %v", status)
 
 	if status == gitcache.StatusPending {
 		gitcache.TriggerClone(repoURL)

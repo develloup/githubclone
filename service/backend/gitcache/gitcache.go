@@ -118,8 +118,10 @@ func ensureBareRepo(repoURL, cacheRoot string) error {
 	repoPath := filepath.Join(cacheRoot, repoID)
 
 	if _, err := os.Stat(repoPath); os.IsNotExist(err) {
+		// log.Printf("initBareRepo: %s, %s", repoURL, repoPath)
 		return initBareRepo(repoURL, repoPath)
 	}
+	// log.Printf("updateBareRepo: %s, %s", repoURL, repoPath)
 	return updateBareRepo(repoPath)
 }
 
