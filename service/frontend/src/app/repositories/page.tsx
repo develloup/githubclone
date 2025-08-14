@@ -21,7 +21,7 @@ const RepositoriesPage = () => {
 
   return (
     <div className="mx-auto w-[800px] p-6 flex">
-      {/* Linke Spalte (25%) */}
+      {/* Left column (25%) */}
       <div className="w-[25%] pr-4">
         <div className="flex flex-col items-center">
           <img src="/avatar.jpg" alt="Avatar" className="w-[260px] h-[260px] rounded-full" />
@@ -51,9 +51,9 @@ const RepositoriesPage = () => {
         </div>
       </div>
 
-      {/* Rechte Spalte (75%) */}
+      {/* Right column (75%) */}
       <div className="w-[75%] space-y-6">
-        {/* Suchbox & Filter-Buttons */}
+        {/* Search box and filter buttons */}
         <div className="flex items-center space-x-4">
           <Input placeholder="Search repositories..." value={search} onChange={(e) => setSearch(e.target.value)} />
           <DropdownMenu>

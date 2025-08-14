@@ -50,6 +50,7 @@ func main() {
 	// Initialize the database connection
 	db.InitDB()
 	db.AutoMigrate()
+	db.DefaultEntries()
 
 	ctx := context.Background()
 	mlc, err := cache.NewMultiLevelCache(redisAddr, time.Minute)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -106,4 +107,32 @@ func AutoMigrate() error {
 	}
 	err := initializePermissions()
 	return err
+}
+
+func DefaultEntries() error {
+	var count int64
+	if err := DB.Model(&models.User{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("cannot determine number of users: %w", err)
+	}
+	if count == 0 {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+		if err != nil {
+			return fmt.Errorf("cannot encrypt password: %w", err)
+		}
+		admin := models.User{
+			Username:     "admin",
+			Email:        "",
+			PasswordHash: string(hashedPassword),
+			Description:  "The admin user for management",
+			Deactivated:  false,
+			Deletable:    false,
+			PasswordSet:  true,
+			UserType:     "admin",
+		}
+
+		if err := DB.Create(&admin).Error; err != nil {
+			return fmt.Errorf("cannot create first user: %w", err)
+		}
+	}
+	return nil
 }
