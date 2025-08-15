@@ -36,21 +36,24 @@ type userType struct {
 }
 
 type UserInput struct {
-	Username    string              `json:"name" binding:"required"`
-	Email       string              `json:"email" binding:"required,email"`
-	Description string              `json:"description"`
-	Deactivated bool                `json:"deactivated"`
-	PasswordSet bool                `json:"passwordset"`
-	UserType    string              `json:"type" binding:"required"`
-	Permissions []models.Permission `json:"permissions"`
+	Username     string              `json:"name" binding:"required"`
+	Email        string              `json:"email" binding:"required,email"`
+	Description  string              `json:"description"`
+	Deactivated  bool                `json:"deactivated"`
+	PasswordSet  bool                `json:"passwordset"`
+	PasswordHash string              `json:"passwordhash"`
+	UserType     string              `json:"type" binding:"required"`
+	Permissions  []models.Permission `json:"permissions"`
 }
 
 func convertToUser(input UserInput) models.User {
 	tnow := time.Now()
+	hash, _ := bcrypt.GenerateFromPassword([]byte(input.PasswordHash), bcrypt.DefaultCost)
+	hashstr := string(hash)
 	user := models.User{
 		Username:       input.Username,
 		Email:          input.Email,
-		PasswordHash:   "",
+		PasswordHash:   hashstr,
 		CreatedAt:      tnow, // Set current time
 		UpdatedAt:      tnow, // identical for first update
 		PasswordExpiry: nil,

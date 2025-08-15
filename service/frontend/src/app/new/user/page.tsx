@@ -28,6 +28,7 @@ interface FormData {
     type: UserType | ""
     deactivated: boolean
     passwordset: boolean
+    passwordhash: string
     permissions: Permission[]
 }
 
@@ -40,8 +41,23 @@ export default function CreateUserForm() {
         type: "",
         deactivated: false,
         passwordset: true,
+        passwordhash: "",
         permissions: [],
     })
+
+    function generatePassword(): string {
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+        let pass = ""
+        for (let i = 0; i < 12; i++) {
+            pass += charset.charAt(Math.floor(Math.random() * charset.length))
+        }
+        return pass
+    }
+
+    function copyToClipboard(password: string) {
+        navigator.clipboard.writeText(password)
+
+    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
@@ -72,9 +88,11 @@ export default function CreateUserForm() {
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
 
+        const tempPassword = generatePassword()
         // Transform permissions into array of objects
         const payload = {
             ...formData,
+            passwordhash: tempPassword,
             permissions: formData.permissions.map(p => ({ Name: p })),
         }
 
@@ -89,15 +107,16 @@ export default function CreateUserForm() {
 
             if (!response.ok) {
                 const result = await response.json()
-                toast.error(result.error ?? "Unknown error occurred.", {duration: 3000})
+                toast.error(result.error ?? "Unknown error occurred.", { duration: 3000 })
                 return
             }
 
-            toast.success("User created successfully!", {duration: 2000, })
+            toast.success("User created successfully!", { duration: 2000, })
+            copyToClipboard(tempPassword)
             router.push("/")
         } catch (err) {
             console.error("Error creating user:", err)
-            toast.error("Failed to create user. See console for details.", {duration: 3000})
+            toast.error("Failed to create user. See console for details.", { duration: 3000 })
         }
     }, [formData])
 

@@ -195,12 +195,22 @@ func GetConnection(c *gin.Context) {
 
 func GetAllConnections(c *gin.Context) {
 	var connections []connectionType
+	excludeUserId := c.Query("exclude")
 
-	if err := db.DB.Model(&models.Connection{}).
+	query := db.DB.Model(&models.Connection{}).
 		Clauses(clause.Locking{Strength: "SHARE"}).
 		Select("id, connection_name, type, url, client_id, client_secret, description").
-		Where("deactivated = ?", false).
-		Find(&connections).Error; err != nil {
+		Where("deactivated = ?", false)
+
+	if excludeUserId != "" {
+		// subquery: all connections, which are not linked to the user
+		query = query.Where("id NOT IN (?)",
+			db.DB.Table("user_connections").
+				Select("connection_id").
+				Where("user_id = ?", excludeUserId),
+		)
+	}
+	if err := query.Find(&connections).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve connections"})
 		return
 	}

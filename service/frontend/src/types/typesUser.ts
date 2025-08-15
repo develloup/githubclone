@@ -19,4 +19,28 @@ type OAuthUser = {
   };
 };
 
+type UserType = {
+  userid: number
+  name: string
+  email: string
+  description: string
+}
+
+type ConnectionType = {
+  connectionid: number
+  name: string
+  type: string
+  clientid: string
+  clientsecret: string
+  description: string
+}
+
+type UserConnection = {
+  user_id: number
+  connection_id: number
+  user_name: string
+  connection_name: string
+}
+
 export type { User, OAuthUser };
+export type { UserType, ConnectionType, UserConnection };
