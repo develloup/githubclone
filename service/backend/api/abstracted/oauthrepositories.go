@@ -66,7 +66,7 @@ func GetOAuthRepositories(c *gin.Context) {
 			}
 
 			if !found || githubData == nil {
-				log.Printf("Make graphql request for GetOAuthRepositories")
+				// log.Printf("Make graphql request for GetOAuthRepositories")
 				githubData, err = common.SendGraphQLQuery[github.GitHubRepositoriesOfViewer](
 					graphqlgithubprefix+endpoint+graphqlgithubpath,
 					github.GithubRepositoriesOfViewerQuery,

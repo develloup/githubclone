@@ -36,8 +36,17 @@ type RepositoryBranchInfo = {
   };
 };
 
-type OAuthRepositoryBranchInfo = {
+type OAuthRepositoryBranchInfoData = {
   data: RepositoryBranchInfo;
+}
+
+type OAuthRepositoryBranchInfo = {
+  active?: OAuthRepositoryBranchInfoData;
+  stale?: OAuthRepositoryBranchInfoData;
+  yours?: OAuthRepositoryBranchInfoData;
+  all?: OAuthRepositoryBranchInfoData;
+  default?: OAuthRepositoryBranchInfoData;
+  
 }
 
 export type { OAuthRepositoryBranchInfo, RepositoryBranchInfo, RepositoryBranchNode, RepositoryBranchProtectionRule };

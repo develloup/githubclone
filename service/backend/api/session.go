@@ -321,6 +321,52 @@ func Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 
+func UpdateConnectionsInSession(c *gin.Context) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil || sessionID == "" {
+		return
+	}
+	oauthConfigMutex.Lock()
+	result, exists := sessionConfig[sessionID]
+	if !exists {
+		oauthConfigMutex.Unlock()
+		return
+	}
+	loggedinuser := make(map[string]string)
+	for key, value := range result.user {
+		loggedinuser[key] = value
+	}
+	var user models.User
+	if err := db.DB.Where("username = ?", loggedinuser["username"]).First(&user).Error; err != nil {
+		oauthConfigMutex.Unlock()
+		return
+	}
+	var userConnections []models.Connection
+	if err := db.DB.Model(&user).Association("Connections").Find(&userConnections); err != nil {
+		userConnections = []models.Connection{}
+	}
+	for _, connection := range userConnections {
+		config, err := getOAuth2Config(connection.ClientID, connection.ClientSecret, OAuthProvider(connection.Type), connection.URL)
+		if err != nil {
+			oauthConfigMutex.Unlock()
+			return
+		}
+		sessionConfig[sessionID].config[OAuthProvider(connection.Type)] = OAuthProviderType{
+			token:         nil,
+			url:           fmt.Sprintf("%s/api/login/%s?state=%s", internBaseURL, connection.Type, sessionID),
+			oauthconfig:   config,
+			connectionURL: connection.URL,
+			connectionID:  connection.ID,
+		}
+	}
+	// copy structure to provide an answer
+	loginURLs := make(map[string]string)
+	for key, value := range sessionConfig[sessionID].config {
+		loginURLs[string(key)] = value.url
+	}
+	oauthConfigMutex.Unlock()
+}
+
 func LoginProvider(c *gin.Context) {
 	provider := c.Param("provider")
 	sessionID := c.Query("state")

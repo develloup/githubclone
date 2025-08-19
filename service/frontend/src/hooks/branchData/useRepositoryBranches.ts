@@ -26,7 +26,7 @@ export function useRepositoryBranches(
             }
 
             if (res.status === 202) {
-                const delay = Math.min(baseDelay + attempt * 75, 1000); // lineares Wachstum
+                const delay = Math.min(baseDelay + attempt * 75, 1000); // linear growth
                 await new Promise(resolve => setTimeout(resolve, delay));
                 continue;
             }

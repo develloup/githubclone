@@ -34,7 +34,41 @@ func parseGitDate(dateStr string) (time.Time, error) {
 	return time.Parse(gitFormat, dateStr)
 }
 
-func getSortedBranches(repoPath string, islog bool) ([]BranchInfo, error) {
+func getDefaultBranch(repoURL string) (string, string, error) {
+	cmd := exec.Command("git", "ls-remote", "--symref", repoURL, "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", "", fmt.Errorf("git ls-remote failed: %w", err)
+	}
+
+	var branchName string
+	var commitHash string
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Line with branch name
+		if strings.HasPrefix(line, "ref: refs/heads/") && strings.HasSuffix(line, "\tHEAD") {
+			parts := strings.Split(line, "\t")
+			branchName = strings.TrimPrefix(parts[0], "ref: refs/heads/")
+		}
+
+		// Line with commit hash
+		if strings.HasSuffix(line, "\tHEAD") && !strings.HasPrefix(line, "ref:") {
+			parts := strings.Split(line, "\t")
+			commitHash = parts[0]
+		}
+	}
+
+	if branchName == "" || commitHash == "" {
+		return "", "", fmt.Errorf("could not parse branch or commit hash")
+	}
+
+	return branchName, commitHash, nil
+}
+
+func getSortedBranches(defaultBranch BranchInfo, repoPath string, islog bool) ([]BranchInfo, error) {
 	cmd := exec.Command("git", "-C", repoPath,
 		"for-each-ref", "refs/remotes/origin/",
 		"--sort=-committerdate",
@@ -67,69 +101,45 @@ func getSortedBranches(repoPath string, islog bool) ([]BranchInfo, error) {
 		if islog {
 			log.Printf("%s, %s, %v", parts[0], parts[1], commitTime)
 		}
-		branches = append(branches, BranchInfo{
-			Name:       parts[0],
-			CommitHash: parts[1],
-			CommitDate: commitTime,
-		})
+		if parts[0] != defaultBranch.Name {
+			branches = append(branches, BranchInfo{
+				Name:       parts[0],
+				CommitHash: parts[1],
+				CommitDate: commitTime,
+			})
+		}
 	}
-
 	return branches, nil
 }
 
 func BuildRepositoryBranchInfo(branches []BranchInfo) github.RepositoryBranchInfo {
 	var result github.RepositoryBranchInfo
 
-	// Default PageInfo (leer oder manuell setzen)
+	// Default PageInfo (set empty or manually)
 	result.Data.Repository.Refs.PageInfo = common.PageInfoNext{
 		HasNextPage: false,
 		EndCursor:   "",
 	}
 
 	for _, b := range branches {
-		node := struct {
-			Name   string `json:"name"`
-			Target struct {
-				CommittedDate string `json:"committedDate"`
-				CheckSuites   struct {
-					Nodes []struct {
-						Status     string `json:"status"`
-						Conclusion string `json:"conclusion"`
-					} `json:"nodes"`
-				} `json:"checkSuites"`
-				AssociatedPullRequests struct {
-					TotalCount int `json:"totalCount"`
-				} `json:"associatedPullRequests"`
-			} `json:"target"`
-		}{}
-
+		node := github.RepositoryBranchInfoNode{}
 		node.Name = b.Name
 		node.Target.CommittedDate = b.CommitDate.Format(time.RFC3339)
 
-		// Placeholder für leere/nicht abgefragte Werte
-		node.Target.CheckSuites.Nodes = []struct {
-			Status     string `json:"status"`
-			Conclusion string `json:"conclusion"`
-		}{}
+		// Placeholder for empty or not requested values
+		node.Target.CheckSuites.Nodes = []github.RepositoryBranchCheckSuitesInfoNode{}
 
 		node.Target.AssociatedPullRequests.TotalCount = 0
 
 		result.Data.Repository.Refs.Nodes = append(result.Data.Repository.Refs.Nodes, node)
 	}
 
-	// BranchProtectionRules leer lassen – wird später gefüllt
-	result.Data.Repository.BranchProtectionRules.Nodes = []struct {
-		Pattern                      string `json:"pattern"`
-		RequiresApprovingReviews     bool   `json:"requiresApprovingReviews"`
-		RequiredApprovingReviewCount int    `json:"requiredApprovingReviewCount"`
-		IsAdminEnforced              bool   `json:"isAdminEnforced"`
-	}{}
-
+	// BranchProtectionRules left empty, will be filled later
+	result.Data.Repository.BranchProtectionRules.Nodes = []github.RepositoryBranchProtectionRule{}
 	return result
 }
 
-func paginateBranches(branches []BranchInfo, page int) []BranchInfo {
-	const pageSize = 20
+func paginateBranches(branches []BranchInfo, page int, pageSize int) []BranchInfo {
 	start := (page - 1) * pageSize
 	end := start + pageSize
 
@@ -142,18 +152,37 @@ func paginateBranches(branches []BranchInfo, page int) []BranchInfo {
 	return branches[start:end]
 }
 
+func filterActive(branches []BranchInfo) []BranchInfo {
+	return branches
+}
+
+func filterStale(branches []BranchInfo) []BranchInfo {
+	return branches
+}
+
+func filterYours(branches []BranchInfo) []BranchInfo {
+	return branches
+}
+
 func GetOAuthRepositoryBranches(c *gin.Context) {
 	islog := false
 	// facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
 	provider := c.Query("provider")
 	owner := c.Query("owner")
 	name := c.Query("name")
-	pageStr := c.DefaultQuery("page", "1") // Fallback auf Seite 1
+	filterStr := c.DefaultQuery("tab", "0")
+	pageStr := c.DefaultQuery("page", "1") // Fallback to page 1
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page parameter"})
 		return
 	}
+	filter, err := strconv.Atoi(filterStr)
+	if err != nil || filter < 0 || filter > 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid filter parameter"})
+		return
+	}
+
 	repoURL := fmt.Sprintf("%s/%s/%s", githuburl, owner, name)
 
 	if repoURL == "" {
@@ -183,7 +212,17 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 
 	// StatusReady
 	err = gitcache.AccessRepo(repoURL, func(repoPath string) error {
-		branches, err := getSortedBranches(repoPath, islog)
+		defaultBranch, commitHash, err := getDefaultBranch(repoURL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return err
+		}
+		defBranchInfo := BranchInfo{
+			Name:       defaultBranch,
+			CommitHash: commitHash,
+			CommitDate: time.Now(),
+		}
+		branches, err := getSortedBranches(defBranchInfo, repoPath, islog)
 		// if islog {
 		// 	log.Printf("branches: %v", branches)
 		// }
@@ -191,7 +230,52 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return err
 		}
-		c.JSON(http.StatusOK, gin.H{provider: BuildRepositoryBranchInfo(paginateBranches(branches, page))})
+		switch filter {
+		case 0:
+			// Overview
+			c.JSON(http.StatusOK, gin.H{
+				provider: gin.H{
+					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 5)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 5)),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+				},
+			})
+		case 1:
+			// Active
+			c.JSON(http.StatusOK, gin.H{
+				provider: gin.H{
+					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 20)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 1)),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+				},
+			})
+		case 2:
+			// Stale
+			c.JSON(http.StatusOK, gin.H{
+				provider: gin.H{
+					"stale":   BuildRepositoryBranchInfo(paginateBranches(filterStale(branches), page, 20)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 1)),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+				},
+			})
+		case 3:
+			// All
+			c.JSON(http.StatusOK, gin.H{
+				provider: gin.H{
+					"all":     BuildRepositoryBranchInfo(paginateBranches(branches, page, 20)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 1)),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+				},
+			})
+		default:
+			// Yours
+			c.JSON(http.StatusOK, gin.H{
+				provider: gin.H{
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 20)),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+				},
+			})
+		}
 		return nil
 	})
 

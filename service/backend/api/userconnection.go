@@ -76,6 +76,7 @@ func CreateUserConnection(c *gin.Context) {
 		}
 		return
 	}
+	UpdateConnectionsInSession(c)
 	c.JSON(http.StatusCreated, gin.H{
 		"message":        "user connection created successfully",
 		"userConnection": userConnection,
@@ -91,7 +92,7 @@ func DeleteUserConnection(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete userconnection"})
 		return
 	}
-
+	UpdateConnectionsInSession(c)
 	c.JSON(http.StatusOK, gin.H{"message": "userconnection deleted successfully"})
 }
 

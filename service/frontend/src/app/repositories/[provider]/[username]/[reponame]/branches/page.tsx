@@ -38,11 +38,23 @@ export default function BranchesPage() {
         reponame
     })
 
-    const branchTable = branches?.data?.repository?.refs?.nodes ?? [];
+    console.log("Branches=", branches)
+    const branchTable = branches?.active?.data?.repository?.refs?.nodes ?? [];
+    const yoursTable = branches?.yours?.data?.repository?.refs?.nodes ?? [];
+    const defaultBranch = branches?.default?.data?.repository?.refs?.nodes ?? [];
+
+    const tabs = [
+        { label: "Overview", href: `${currentPath}` },
+        { label: "Yours", href: `${currentPath}/yours`, condition: yoursTable?.length > 0 },
+        { label: "Active", href: `${currentPath}/active` },
+        { label: "Stale", href: `${currentPath}/stale` },
+        { label: "All", href: `${currentPath}/all` },
+    ];
+
 
     return (
         <div className="max-w-[1340px] mx-auto px-4 py-6 space-y-6 mt-12">
-            {/* 🏷️ Titel + Button */}
+            {/* Title + Button */}
             <div className="flex justify-between items-center">
                 <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">Branches</h1>
                 <Dialog>
@@ -66,45 +78,40 @@ export default function BranchesPage() {
                 </Dialog>
             </div>
 
-            {/* 🗂️ Tabs */}
             <div className="flex flex-wrap gap-2 text-sm border-b pb-2">
-                {[
-                    { label: "Overview", href: `${currentPath}` },
-                    { label: "Yours", href: `${currentPath}/yours` },
-                    { label: "Active", href: `${currentPath}/active` },
-                    { label: "Stale", href: `${currentPath}/stale` },
-                    { label: "All", href: `${currentPath}/all` },
-                ].map(({ label, href }) => (
-                    <Link
-                        key={label}
-                        href={href}
-                        className="px-3 py-1 rounded-t bg-muted hover:bg-muted/70 font-medium"
-                    >
-                        {label}
-                    </Link>
-                ))}
+                {tabs
+                    .filter(tab => tab.condition !== false) // filtere Tabs mit condition === false raus
+                    .map(({ label, href }) => (
+                        <Link
+                            key={label}
+                            href={href}
+                            className="px-3 py-1 rounded-t bg-muted hover:bg-muted/70 font-medium"
+                        >
+                            {label}
+                        </Link>
+                    ))}
             </div>
 
-            {/* 🔎 Suchfeld */}
+            {/* Searchbox */}
             <Input
                 placeholder="Search branches…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
             />
 
-            {/* 📁 Default */}
+            {/* Default */}
             <section>
                 <h2 className="text-sm font-semibold mt-4 mb-2">Default</h2>
-                <BranchTable branches={branchTable} />
+                <BranchTable branches={defaultBranch} />
             </section>
 
-            {/* 📁 Yours */}
+            {/* Yours */}
             <section>
                 <h2 className="text-sm font-semibold mt-6 mb-2">Your branches</h2>
-                <BranchTable branches={branchTable} />
+                <BranchTable branches={yoursTable} />
             </section>
 
-            {/* 📁 Active */}
+            {/* Active */}
             <section>
                 <h2 className="text-sm font-semibold mt-6 mb-2">Active branches</h2>
                 <BranchTable branches={branchTable} />
@@ -143,7 +150,6 @@ function BranchTable({ branches }: { branches: RepositoryBranchNode[] }) {
                         <Button variant="ghost" size="icon">
                             <DeleteIcon className="w-auto min-w-0" />
                         </Button>
-
                         {/* Menu with ellipsis */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
