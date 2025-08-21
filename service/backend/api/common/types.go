@@ -8,6 +8,6 @@ type PageInfo struct {
 }
 
 type PageInfoNext struct {
-	HasNextPage bool   `json:"hasNextPage"`
-	EndCursor   string `json:"endCursor"`
+	HasPreviousPage bool `json:"hasPreviousPage"`
+	HasNextPage     bool `json:"hasNextPage"`
 }

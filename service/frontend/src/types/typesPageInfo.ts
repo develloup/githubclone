@@ -1,7 +1,7 @@
 
 type PageInfoNext = {
   hasNextPage: boolean;
-  endCursor: string;
+  hasPreviousPage: boolean;
 };
 
 

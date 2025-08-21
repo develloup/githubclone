@@ -12,12 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useParams, usePathname } from "next/navigation";
-import { DeleteIcon, EllipsisIcon } from "@/components/Icons";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import { useRepositoryBranchLogic } from "@/hooks/branchData/useRepositoryBranchLogic";
-import { RepositoryBranchNode } from "@/types/typesBranch";
-import { formatRelativeTime } from "@/lib/format";
+import { BranchTable } from "@/components/BranchTable";
 
 export default function BranchesPage() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -26,6 +23,10 @@ export default function BranchesPage() {
         username: string;
         reponame: string;
     };
+    const searchParams = useSearchParams();
+    const rawPage = searchParams.get("page") ?? "1";
+    const parsedPage = parseInt(rawPage ?? "", 10);
+    const page = isNaN(parsedPage) ? 1 : parsedPage;
 
     const currentPath = usePathname();
     // const router = useRouter();
@@ -36,11 +37,13 @@ export default function BranchesPage() {
         provider,
         username,
         reponame,
-        tab: '4'
+        tab: '4',
+        page: page.toString()
     })
 
     console.log("Branches=", branches)
     const branchTable = branches?.yours?.data?.repository?.refs?.nodes ?? [];
+    const pageInfo = branches?.yours?.data?.repository?.refs?.pageInfo;
     const yoursTable = branches?.yours?.data?.repository?.refs?.nodes ?? [];
 
     const basePath = currentPath.split("/").slice(0, -1).join("/");
@@ -115,59 +118,8 @@ export default function BranchesPage() {
             {/* Active */}
             <section>
                 <h2 className="text-sm font-semibold mt-6 mb-2">Your branches</h2>
-                <BranchTable branches={branchTable} />
+                <BranchTable branches={branchTable} pageInfo={pageInfo} currentPage={page} currentPath={currentPath}/>
             </section>
-        </div>
-    );
-}
-
-function BranchTable({ branches }: { branches: RepositoryBranchNode[] }) {
-    if (!branches || branches.length === 0) {
-        return <p className="text-muted-foreground">No branches found.</p>;
-    }
-
-    return (
-        <div className="rounded-lg border overflow-hidden text-sm">
-            {/* Header */}
-            <div className="grid [grid-template-columns:50%_15%_11%_11%_9%_4%] bg-muted text-muted-foreground px-3 py-2 text-xs font-semibold">
-                <div>Branch</div>
-                <div>Updated</div>
-                <div>Check status</div>
-                <div>Behind | Ahead</div>
-                <div>Pull request</div>
-                <div className="text-right"></div>
-            </div>
-
-            {/* Rows */}
-            {branches.map((branch, idx) => (
-                <div key={idx} className="grid [grid-template-columns:50%_15%_11%_11%_9%_4%] px-3 py-2 border-b last:border-b-0 items-center text-xs    ">
-                    <div>{branch.name}</div>
-                    <div>{formatRelativeTime(branch.target.committedDate)}</div>
-                    <div>{branch.target.checkSuites.nodes[0]?.status ?? ""}</div>
-                    <div>behind 8</div>
-                    <div>{branch.target.associatedPullRequests.totalCount}</div>
-                    <div className="flex items-center justify-end gap-[2px]">
-                        {/* Delete-Button */}
-                        <Button variant="ghost" size="icon">
-                            <DeleteIcon className="w-auto min-w-0" />
-                        </Button>
-                        {/* Menu with ellipsis */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <EllipsisIcon className="w-auto min-w-0" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem>New pull request</DropdownMenuItem>
-                                <DropdownMenuItem>New activity</DropdownMenuItem>
-                                <DropdownMenuItem>View rules</DropdownMenuItem>
-                                <DropdownMenuItem>Rename branch</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </div>
-            ))}
         </div>
     );
 }

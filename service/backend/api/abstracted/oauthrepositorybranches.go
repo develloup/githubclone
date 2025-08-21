@@ -146,14 +146,10 @@ func getSortedBranches(defaultBranch *BranchInfo, repoPath string, oauthuser str
 	return branches, yourbranches, nil
 }
 
-func BuildRepositoryBranchInfo(branches []BranchInfo) github.RepositoryBranchInfo {
+func BuildRepositoryBranchInfo(branches []BranchInfo, pageinfo common.PageInfoNext) github.RepositoryBranchInfo {
 	var result github.RepositoryBranchInfo
 
-	// Default PageInfo (set empty or manually)
-	result.Data.Repository.Refs.PageInfo = common.PageInfoNext{
-		HasNextPage: false,
-		EndCursor:   "",
-	}
+	result.Data.Repository.Refs.PageInfo = pageinfo
 
 	for _, b := range branches {
 		node := github.RepositoryBranchInfoNode{}
@@ -173,17 +169,22 @@ func BuildRepositoryBranchInfo(branches []BranchInfo) github.RepositoryBranchInf
 	return result
 }
 
-func paginateBranches(branches []BranchInfo, page int, pageSize int) []BranchInfo {
+func paginateBranches(branches []BranchInfo, page int, pageSize int) ([]BranchInfo, common.PageInfoNext) {
 	start := (page - 1) * pageSize
 	end := start + pageSize
+	pageinfo := common.PageInfoNext{}
 
 	if start >= len(branches) {
-		return []BranchInfo{}
+		pageinfo.HasPreviousPage = len(branches) > 0
+		pageinfo.HasNextPage = false
+		return []BranchInfo{}, pageinfo
 	}
 	if end > len(branches) {
 		end = len(branches)
 	}
-	return branches[start:end]
+	pageinfo.HasPreviousPage = page > 1 && len(branches) > 0
+	pageinfo.HasNextPage = end < len(branches) && len(branches) > 0
+	return branches[start:end], pageinfo
 }
 
 func filterActive(branches []BranchInfo) []BranchInfo {
@@ -288,6 +289,8 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return err
 		}
+
+		pageinfodef := common.PageInfoNext{HasPreviousPage: false, HasNextPage: false}
 		switch filter {
 		case 0:
 			// Overview
@@ -295,7 +298,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 				provider: gin.H{
 					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 5)),
 					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 5)),
-					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
 		case 1:
@@ -304,7 +307,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 				provider: gin.H{
 					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 20)),
 					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
-					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
 		case 2:
@@ -313,7 +316,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 				provider: gin.H{
 					"stale":   BuildRepositoryBranchInfo(paginateBranches(filterStale(branches), page, 20)),
 					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
-					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
 		case 3:
@@ -322,7 +325,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 				provider: gin.H{
 					"all":     BuildRepositoryBranchInfo(paginateBranches(branches, page, 20)),
 					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
-					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
 		default:
@@ -330,7 +333,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
 					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 20)),
-					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
+					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
 		}
