@@ -35,7 +35,8 @@ export default function BranchesPage() {
     } = useRepositoryBranchLogic({
         provider,
         username,
-        reponame
+        reponame,
+        tab: '4'
     })
 
     console.log("Branches=", branches)
@@ -46,12 +47,11 @@ export default function BranchesPage() {
 
     const tabs = [
         { label: "Overview", href: `${basePath}` },
-        { label: "Yours", href: `${basePath}/yours`, condition: yoursTable?.length > 0 },
+        { label: "Yours", href: `${basePath}/yours`, disabled: !(yoursTable?.length > 0) },
         { label: "Active", href: `${basePath}/active` },
         { label: "Stale", href: `${basePath}/stale` },
         { label: "All", href: `${basePath}/all` },
     ];
-
 
     return (
         <div className="max-w-[1340px] mx-auto px-4 py-6 space-y-6 mt-12">
@@ -80,17 +80,29 @@ export default function BranchesPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 text-sm border-b pb-2">
-                {tabs
-                    .filter(tab => tab.condition !== false) // filtere Tabs mit condition === false raus
-                    .map(({ label, href }) => (
+                {tabs.map(({ label, href, disabled }) => {
+                    const isActive = currentPath === href;
+
+                    return (
                         <Link
                             key={label}
                             href={href}
-                            className="px-3 py-1 rounded-t bg-muted hover:bg-muted/70 font-medium"
+                            className={`px-3 py-1 rounded-t font-medium ${disabled
+                                ? "bg-muted/30 text-muted-foreground cursor-not-allowed"
+                                : isActive
+                                    ? "bg-background border-b-2 border-primary text-primary"
+                                    : "bg-muted hover:bg-muted/70"
+                                }`}
+                            aria-disabled={disabled}
+                            tabIndex={disabled ? -1 : 0}
+                            onClick={e => {
+                                if (disabled) e.preventDefault();
+                            }}
                         >
                             {label}
                         </Link>
-                    ))}
+                    );
+                })}
             </div>
 
             {/* Searchbox */}

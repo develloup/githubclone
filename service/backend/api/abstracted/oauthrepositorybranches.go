@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
 	"githubclone-backend/gitcache"
@@ -18,9 +19,11 @@ import (
 )
 
 type BranchInfo struct {
-	Name       string    `json:"name"`
-	CommitHash string    `json:"commit"`
-	CommitDate time.Time `json:"date"`
+	Name           string    `json:"name"`
+	CommitHash     string    `json:"commit"`
+	CommitDate     time.Time `json:"date"`
+	CommitterName  string    `json:"committername"`
+	CommitterEmail string    `json:"committeremail"`
 }
 
 func parseGitDate(dateStr string) (time.Time, error) {
@@ -28,8 +31,12 @@ func parseGitDate(dateStr string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, dateStr); err == nil {
 		return t, nil
 	}
-
-	// Format 2: Git format with blanks "2022-08-01 15:54:13 +0000"
+	// Format 2: Git ISO8601 without blanks "2025-07-08T15:25:52+0200"
+	const gitIsoFormat = "2006-01-02T15:04:05-0700"
+	if t, err := time.Parse(gitIsoFormat, dateStr); err == nil {
+		return t, nil
+	}
+	// Format 3: Git format with blanks "2022-08-01 15:54:13 +0000"
 	const gitFormat = "2006-01-02 15:04:05 -0700"
 	return time.Parse(gitFormat, dateStr)
 }
@@ -68,29 +75,34 @@ func getDefaultBranch(repoURL string) (string, string, error) {
 	return branchName, commitHash, nil
 }
 
-func getSortedBranches(defaultBranch BranchInfo, repoPath string, islog bool) ([]BranchInfo, error) {
+func getSortedBranches(defaultBranch *BranchInfo, repoPath string, oauthuser string, oauthemail string, islog bool) ([]BranchInfo, []BranchInfo, error) {
 	cmd := exec.Command("git", "-C", repoPath,
 		"for-each-ref", "refs/remotes/origin/",
 		"--sort=-committerdate",
-		"--format=%(refname:short) %(objectname) %(committerdate:iso8601)")
+		"--format=%(refname:short) %(objectname) %(committerdate:format:%Y-%m-%dT%H:%M:%S%z) %(committername) %(committeremail)")
 
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("git command failed: %w", err)
+		return nil, nil, fmt.Errorf("git command failed: %w", err)
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	var branches []BranchInfo
-
+	var yourbranches []BranchInfo
 	for scanner.Scan() {
 		line := scanner.Text()
-		parts := strings.SplitN(line, " ", 3)
-		if len(parts) < 3 {
+		parts := strings.Fields(line)
+		if len(parts) < 5 {
 			continue
 		}
-		if islog {
-			log.Printf("line: %s", line)
+		// if islog {
+		// 	log.Printf("line: %s", line)
+		// }
+		branchName := parts[0]
+		if branchName == "origin" {
+			continue
 		}
+		branchName = strings.TrimPrefix(branchName, "origin/")
 		commitTime, err := parseGitDate(parts[2])
 		if err != nil {
 			if islog {
@@ -98,18 +110,40 @@ func getSortedBranches(defaultBranch BranchInfo, repoPath string, islog bool) ([
 			}
 			continue
 		}
-		if islog {
-			log.Printf("%s, %s, %v", parts[0], parts[1], commitTime)
-		}
-		if parts[0] != defaultBranch.Name {
+		committerName := parts[3]
+		committerEmail := parts[4]
+
+		// if islog {
+		// 	log.Printf("%s, %s, %v, %s <%s>", branchName, parts[1], commitTime, committerName, committerEmail)
+		// }
+		if branchName != defaultBranch.Name {
 			branches = append(branches, BranchInfo{
-				Name:       parts[0],
-				CommitHash: parts[1],
-				CommitDate: commitTime,
+				Name:           branchName,
+				CommitHash:     parts[1],
+				CommitDate:     commitTime,
+				CommitterName:  committerName,
+				CommitterEmail: committerEmail,
 			})
+			if strings.Contains(committerName, oauthuser) && strings.Contains(committerEmail, oauthemail) {
+				yourbranches = append(yourbranches, BranchInfo{
+					Name:           branchName,
+					CommitHash:     parts[1],
+					CommitDate:     commitTime,
+					CommitterName:  committerName,
+					CommitterEmail: committerEmail,
+				})
+			}
+		} else {
+			defaultBranch.CommitHash = parts[1]
+			defaultBranch.CommitDate = commitTime
+			defaultBranch.CommitterName = committerName
+			defaultBranch.CommitterEmail = committerEmail
+			if islog {
+				log.Printf("DefaultBranch: %v", defaultBranch)
+			}
 		}
 	}
-	return branches, nil
+	return branches, yourbranches, nil
 }
 
 func BuildRepositoryBranchInfo(branches []BranchInfo) github.RepositoryBranchInfo {
@@ -153,20 +187,38 @@ func paginateBranches(branches []BranchInfo, page int, pageSize int) []BranchInf
 }
 
 func filterActive(branches []BranchInfo) []BranchInfo {
-	return branches
+	var active []BranchInfo
+	threeMonth := time.Now().AddDate(0, -3, 0)
+
+	for _, b := range branches {
+		if b.CommitDate.After(threeMonth) {
+			active = append(active, b)
+		}
+	}
+	return active
 }
 
 func filterStale(branches []BranchInfo) []BranchInfo {
-	return branches
-}
+	var stale []BranchInfo
+	threeMonth := time.Now().AddDate(0, -3, 0)
 
-func filterYours(branches []BranchInfo) []BranchInfo {
-	return branches
+	for _, b := range branches {
+		if !b.CommitDate.After(threeMonth) {
+			stale = append(stale, b)
+		}
+	}
+	return stale
 }
 
 func GetOAuthRepositoryBranches(c *gin.Context) {
 	islog := false
 	// facade := c.MustGet("cacheFacade").(*cachable.CacheFacade)
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No session ID found in cookie"})
+		return
+	}
+
 	provider := c.Query("provider")
 	owner := c.Query("owner")
 	name := c.Query("name")
@@ -178,11 +230,12 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 		return
 	}
 	filter, err := strconv.Atoi(filterStr)
-	if err != nil || filter < 0 || filter > 3 {
+	if err != nil || filter < 0 || filter > 4 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid filter parameter"})
 		return
 	}
 
+	oauthuser, oauthemail, _ := api.GetOAuthUser(sessionID, api.OAuthProvider(provider))
 	repoURL := fmt.Sprintf("%s/%s/%s", githuburl, owner, name)
 
 	if repoURL == "" {
@@ -193,6 +246,9 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 	// repoID := gitcache.SanitizeRepoID(repoURL)
 	status := gitcache.GetStatus(repoURL)
 	// log.Printf("gitcache: %v", status)
+	if islog {
+		log.Printf("Username=%s, E-Mail=%s", oauthuser, oauthemail)
+	}
 
 	if status == gitcache.StatusPending {
 		gitcache.TriggerClone(repoURL)
@@ -212,20 +268,22 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 
 	// StatusReady
 	err = gitcache.AccessRepo(repoURL, func(repoPath string) error {
-		defaultBranch, commitHash, err := getDefaultBranch(repoURL)
+		defaultBranch, _, err := getDefaultBranch(repoURL)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return err
 		}
 		defBranchInfo := BranchInfo{
-			Name:       defaultBranch,
-			CommitHash: commitHash,
-			CommitDate: time.Now(),
+			Name: defaultBranch,
 		}
-		branches, err := getSortedBranches(defBranchInfo, repoPath, islog)
+		branches, yourbranches, err := getSortedBranches(&defBranchInfo, repoPath, oauthuser, oauthemail, islog)
 		// if islog {
 		// 	log.Printf("branches: %v", branches)
 		// }
+		if islog {
+			log.Printf("DefBranchInfo: %v", defBranchInfo)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return err
@@ -236,7 +294,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
 					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 5)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 5)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 5)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
 				},
 			})
@@ -245,7 +303,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
 					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 20)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 1)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
 				},
 			})
@@ -254,7 +312,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
 					"stale":   BuildRepositoryBranchInfo(paginateBranches(filterStale(branches), page, 20)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 1)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
 				},
 			})
@@ -263,7 +321,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
 					"all":     BuildRepositoryBranchInfo(paginateBranches(branches, page, 20)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 1)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
 				},
 			})
@@ -271,7 +329,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			// Yours
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(filterYours(branches), page, 20)),
+					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 20)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}),
 				},
 			})

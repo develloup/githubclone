@@ -98,6 +98,7 @@ func GetOAuthUser(c *gin.Context) {
 			}
 			// You're able to manipulate the data here or put it in the cache.
 			userdata[string(api.Github)] = githubData
+			api.SetOAuthUser(sessionID, key, githubData.Data.Viewer.Name, githubData.Data.Viewer.Email)
 		case api.Gitlab:
 			// log.Printf("gitlab found")
 			endpoint := value.URL
@@ -111,6 +112,7 @@ func GetOAuthUser(c *gin.Context) {
 			}
 			githubData := convertGitLabToGitHub(*gitlabData)
 			userdata[string(api.Gitlab)] = githubData
+			api.SetOAuthUser(sessionID, api.Gitlab, githubData.Data.Viewer.Name, githubData.Data.Viewer.Email)
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "unsupported provider", "details": key})
 			return
