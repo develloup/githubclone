@@ -45,6 +45,8 @@ type OAuthProviderType struct {
 	oauthconfig   *oauth2.Config // the oauth2 configuration values of the sessionf or a provider
 	connectionURL *string        // The connection URL to a ghes instance
 	connectionID  uint           // The primary key of the connection that is used
+	username      *string        // The name of the corresponding user
+	useremail     *string        // The E-Mail address of the corresponding user
 }
 
 type OAuthConfig struct {
@@ -620,6 +622,41 @@ func GetToken(sessionID string) (map[OAuthProvider]AccessToken, error) {
 	oauthConfigMutex.Unlock()
 	// log.Printf("AccessToken=%v", at)
 	return at, nil
+}
+
+func SetOAuthUser(sessionID string, provider OAuthProvider, username string, useremail string) error {
+	log.Printf("SetOAuthUser1: %s, %s, %s, %s", sessionID, string(provider), username, useremail)
+	oauthConfigMutex.Lock()
+	defer oauthConfigMutex.Unlock()
+	result, exists := sessionConfig[sessionID]
+	if !exists {
+		return fmt.Errorf("the session %s is not known", sessionID)
+	}
+	config := result.config[provider]
+	config.username = &username
+	config.useremail = &useremail
+	result.config[provider] = config
+	log.Printf("SetOAuthUser2: %s, %s, %s", string(provider), username, useremail)
+	return nil
+}
+
+func GetOAuthUser(sessionID string, provider OAuthProvider) (string, string, error) {
+	oauthConfigMutex.Lock()
+	defer oauthConfigMutex.Unlock()
+	log.Printf("GetOAuthUser1: %s, %s", sessionID, string(provider))
+	result, exists := sessionConfig[sessionID]
+	if !exists {
+		return "", "", fmt.Errorf("the session %s is not known", sessionID)
+	}
+	config, exists := result.config[provider]
+	if !exists {
+		return "", "", fmt.Errorf("the session %s is not known", sessionID)
+	}
+	log.Printf("GetOAuthUser2: %v, %v", config.username, config.useremail)
+	if config.username == nil || config.useremail == nil {
+		return "", "", fmt.Errorf("the user is not yet set")
+	}
+	return *config.username, *config.useremail, nil
 }
 
 func SessionRoutes(r *gin.Engine) {
