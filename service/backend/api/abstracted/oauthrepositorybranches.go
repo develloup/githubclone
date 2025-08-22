@@ -13,6 +13,7 @@ import (
 	"githubclone-backend/api"
 	"githubclone-backend/api/common"
 	"githubclone-backend/api/github"
+	"githubclone-backend/api/pageinfo"
 	"githubclone-backend/gitcache"
 
 	"github.com/gin-gonic/gin"
@@ -169,24 +170,6 @@ func BuildRepositoryBranchInfo(branches []BranchInfo, pageinfo common.PageInfoNe
 	return result
 }
 
-func paginateBranches(branches []BranchInfo, page int, pageSize int) ([]BranchInfo, common.PageInfoNext) {
-	start := (page - 1) * pageSize
-	end := start + pageSize
-	pageinfo := common.PageInfoNext{}
-
-	if start >= len(branches) {
-		pageinfo.HasPreviousPage = len(branches) > 0
-		pageinfo.HasNextPage = false
-		return []BranchInfo{}, pageinfo
-	}
-	if end > len(branches) {
-		end = len(branches)
-	}
-	pageinfo.HasPreviousPage = page > 1 && len(branches) > 0
-	pageinfo.HasNextPage = end < len(branches) && len(branches) > 0
-	return branches[start:end], pageinfo
-}
-
 func filterActive(branches []BranchInfo) []BranchInfo {
 	var active []BranchInfo
 	threeMonth := time.Now().AddDate(0, -3, 0)
@@ -296,8 +279,8 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			// Overview
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
-					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 5)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 5)),
+					"active":  BuildRepositoryBranchInfo(pageinfo.PaginateSlice(filterActive(branches), page, 5)),
+					"yours":   BuildRepositoryBranchInfo(pageinfo.PaginateSlice(yourbranches, page, 5)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
@@ -305,8 +288,8 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			// Active
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
-					"active":  BuildRepositoryBranchInfo(paginateBranches(filterActive(branches), page, 20)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
+					"active":  BuildRepositoryBranchInfo(pageinfo.PaginateSlice(filterActive(branches), page, 20)),
+					"yours":   BuildRepositoryBranchInfo(pageinfo.PaginateSlice(yourbranches, page, 1)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
@@ -314,8 +297,8 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			// Stale
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
-					"stale":   BuildRepositoryBranchInfo(paginateBranches(filterStale(branches), page, 20)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
+					"stale":   BuildRepositoryBranchInfo(pageinfo.PaginateSlice(filterStale(branches), page, 20)),
+					"yours":   BuildRepositoryBranchInfo(pageinfo.PaginateSlice(yourbranches, page, 1)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
@@ -323,8 +306,8 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			// All
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
-					"all":     BuildRepositoryBranchInfo(paginateBranches(branches, page, 20)),
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 1)),
+					"all":     BuildRepositoryBranchInfo(pageinfo.PaginateSlice(branches, page, 20)),
+					"yours":   BuildRepositoryBranchInfo(pageinfo.PaginateSlice(yourbranches, page, 1)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})
@@ -332,7 +315,7 @@ func GetOAuthRepositoryBranches(c *gin.Context) {
 			// Yours
 			c.JSON(http.StatusOK, gin.H{
 				provider: gin.H{
-					"yours":   BuildRepositoryBranchInfo(paginateBranches(yourbranches, page, 20)),
+					"yours":   BuildRepositoryBranchInfo(pageinfo.PaginateSlice(yourbranches, page, 20)),
 					"default": BuildRepositoryBranchInfo([]BranchInfo{defBranchInfo}, pageinfodef),
 				},
 			})

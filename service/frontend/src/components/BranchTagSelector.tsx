@@ -46,7 +46,7 @@ export function BranchTagSelector({
     const hasMoreBranches = totalBranches && totalBranches > branches.length;
     const hasTags = tags.length > 0;
 
-    const renderList = (items: string[], type: "branch" | "tag") => (
+    const renderList = (items: string[], type: "branch" | "tag" | "tree") => (
         <CommandList>
             {items.map((item) => (
                 <Link
@@ -86,7 +86,7 @@ export function BranchTagSelector({
                         <TabsContent value="branches">
                             {renderList(
                                 [defaultBranch, ...branches.filter((b) => b !== defaultBranch)],
-                                "branch"
+                                "tree"
                             )}
                             {hasMoreBranches && (
                                 <div className="px-3 py-2 text-xs text-muted-foreground">
@@ -108,7 +108,7 @@ export function BranchTagSelector({
                                     No tags available
                                 </div>
                             )}
-                            {hasTags && renderList(tags, "tag")}
+                            {hasTags && renderList(tags, "tree")}
                             <div className="px-3 py-2 text-xs text-muted-foreground">
                                 <Link href={`${curPath}/tags`} className="hover:underline">
                                     Show all tags

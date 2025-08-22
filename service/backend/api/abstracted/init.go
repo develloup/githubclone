@@ -12,4 +12,5 @@ func SetupRoutes(router *gin.Engine) {
 	router.GET("/api/oauth/repositorycontent", GetOAuthRepositoryContent)
 	router.GET("/api/oauth/commitscompare", GetOAuthCommitsCompare)
 	router.GET("/api/oauth/repositorybranches", GetOAuthRepositoryBranches)
+	router.GET("/api/oauth/repositorytags", GetOAuthRepositoryTags)
 }

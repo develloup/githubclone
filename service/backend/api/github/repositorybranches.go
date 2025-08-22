@@ -50,53 +50,53 @@ type RepositoryBranchInfo struct {
 	} `json:"data"`
 }
 
-var GithubRepositoryBranchesQuery = `query GetBranches($owner: String!, $name: String!, $first: Int!) {
-  repository(owner: $owner, name: $name) {
-    refs(refPrefix: "refs/heads/", first: $first) {
-	  pageInfo {
-	    hasNextPage
-		endCursor
-	  }
-      nodes {
-        name
-        target {
-          ... on Commit {
-		  	author {
-			  name
-			  user {
-			    login
-			  }
-			}
-            committedDate
-            checkSuites(first: 1) {
-              nodes {
-                status
-                conclusion
-              }
-            }
-            associatedPullRequests(first: 1) {
-              totalCount
-            }
-          }
-        }
-      }
-    }
-    branchProtectionRules(first: 5) {
-      nodes {
-        pattern
-        requiresApprovingReviews
-        requiredApprovingReviewCount
-        isAdminEnforced
-      }
-    }
-  }
-}
-`
+// var GithubRepositoryBranchesQuery = `query GetBranches($owner: String!, $name: String!, $first: Int!) {
+//   repository(owner: $owner, name: $name) {
+//     refs(refPrefix: "refs/heads/", first: $first) {
+// 	  pageInfo {
+// 	    hasNextPage
+// 		endCursor
+// 	  }
+//       nodes {
+//         name
+//         target {
+//           ... on Commit {
+// 		  	author {
+// 			  name
+// 			  user {
+// 			    login
+// 			  }
+// 			}
+//             committedDate
+//             checkSuites(first: 1) {
+//               nodes {
+//                 status
+//                 conclusion
+//               }
+//             }
+//             associatedPullRequests(first: 1) {
+//               totalCount
+//             }
+//           }
+//         }
+//       }
+//     }
+//     branchProtectionRules(first: 5) {
+//       nodes {
+//         pattern
+//         requiresApprovingReviews
+//         requiredApprovingReviewCount
+//         isAdminEnforced
+//       }
+//     }
+//   }
+// }
+// `
 
-type BranchInfoRest struct {
-	Name   string `json:"name"`
-	Commit struct {
-		SHA string `json:"sha"`
-	} `json:"commit"`
-	Protected bool `json:"protected"`
-}
+// type BranchInfoRest struct {
+// 	Name   string `json:"name"`
+// 	Commit struct {
+// 		SHA string `json:"sha"`
+// 	} `json:"commit"`
+// 	Protected bool `json:"protected"`
+// }

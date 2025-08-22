@@ -55,8 +55,8 @@ export default function ReleasePage() {
     const basePath = getParentPath(currentPath);
 
     return (
-        <div className="max-w-[1160px] mx-auto px-4 py-6 space-y-6 mt-12">
-            {/* 🔝 Header */}
+        <div className="max-w-[1340px] mx-auto px-4 py-6 space-y-6 mt-12">
+            {/* Header */}
             <div className="flex justify-between items-center">
                 <ReleaseTagSwitcher basePath={basePath} active="releases" />
                 <Input
@@ -69,12 +69,12 @@ export default function ReleasePage() {
 
             <Separator />
 
-            {/* 📦 Releases */}
+            {/* Releases */}
             {dummyReleases.map((release) => (
                 <ReleaseCard key={release.id} release={release} />
             ))}
 
-            {/* 🔽 Paginierung */}
+            {/* Pagination */}
             <div className="flex justify-center pt-6 text-sm gap-2 flex-wrap">
                 <Button variant="ghost" size="sm">&lt; Previous</Button>
                 {[1, 2, 3, 4, "...", 17, 18].map((item, idx) =>
@@ -99,7 +99,7 @@ function ReleaseCard({ release }: { release: Release }) {
 
     return (
         <div className="grid grid-cols-12 gap-6">
-            {/* 🔍 Left: Meta */}
+            {/* Left: Meta */}
             <div className="col-span-2 space-y-2 text-sm text-muted-foreground">
                 <div>{release.date}</div>
                 <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ function ReleaseCard({ release }: { release: Release }) {
                 </Button>
             </div>
 
-            {/* 📄 Right: Content */}
+            {/* Right: Content */}
             <div className="col-span-10 space-y-4 border rounded-lg px-4 py-4">
                 <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold">{release.title}</h3>
@@ -161,7 +161,7 @@ function ReleaseCard({ release }: { release: Release }) {
                     )}
                 </div>
 
-                {/* ✨ Reactions */}
+                {/* Reactions */}
                 {release.reactions && release.reactions.length > 0 && (
                     <div className="pt-2 text-xl">
                         {release.reactions.map((emoji, idx) => (
