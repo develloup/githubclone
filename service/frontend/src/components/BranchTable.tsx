@@ -24,6 +24,11 @@ export function BranchTable({
     if (!branches || branches.length === 0) {
         return <p className="text-muted-foreground">No branches found.</p>;
     }
+    // console.log("branches=          ", branches)
+    // console.log("moreBranchesLinks= ", moreBranchesLink)
+    // console.log("pageinfo=          ", pageInfo)
+    // console.log("currentPage=       ", currentPage)
+    // console.log("currentPath=       ", currentPath)
 
     return (
         <div className="rounded-lg border overflow-hidden text-sm">
@@ -76,7 +81,7 @@ export function BranchTable({
             )}
 
             {/* Optional: Pagination buttons */}
-            {(pageInfo?.hasPreviousPage && pageInfo?.hasNextPage) && (
+            {(pageInfo?.hasPreviousPage || pageInfo?.hasNextPage) && (
                 <div className="flex justify-center gap-4 py-4">
                     <Link
                         href={

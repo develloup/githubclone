@@ -625,7 +625,7 @@ func GetToken(sessionID string) (map[OAuthProvider]AccessToken, error) {
 }
 
 func SetOAuthUser(sessionID string, provider OAuthProvider, username string, useremail string) error {
-	log.Printf("SetOAuthUser1: %s, %s, %s, %s", sessionID, string(provider), username, useremail)
+	// log.Printf("SetOAuthUser1: %s, %s, %s, %s", sessionID, string(provider), username, useremail)
 	oauthConfigMutex.Lock()
 	defer oauthConfigMutex.Unlock()
 	result, exists := sessionConfig[sessionID]
@@ -636,14 +636,14 @@ func SetOAuthUser(sessionID string, provider OAuthProvider, username string, use
 	config.username = &username
 	config.useremail = &useremail
 	result.config[provider] = config
-	log.Printf("SetOAuthUser2: %s, %s, %s", string(provider), username, useremail)
+	// log.Printf("SetOAuthUser2: %s, %s, %s", string(provider), username, useremail)
 	return nil
 }
 
 func GetOAuthUser(sessionID string, provider OAuthProvider) (string, string, error) {
 	oauthConfigMutex.Lock()
 	defer oauthConfigMutex.Unlock()
-	log.Printf("GetOAuthUser1: %s, %s", sessionID, string(provider))
+	// log.Printf("GetOAuthUser1: %s, %s", sessionID, string(provider))
 	result, exists := sessionConfig[sessionID]
 	if !exists {
 		return "", "", fmt.Errorf("the session %s is not known", sessionID)
@@ -652,7 +652,7 @@ func GetOAuthUser(sessionID string, provider OAuthProvider) (string, string, err
 	if !exists {
 		return "", "", fmt.Errorf("the session %s is not known", sessionID)
 	}
-	log.Printf("GetOAuthUser2: %v, %v", config.username, config.useremail)
+	// log.Printf("GetOAuthUser2: %v, %v", config.username, config.useremail)
 	if config.username == nil || config.useremail == nil {
 		return "", "", fmt.Errorf("the user is not yet set")
 	}

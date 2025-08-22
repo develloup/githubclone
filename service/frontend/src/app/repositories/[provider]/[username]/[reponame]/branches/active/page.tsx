@@ -41,7 +41,7 @@ export default function BranchesPage() {
         page: page.toString()
     })
 
-    console.log("Branches=", branches)
+    // console.log("Branches=", branches)
     const branchTable = branches?.active?.data?.repository?.refs?.nodes ?? [];
     const pageInfo = branches?.active?.data?.repository?.refs?.pageInfo;
     const yoursTable = branches?.yours?.data?.repository?.refs?.nodes ?? [];
