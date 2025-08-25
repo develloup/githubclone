@@ -6,6 +6,7 @@ type RepositoryTagInfoNode struct {
 	Name   string `json:"name"`
 	Target struct {
 		CommittedDate string `json:"committedDate"`
+		CommittedHash string `json:"committedHash"`
 	} `json:"target"`
 }
 

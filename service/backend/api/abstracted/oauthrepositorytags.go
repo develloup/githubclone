@@ -74,6 +74,7 @@ func BuildRepositoryTagInfo(tags []TagInfo, pageinfo common.PageInfoNext) github
 		node := github.RepositoryTagInfoNode{}
 		node.Name = t.Name
 		node.Target.CommittedDate = t.CommitDate.Format(time.RFC3339)
+		node.Target.CommittedHash = t.CommitHash
 		result.Data.Repository.Refs.Nodes = append(result.Data.Repository.Refs.Nodes, node)
 	}
 	return result
@@ -131,9 +132,7 @@ func GetOAuthRepositoryTags(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			provider: gin.H{
-				"yours": BuildRepositoryTagInfo(pageinfo.PaginateSlice(tags, page, 10)),
-			},
+			provider: BuildRepositoryTagInfo(pageinfo.PaginateSlice(tags, page, 10)),
 		})
 
 		return nil

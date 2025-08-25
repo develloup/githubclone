@@ -43,7 +43,7 @@ export default function TagsPage() {
             </div>
             <Separator />
             <section>
-                <TagTable tags={tagTable} pageInfo={pageInfo} currentPage={page} currentPath={currentPath}/>
+                <TagTable tags={tagTable} pageInfo={pageInfo} currentPage={page} currentPath={currentPath} owner={username} repository={reponame}/>
             </section>
         </div>
     );

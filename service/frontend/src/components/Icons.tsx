@@ -15,8 +15,6 @@ const ActivityIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
-
-
 const ArrowUpIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -32,7 +30,6 @@ const ArrowUpIcon = ({ className = "", width = 24, height = 24 }) => (
     />
   </svg>
 );
-
 
 const ArrowUpThinIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg
@@ -79,7 +76,6 @@ const BulletListIcon = ({ className = "", width = 24, height = 24 }) => (
   </svg>
 );
 
-
 const CheckIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
     <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
@@ -117,7 +113,6 @@ const ChevronRightIcon = ({ className = "", width = 24, height = 24 }) => (
     />
   </svg>
 );
-
 
 const ClockIcon = ({ className = "", width = 24, height = 24 }) => (
   <svg width={width} height={height} fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -163,6 +158,20 @@ const ContributingIcon = ({ className = "", width = 24, height = 24 }) => (
     <path d="M14 2v4a2 2 0 0 0 2 2h4" />
     <path d="M2 15h10" />
     <path d="m9 18 3-3-3-3" />
+  </svg>
+);
+
+const CommitIcon = ({ className = "", width = 24, height = 24 }) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 0 32 32"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="M30,15H21.91A5.9925,5.9925,0,0,0,10.09,15H2v2h8.09A5.9925,5.9925,0,0,0,21.91,17H30ZM16,20a4,4,0,1,1,4-4A4.0045,4.0045,0,0,1,16,20Z" />
+    <rect width="32" height="32" fill="none" />
   </svg>
 );
 
@@ -769,6 +778,11 @@ const UserIcon = ({ className = "", width = 24, height = 24 }) => (
 );
 
 
-export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon, BalanceIcon, BulletListIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, DeleteIcon, DiscussionIcon, DropDownIcon, EllipsisIcon, EyeIcon, FileIcon, FolderCommitIcon, FolderIcon};
-export { ForkIcon, GistIcon, HistoryIcon, HomeIcon, IssuesIcon, LetterIcon, LinkIcon, LicenseIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon };
+export { ActivityIcon, ArrowUpIcon, ArrowUpThinIcon };
+export { BalanceIcon, BulletListIcon };
+export { CheckIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, CodeOfConductIcon, ContributingIcon, CommitIcon };
+export { DeleteIcon, DiscussionIcon, DropDownIcon };
+export { EllipsisIcon, EyeIcon };
+export { FileIcon, FolderCommitIcon, FolderIcon, ForkIcon };
+export { GistIcon, HistoryIcon, HomeIcon, IssuesIcon, LetterIcon, LinkIcon, LicenseIcon, LocationIcon, MagnifierIcon, MenuIcon, NewIcon };
 export { NotificationIcon, OverviewIcon, PencilIcon, PullRequestIcon, ProfileIcon, ProjectIcon, ReadmeIcon, RepositoryIcon, SecurityIcon, SettingIcon, SignInIcon, SignOutIcon, SmileyIcon, StarIcon, TagIcon, UserIcon };

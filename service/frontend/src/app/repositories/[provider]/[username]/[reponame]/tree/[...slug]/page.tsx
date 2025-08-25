@@ -22,7 +22,7 @@ export default function DirectoryPage() {
     const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
     const [centered, setCentered] = useState(false);
 
-    // 🔐 Tree-State persistieren
+    // Persist Tree-State 
     useEffect(() => {
         const saved = localStorage.getItem("expandedTree");
         if (saved) setExpanded(JSON.parse(saved));
@@ -45,7 +45,7 @@ export default function DirectoryPage() {
 
     return (
         <div className="flex w-full h-screen">
-            {/* 📁 Sidebar */}
+            {/* Sidebar */}
             {sidebarOpen && (
                 <aside className="w-[300px] border-r bg-muted/30 p-4 flex flex-col gap-4 mt-12">
                     <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ export default function DirectoryPage() {
                 </aside>
             )}
 
-            {/* 📂 Content */}
+            {/* Content */}
             <main
                 className={`mt-12 flex-1 p-6 space-y-6 ${centered ? "max-w-[1340px] mx-auto" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
@@ -141,7 +141,7 @@ export default function DirectoryPage() {
                     </div>
                 </div>
 
-                {/* Tabelle */}
+                {/* Table */}
                 <div className="border rounded-md text-sm overflow-hidden">
                     <div className="grid grid-cols-3 px-3 py-2 bg-muted font-semibold text-muted-foreground">
                         <div>Name</div>

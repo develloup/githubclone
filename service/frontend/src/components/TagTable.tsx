@@ -1,6 +1,6 @@
 import { PageInfoNext } from "@/types/typesPageInfo";
 import { RepositoryTagNode } from "@/types/typesTag";
-import { TagIcon } from "./Icons";
+import { CommitIcon, TagIcon } from "./Icons";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { Badge } from "./ui/badge";
@@ -11,6 +11,8 @@ type TagTableProps = {
     pageInfo?: PageInfoNext;
     currentPage?: number;
     currentPath?: string;
+    owner?: string;
+    repository?: string;
 };
 
 export function TagTable({
@@ -18,6 +20,8 @@ export function TagTable({
     pageInfo,
     currentPage = 1,
     currentPath = "",
+    owner = "",
+    repository = ""
 }: TagTableProps) {
     if (!tags || tags.length === 0) {
         return <p className="text-muted-foreground">No tags found.</p>;
@@ -45,32 +49,42 @@ export function TagTable({
                 <span>Tags</span>
             </div>
 
-                {/* Table Rows */}
-                {tags.map((tag) => (
-                    <div
-                        key={tag.name}
-                        className="border-b last:border-b-0  bg-background p-4 space-y-4 text-sm"
-                    >
-                        {/* Tag-Header with name & verified */}
-                        <div className="flex justify-between items-center">
-                            <span className="font-medium text-base">{tag.name}</span>
-                            {tag.name && (
-                                <Badge variant="secondary" className="whitespace-nowrap">Verified</Badge>
-                            )}
-                        </div>
+            {/* Table Rows */}
+            {tags.map((tag) => (
+                <div
+                    key={tag.name}
+                    className="border-b last:border-b-0  bg-background p-4 space-y-4 text-sm"
+                >
+                    {/* Tag-Header with name & verified */}
+                    <div className="flex justify-between items-center">
+                        <Link
+                            href={`${buildPathFromParent(currentPath, `releases/tag/${tag.name}`)}`}
+                            className="font-medium text-base text-primary hover:underline"
+                        >
+                            {tag.name}
+                        </Link>
 
-                        {/* Meta & Actions in one line */}
-                        <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-muted-foreground">
-                            <span>{tag.target.committedDate}</span>
-                            <span className="font-mono text-xs">{tag.target.committedDate}</span>
-
-                            {/* Notes-Button */}
-                            <Link href={`${buildPathFromParent(currentPath, `tag/${tag.name}`)}`}>
-                                <Button variant="default" size="sm" className="h-7 px-3">Notes</Button>
-                            </Link>
-                        </div>
+                        {tag.name && (
+                            <Badge variant="secondary" className="whitespace-nowrap">Verified</Badge>
+                        )}
                     </div>
-                ))}
+                    {/* Meta & Actions in one line */}
+                    <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-muted-foreground">
+                        <span>{tag.target.committedDate}</span>
+                        <Link
+                            href={`${buildPathFromParent(currentPath, `commit/${tag.target.committedHash}`)}`}
+                            className="inline-flex items-center gap-1 font-mono text-xs hover:underline"
+                        >
+                            <CommitIcon className="w-4 h-4" />
+                            <span>{tag.target.committedHash}</span>
+                        </Link>
+                        {/* Notes-Button */}
+                        <Link href={`${buildPathFromParent(currentPath, `releases/tag/${tag.name}`)}`}>
+                            <Button variant="default" size="sm" className="h-7 px-3">Notes</Button>
+                        </Link>
+                    </div>
+                </div>
+            ))}
 
             {/* Optional: Pagination buttons */}
             {(pageInfo?.hasPreviousPage || pageInfo?.hasNextPage) && (

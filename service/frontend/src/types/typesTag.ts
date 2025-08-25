@@ -5,6 +5,7 @@ type RepositoryTagNode = {
     name: string;
     target: {
         committedDate: string;
+        committedHash: string;
     }
 }
 
